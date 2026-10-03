@@ -23,12 +23,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Reproduce el bug: BookingPersistenceAdapter.save() usa Instant.now() como created_at
- * en cada guardado, así que al re-guardar una reserva existente (p. ej. al cancelarla)
- * se pierde la fecha de creación original.
- *
- * Estado esperado ANTES de corregir el bug: este test FALLA.
- * Estado esperado DESPUÉS de corregirlo:   este test PASA.
+ * Prueba de regresión de BUG-01: re-guardar una reserva existente
+ * (por ejemplo, al cancelarla) no debe modificar su created_at original.
  */
 @Testcontainers
 @DataJpaTest
@@ -52,7 +48,7 @@ class BookingCreatedAtBugTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired EntityManager em;
 
-    // Uno de los 3 servicios que Flyway inserta en V1__init.sql
+
     private static final UUID OFFERING_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     @Test
@@ -73,6 +69,8 @@ class BookingCreatedAtBugTest {
 
         Timestamp createdAtOriginal = jdbc.queryForObject(
             "SELECT created_at FROM bookings WHERE id = ?", Timestamp.class, bookingId);
+
+        assertThat(createdAtOriginal).isNotNull();
 
         // 3. Pasa el tiempo (en la vida real: horas o días entre crear y cancelar)
         Thread.sleep(200);
