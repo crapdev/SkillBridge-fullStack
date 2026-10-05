@@ -4,4 +4,6 @@ import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.Bookin
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
-public interface JpaBookingRepository extends JpaRepository<BookingEntity, UUID> {}
+public interface JpaBookingRepository extends JpaRepository<BookingEntity, UUID> {
+    List<BookingEntity> findByCustomerIdOrderByScheduledAtDesc(UUID customerId);
+}
