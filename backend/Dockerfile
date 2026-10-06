@@ -2,6 +2,7 @@ FROM maven:3.9.16-eclipse-temurin-21 AS builder
 WORKDIR /workspace
 COPY pom.xml .
 RUN mvn -B -q dependency:go-offline
+COPY checkstyle.xml .
 COPY src ./src
 RUN mvn -B clean package -DskipTests
 

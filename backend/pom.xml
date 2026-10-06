@@ -19,7 +19,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.8.13</springdoc.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <spring-ai.version>1.1.8</spring-ai.version>
     </properties>
 
@@ -59,6 +59,8 @@
         <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
         <dependency><groupId>org.testcontainers</groupId><artifactId>junit-jupiter</artifactId><version>${testcontainers.version}</version><scope>test</scope></dependency>
         <dependency><groupId>org.testcontainers</groupId><artifactId>postgresql</artifactId><version>${testcontainers.version}</version><scope>test</scope></dependency>
+        <!-- ArchUnit: reglas de arquitectura escritas como tests (solo se usa al testear) -->
+        <dependency><groupId>com.tngtech.archunit</groupId><artifactId>archunit-junit5</artifactId><version>1.4.2</version><scope>test</scope></dependency>
     </dependencies>
 
     <build>
@@ -69,6 +71,35 @@
                 <executions>
                     <execution><goals><goal>prepare-agent</goal></goals></execution>
                     <execution><id>report</id><phase>test</phase><goals><goal>report</goal></goals></execution>
+                </executions>
+            </plugin>
+            <!-- Checkstyle: aplica las reglas de checkstyle.xml (no imports sin usar) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.6.0</version>
+                <dependencies>
+                    <dependency>
+                        <!-- motor de Checkstyle con soporte para Java 21 -->
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>10.26.1</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>${project.basedir}/checkstyle.xml</configLocation>  <!-- archivo de reglas -->
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>        <!-- revisa también src/test -->
+                    <consoleOutput>true</consoleOutput>                                  <!-- muestra archivo y línea del error -->
+                    <failOnViolation>true</failOnViolation>                              <!-- si hay error, falla el build -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle-unused-imports</id>
+                        <phase>validate</phase>   <!-- corre al inicio de cualquier mvn test/verify/package -->
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
