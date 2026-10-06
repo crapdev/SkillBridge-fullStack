@@ -87,7 +87,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <configLocation>checkstyle.xml</configLocation>  <!-- archivo de reglas -->
+                    <configLocation>${project.basedir}/checkstyle.xml</configLocation>  <!-- archivo de reglas -->
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>        <!-- revisa también src/test -->
                     <consoleOutput>true</consoleOutput>                                  <!-- muestra archivo y línea del error -->
                     <failOnViolation>true</failOnViolation>                              <!-- si hay error, falla el build -->
