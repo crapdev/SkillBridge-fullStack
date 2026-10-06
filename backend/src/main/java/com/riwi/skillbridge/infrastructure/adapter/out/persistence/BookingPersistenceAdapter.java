@@ -13,12 +13,14 @@ import java.util.UUID;
 public class BookingPersistenceAdapter implements BookingRepositoryPort {
     private final JpaBookingRepository repository;
 
-    public BookingPersistenceAdapter(JpaBookingRepository repository) { this.repository = repository; }
+    public BookingPersistenceAdapter(JpaBookingRepository repository) {
+        this.repository = repository;
+    }
 
     @Override
     public Booking save(Booking booking) {
         BookingEntity entity = new BookingEntity(
-                booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now());
+            booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now());
         BookingEntity saved = repository.save(entity);
         return new Booking(saved.getId(), saved.getOfferingId(), saved.getCustomerId(), saved.getScheduledAt(), saved.getStatus());
     }
@@ -26,13 +28,14 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     @Override
     public List<Booking> findByCustomerId(UUID customerId) {
         return repository.findByCustomerIdOrderByScheduledAtDesc(customerId)
-                .stream()
-                .map(entity -> new Booking(
-                        entity.getId(),
-                        entity.getOfferingId(),
-                        entity.getCustomerId(),
-                        entity.getScheduledAt(),
-                        entity.getStatus()))
-                .toList();
+            .stream()
+            .map(entity -> new Booking(
+                entity.getId(),
+                entity.getOfferingId(),
+                entity.getCustomerId(),
+                entity.getScheduledAt(),
+                entity.getStatus()
+            ))
+            .toList();
     }
 }

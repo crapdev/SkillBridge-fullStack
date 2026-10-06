@@ -38,10 +38,9 @@ public class AuthService implements AuthUseCase {
     @Override
     public String login(String email, String rawPassword) {
         UserAccount user = users.findByEmail(email.trim().toLowerCase())
-            // Cambio aquí: unificar la excepción lanzada. InvalidCredentialsException en lugar de BusinessRuleException
-                .orElseThrow(() -> new InvalidCredentialsException("Email inexistente o contrasena erronea"));
+                .orElseThrow(() -> new BusinessRuleException("Credenciales inválidas"));
         if (!passwords.matches(rawPassword, user.passwordHash())) {
-            throw new InvalidCredentialsException("Email inexistente o contrasena erronea");
+            throw new InvalidCredentialsException("Credenciales inválidas");
         }
         return tokens.generate(user.email(), user.role().name());
     }
