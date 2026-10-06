@@ -4,4 +4,5 @@ import com.riwi.skillbridge.domain.model.Booking;
 
 public interface BookingRepositoryPort {
     Booking save(Booking booking);
+    List<Booking> findByCustomerId(UUID customerId);
 }
