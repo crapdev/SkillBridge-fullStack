@@ -46,10 +46,15 @@ public class BookingService implements CreateBookingUseCase,  ListMyBookingsUseC
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
             .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
 
+        if(bookingRepository.existsDuplicateBooking(customerId, offeringId, scheduledAt)) {
+            throw new BusinessRuleException("La reserva ya existe");
+        }
+
         Booking booking = new Booking(UUID.randomUUID(), offeringId, customerId, scheduledAt, BookingStatus.CREATED);
         Booking saved = bookingRepository.save(booking);
         eventPublisher.bookingCreated(saved);
         return saved;
+
     }
 
     @Override

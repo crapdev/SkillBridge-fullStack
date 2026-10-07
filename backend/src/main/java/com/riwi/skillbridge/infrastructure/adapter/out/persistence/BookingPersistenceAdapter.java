@@ -5,6 +5,7 @@ import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.BookingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaBookingRepository;
 import org.springframework.stereotype.Component;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -37,5 +38,10 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
                 entity.getStatus()
             ))
             .toList();
+    }
+
+    @Override
+    public boolean existsDuplicateBooking(UUID customerId, UUID offeringId, Instant scheduledAt) {
+        return repository.existsByCustomerIdAndOfferingIdAndScheduledAt(customerId, offeringId, scheduledAt);
     }
 }
