@@ -65,8 +65,9 @@ springdoc:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-at-least-32-characters}
-    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    # Clave Base64 de al menos 256 bits; en producción se inyecta con JWT_SECRET
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration: ${JWT_EXPIRATION:86400000} # 24 horas
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8088,http://localhost:4200}
   cache:
