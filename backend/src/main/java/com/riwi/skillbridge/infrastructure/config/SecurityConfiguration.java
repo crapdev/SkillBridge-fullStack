@@ -46,7 +46,7 @@ public class SecurityConfiguration {
                         String safeToken = token.length() > 8 ? token.substring(0, 8) + "..." : "invalido";
                         log.debug("Fallo de autenticación con token inválido: {}", safeToken);
                     } else {
-                        log.debug("Fallo de autenticación: Petición sin token o formato incorrecto");
+                        log.debug("Fallo de autenticación: Peti.ción sin token o formato incorrecto");
                     }
 
                     // Sobrescribir el 403 por defecto por un 401
