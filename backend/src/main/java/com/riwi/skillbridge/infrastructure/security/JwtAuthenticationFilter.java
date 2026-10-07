@@ -65,12 +65,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     // 5. Establecer la autenticación en el contexto
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    log.debug("JWT rechazado en {}: no corresponde al usuario o esta expirado", request.getRequestURI());
                 }
             }
         } catch (Exception e) {
-            // 6. Si el token está expirado, alterado o malformado, limpiamos el contexto
+            // 6. Si el token está expirado, alterado o malformado, limpiamos el contexto.
+            // Solo se registra el tipo de error y la ruta: nunca el token ni el mensaje de la
+            // excepción (jjwt puede incluir fragmentos del token en él).
             SecurityContextHolder.clearContext();
-            log.debug("JWT rechazado o inválido: {}", e.getClass().getSimpleName());
+            log.debug("JWT rechazado en {}: {}", request.getRequestURI(), e.getClass().getSimpleName());
         }
 
         // 7. Continuar con el siguiente filtro
