@@ -1,0 +1,241 @@
+<section class="hero">
+  <div class="container hero__inner">
+    <p class="eyebrow-hero">
+      <span class="eyebrow__dot" aria-hidden="true"></span>
+      Proyecto integrador • Arquitectura moderna
+    </p>
+
+    <h1>
+      Servicios, eventos, caché e IA
+      <span class="hero__highlight">en una sola solución.</span>
+    </h1>
+
+    <p class="hero__lead">
+      Base profesional y especializada para dominar arquitectura hexagonal,
+      Angular, Spring Boot y despliegues cloud escalables.
+    </p>
+
+    <div class="hero__actions">
+      <a class="btn btn--primary" routerLink="/book">
+        Realizar una reserva <span aria-hidden="true">→</span>
+      </a>
+      <a class="btn btn--ghost" routerLink="/ai">
+         Obtener recomendación con IA
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICIOS -->
+<section class="services-section">
+  <div class="container">
+
+    <!-- Encabezado -->
+    <div class="services-header">
+      <div class="header-content">
+        <span class="eyebrow">
+          CATÁLOGO FORMATIVO & CONSULTORÍA
+        </span>
+
+        <h2>Servicios disponibles</h2>
+
+        <p>
+          Sesiones técnicas 1:1 y revisiones de código de alto estándar
+          para acelerar tu desarrollo profesional.
+        </p>
+      </div>
+
+      <!-- Filtros -->
+      <!-- <div class="filters">
+        <button class="filter active">Todos</button>
+        <button class="filter">Cloud</button>
+        <button class="filter">Frontend</button>
+        <button class="filter">Backend</button>
+      </div> -->
+    </div>
+
+
+    <!-- Error -->
+    @if (error) {
+      <p class="error">{{ error }}</p>
+    }
+
+
+    <!-- Servicios -->
+    <div class="services-grid">
+
+      @for (offering of offerings; track offering.id) {
+
+        <article class="service-card">
+
+          <!-- Categoría + icono -->
+          <div class="card-top">
+
+            <span
+              class="category"
+              [class.cloud]="offering.category.toLowerCase() === 'cloud'"
+              [class.frontend]="offering.category.toLowerCase() === 'frontend'"
+              [class.backend]="offering.category.toLowerCase() === 'backend'"
+            >
+              {{ offering.category }}
+            </span>
+
+            <div
+              class="service-icon"
+              [class.cloud]="offering.category.toLowerCase() === 'cloud'"
+              [class.frontend]="offering.category.toLowerCase() === 'frontend'"
+              [class.backend]="offering.category.toLowerCase() === 'backend'"
+            >
+              @if (offering.category.toLowerCase() === 'cloud') {
+                <img src="icons/CLOUD.png" alt="icon cloud">
+              }
+              @else if (offering.category.toLowerCase() === 'frontend') {
+                <img src="icons/FRONTEND.png" alt="icon frontend">
+              }
+              @else {
+                <img src="icons/BACKEND.png" alt="icon backend">
+              }
+            </div>
+
+          </div>
+
+
+          <!-- Información -->
+          <div class="card-content">
+
+            <h3>{{ offering.title }}</h3>
+
+            <p class="description">
+              {{ offering.description }}
+            </p>
+
+          </div>
+
+
+          <!-- Precio + botón -->
+          <div class="card-footer">
+
+            <div class="price-container">
+              <span class="price-label">
+                INVERSIÓN
+              </span>
+
+              <div class="price">
+                {{ offering.price | currency:'COP':'symbol-narrow':'1.0-0' }}
+                <span>/ sesión</span>
+              </div>
+            </div>
+
+            <button class="reserve-button" routerLink="/book">
+              Reservar sesión
+              <span>→</span>
+            </button>
+
+          </div>
+
+        </article>
+
+      }
+
+    </div>
+
+  </div>
+</section>
+
+<!-- CTA / CALL TO ACTION -->
+
+<section class="cta-section">
+  <div class="cta-container">
+
+    <div class="cta-content">
+
+      <h2>
+        ¿Listo para subir de nivel tu arquitectura de software?
+      </h2>
+
+      <p>
+        Agenda hoy mismo tu espacio de consultoría técnica o mentoría
+        personalizada para tus proyectos con Spring Boot y Angular.
+      </p>
+
+      <div class="cta-actions">
+
+        <button class="cta-primary" routerLink="/book">
+          Reservar una Sesión
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+
+<!-- FOOTER  -->
+
+<footer class="site-footer">
+
+  <div class="footer-container">
+
+    <!-- BRAND -->
+    <div class="footer-brand">
+
+      <div class="brand-info">
+
+        <div class="brand-logo">
+          SB
+        </div>
+
+        <div>
+          <h3>SkillBridge AI</h3>
+
+          <p>
+            Proyecto Integrador de Arquitectura & Computación en la Nube
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- NAVIGATION -->
+    <nav class="footer-nav">
+
+      <a routerLink="/servicios">
+        Servicios
+      </a>
+
+      <a routerLink="/reservaciones">
+        Reservaciones
+      </a>
+
+      <a routerLink="/tecnologias">
+        Tecnologías
+      </a>
+
+      <a routerLink="/privacidad">
+        Privacidad
+      </a>
+
+      <a routerLink="/terminos">
+        Términos de Servicio
+      </a>
+
+    </nav>
+
+
+    <!-- COPYRIGHT -->
+    <div class="footer-copyright">
+
+      <p>
+        © 2026 SkillBridge AI. Todos los derechos
+        reservados.
+      </p>
+
+    </div>
+
+  </div>
+
+</footer>
