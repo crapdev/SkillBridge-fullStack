@@ -30,6 +30,13 @@ public class GlobalExceptionHandler {
         return p;
     }
 
+    @ExceptionHandler(com.riwi.skillbridge.domain.exception.UnauthorizedActionException.class)
+    ProblemDetail unauthorizedAction(com.riwi.skillbridge.domain.exception.UnauthorizedActionException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        p.setTitle("Forbidden action");
+        return p;
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ProblemDetail validation(MethodArgumentNotValidException ex) {
         String detail = ex.getBindingResult().getFieldErrors().stream()

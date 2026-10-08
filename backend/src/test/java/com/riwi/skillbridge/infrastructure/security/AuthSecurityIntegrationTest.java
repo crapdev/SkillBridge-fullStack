@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.infrastructure.security;
 
+import com.riwi.skillbridge.application.port.in.CancelBookingUseCase;
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
 import com.riwi.skillbridge.application.port.in.GenerateRecommendationUseCase;
 import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
@@ -86,6 +87,7 @@ class AuthSecurityIntegrationTest {
     @MockitoBean DatabaseUserDetailsService userDetailsService;
     @MockitoBean CreateBookingUseCase createBooking;
     @MockitoBean ListMyBookingsUseCase listMyBookings;
+    @MockitoBean CancelBookingUseCase cancelBooking;
     @MockitoBean ListOfferingsUseCase listOfferings;
     @MockitoBean GenerateRecommendationUseCase recommendations;
 

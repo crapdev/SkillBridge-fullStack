@@ -8,5 +8,27 @@ public record Booking(
         UUID offeringId,
         UUID customerId,
         Instant scheduledAt,
-        BookingStatus status
-) {}
+        BookingStatus status) {
+    // HU-09: Lógica de cancelación centralizada en el dominio
+    public Booking cancel(Instant now) {
+        if (this.status == BookingStatus.CANCELLED) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "La reserva ya se encuentra cancelada");
+        }
+        if (this.status == BookingStatus.COMPLETED) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "No se puede cancelar una reserva completada");
+        }
+
+        // Regla: 24 horas de antelación mínimo
+        java.time.Instant deadline = this.scheduledAt.minus(24, java.time.temporal.ChronoUnit.HOURS);
+        if (now.isAfter(deadline)) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "La reserva solo puede ser cancelada con al menos 24 horas de antelación");
+        }
+
+        // Retornamos una copia inmutable con el nuevo estado para respetar BUG-01 en
+        // persistencia
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CANCELLED);
+    }
+}
