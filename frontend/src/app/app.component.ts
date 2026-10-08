@@ -19,6 +19,7 @@ import { AuthService } from './core/auth.service';
           <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER -->
           @if (auth.hasRole('CUSTOMER')) {
             <a routerLink="/book">Reservar</a>
+            <a routerLink="/my-bookings">Mis Reservas</a>
             <a routerLink="/ai">IA</a>
           }
         </nav>
