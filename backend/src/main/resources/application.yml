@@ -16,6 +16,14 @@ spring:
           model: ${DEEPSEEK_MODEL:deepseek-chat}
           temperature: 0.2
           max-tokens: 800
+    # Por defecto Spring AI reintenta 10 veces con backoff de varios minutos; el proxy
+    # del frontend corta a los 60 s y el usuario recibe un 504 sin mensaje útil.
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 1s
+        multiplier: 2
+        max-interval: 5s
 
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillbridge}

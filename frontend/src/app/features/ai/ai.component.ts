@@ -41,7 +41,7 @@ export class AiComponent {
 
   private fallbackError(status?: number): string {
     if (status === 0) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
-    if (status === 502 || status === 503 || status === 504) return 'Gemini no está disponible en este momento; inténtalo de nuevo.';
+    if (status === 502 || status === 503 || status === 504) return 'DeepSeek no está disponible en este momento; inténtalo de nuevo.';
     return 'No fue posible generar la recomendación; inténtalo de nuevo.';
   }
 
