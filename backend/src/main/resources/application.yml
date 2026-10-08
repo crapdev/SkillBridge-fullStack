@@ -6,14 +6,17 @@ spring:
   application:
     name: skillbridge-api
   ai:
-    google:
-      genai:
-        api-key: ${GEMINI_API_KEY:}
-        chat:
-          options:
-            model: ${GEMINI_MODEL:gemini-3.8-flash}
-            temperature: 0.2
-            max-output-tokens: 800
+    openai:
+      api-key: ${DEEPSEEK_API_KEY:}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          # Modelos oficiales de DeepSeek: 'deepseek-chat' (V3) o 'deepseek-reasoner' (R1).
+          # Puedes sobreescribirlo con DEEPSEEK_MODEL si usas un proveedor/gateway específico como OpenRouter o Groq.
+          model: ${DEEPSEEK_MODEL:deepseek-chat}
+          temperature: 0.2
+          max-tokens: 800
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillbridge}
     username: ${DATABASE_USER:skillbridge}
@@ -25,10 +28,10 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+      properties:
+        hibernate:
+          jdbc:
+            time_zone: UTC
   flyway:
     enabled: true
   data:
@@ -62,6 +65,11 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+# Propiedades que busca JwtService
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION:86400000} # 24 horas en milisegundos
 
 app:
   jwt:
