@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { Offering, OfferingService } from '../core/offering.service';
 import { apiBase } from '../core/api';
 
@@ -48,11 +49,16 @@ export class BookingComponent implements OnInit {
   error = '';
   success = '';
 
-  constructor(private offeringsService: OfferingService, private http: HttpClient) {}
+  constructor(private offeringsService: OfferingService, private http: HttpClient, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.offeringsService.list().subscribe({
-      next: list => this.offerings = list,
+      next: list => {
+        this.offerings = list;
+        // Viene preseleccionado desde el detalle del servicio (/book?offering=<id>)
+        const preselected = this.route.snapshot.queryParamMap.get('offering');
+        if (preselected && list.some(o => o.id === preselected)) this.offeringId = preselected;
+      },
       error: () => this.error = 'No fue posible cargar los servicios.'
     });
   }

@@ -4,11 +4,13 @@ import { LoginComponent } from './features/login/login.component';
 import { AiComponent } from './features/ai.component';
 import { BookingComponent } from './features/booking.component';
 import { MyBookingsComponent } from './features/my-bookings.component';
+import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { customerGuard } from './core/role.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'login', component: LoginComponent },
+  { path: 'services/:id', component: ServiceDetailComponent },
   { path: 'ai', component: AiComponent, canActivate: [customerGuard] },
   { path: 'book', component: BookingComponent, canActivate: [customerGuard] },
   { path: 'my-bookings', component: MyBookingsComponent, canActivate: [customerGuard] },
