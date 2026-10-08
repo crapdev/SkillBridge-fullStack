@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { LoginComponent } from './features/login.component';
-import { AiComponent } from './features/ai.component';
+import { AiComponent } from './features/ai/ai.component';
 import { BookingComponent } from './features/booking.component';
 
 export const routes: Routes = [

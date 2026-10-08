@@ -1,31 +1,56 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { apiBase } from '../core/api';
+import { RouterLink } from '@angular/router';
+import { apiBase } from '../../core/api';
 
 @Component({
   standalone: true,
-  imports: [FormsModule],
-  template: `
-    <section class="container section"><div class="card">
-      <p class="eyebrow">JAVA + GEMINI</p><h1>Asistente de recomendaciones</h1>
-      <p class="muted">La API key vive únicamente en Spring Boot. Angular nunca habla directamente con Gemini.</p>
-      <label class="field">Tu objetivo<textarea rows="5" [(ngModel)]="goal" placeholder="Ej: Quiero prepararme para una entrevista backend Java..."></textarea></label>
-      <button class="btn" [disabled]="loading" (click)="ask()">{{ loading ? 'Generando...' : 'Pedir recomendación' }}</button>
-      @if (error) { <p class="error">{{ error }}</p> }
-      @if (answer) { <div class="answer"><h3>Respuesta</h3><p>{{ answer }}</p></div> }
-    </div></section>
-  `,
-  styles: [`.section{padding:50px 0}.card{max-width:760px;margin:auto}.eyebrow{font-weight:800;letter-spacing:.1em}.answer{margin-top:22px;padding:18px;background:#f3f6fb;border-radius:12px;white-space:pre-line}`]
+  imports: [FormsModule, RouterLink],
+  templateUrl: './ai.html',
+  styleUrls: ['./ai.css']
 })
 export class AiComponent {
-  goal=''; answer=''; error=''; loading=false;
+  readonly maxLength = 500;
+  readonly suggestions = [
+    { category: 'backend', label: 'Entrevista backend Java', goal: 'Quiero prepararme para una entrevista técnica de backend con Java y Spring Boot.' },
+    { category: 'frontend', label: 'Dominar Angular', goal: 'Quiero mejorar mis habilidades en Angular, RxJS y arquitectura frontend.' },
+    { category: 'cloud', label: 'Desplegar en la nube', goal: 'Quiero aprender a desplegar una aplicación distribuida con Docker en la nube.' }
+  ];
+
+  goal = ''; answer = ''; error = ''; loading = false; unauthorized = false; copied = false;
+
   constructor(private http: HttpClient) {}
-  ask(){
-    this.error=''; this.answer=''; this.loading=true;
-    this.http.post<{recommendation:string}>(`${apiBase()}/ai/recommendations`, { goal: this.goal }).subscribe({
-      next: r => { this.answer = r.recommendation; this.loading=false; },
-      error: e => { this.error = e?.error?.detail || 'Inicia sesión y verifica GEMINI_API_KEY.'; this.loading=false; }
+
+  useSuggestion(goal: string) { this.goal = goal; }
+
+  ask() {
+    if (!this.goal.trim() || this.loading) return;
+    this.error = ''; this.answer = ''; this.unauthorized = false; this.copied = false; this.loading = true;
+    this.http.post<{ recommendation: string }>(`${apiBase()}/ai/recommendations`, { goal: this.goal.trim() }).subscribe({
+      next: r => { this.answer = r.recommendation; this.loading = false; },
+      error: e => {
+        this.unauthorized = e?.status === 401;
+        this.error = this.unauthorized
+          ? 'Necesitas iniciar sesión para usar el asistente.'
+          : e?.error?.detail || this.fallbackError(e?.status);
+        this.loading = false;
+      }
     });
   }
+
+  private fallbackError(status?: number): string {
+    if (status === 0) return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+    if (status === 502 || status === 503 || status === 504) return 'Gemini no está disponible en este momento; inténtalo de nuevo.';
+    return 'No fue posible generar la recomendación; inténtalo de nuevo.';
+  }
+
+  copy() {
+    navigator.clipboard?.writeText(this.answer).then(() => {
+      this.copied = true;
+      setTimeout(() => this.copied = false, 2000);
+    });
+  }
+
+  reset() { this.goal = ''; this.answer = ''; this.error = ''; }
 }
