@@ -14,7 +14,7 @@ import { AuthService } from './core/auth.service';
           <a routerLink="/">Servicios</a>
           <a routerLink="/book">Reservar</a>
           @if (auth.authenticated()) {
-            <a routerLink="/my-bookings">Mis Reservas</a>
+            <a routerLink="/bookings/me">Mis Reservas</a>
           }
           <a routerLink="/ai">IA</a>
           @if (!auth.isAuthenticated()) {

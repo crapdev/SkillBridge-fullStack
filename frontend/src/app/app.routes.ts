@@ -17,7 +17,7 @@ export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'ai', component: AiComponent },
-  { path: 'my-bookings', component: MyBookingsComponent, canActivate: [authenticatedOnly] },
+  { path: 'bookings/me', component: MyBookingsComponent, canActivate: [authenticatedOnly] },
   { path: 'book', component: BookingComponent },
   { path: '**', redirectTo: '' }
 ];
