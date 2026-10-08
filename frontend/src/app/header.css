@@ -1,0 +1,43 @@
+.nav {
+  background: rgba(10, 20, 36, 0.9);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.nav-inner {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+}
+.brand {
+  font-weight: 800;
+}
+.nav nav {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+.link-button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+a {
+  color: #fff;
+}
+
+
+.buttons{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.button-primary{
+    background-color:rgba(37, 99, 235, 1) ;
+    padding: 10px 20px;
+    border-radius: 0.5rem;
+}
