@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { BookingService, Booking } from '../core/booking.service';
+import { BookingService, Booking, BookingStatus } from '../core/booking.service';
+import { OfferingService } from '../core/offering.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -43,9 +44,10 @@ import { BookingService, Booking } from '../core/booking.service';
               @for (booking of bookings; track booking.id) {
                 <article class="card booking-item">
                   <div class="badge-status {{ booking.status.toLowerCase() }}">
-                    {{ booking.status }}
+                    {{ statusLabel(booking.status) }}
                   </div>
-                  <h3>Reserva ID: {{ booking.id }}</h3>
+                  <p class="booking-note">Esperando confirmación</p>
+                  <h3>{{ offeringTitles.get(booking.offeringId) ?? 'Servicio no disponible' }}</h3>
                   <p class="muted">Fecha programada: {{ booking.scheduledAt | date:'medium' }}</p>
                 </article>
               }
@@ -63,6 +65,7 @@ import { BookingService, Booking } from '../core/booking.service';
     `.empty-box { background: #fff8e1; color: #8f6b00; border: 1px solid #ffe082; }`,
     `.error-box { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }`,
     `.booking-item { position: relative; border: 1px solid #e7ebf0; padding: 20px; border-radius: 10px; margin-bottom: 12px; }`,
+    `.booking-note { color: #6b7280; margin: 0 0 12px; }`,
     `.badge-status { display: inline-block; padding: 4px 10px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; margin-bottom: 8px; }`,
     `.badge-status.confirmed { background: #d4edda; color: #155724; }`,
     `.badge-status.created { background: #cce5ff; color: #004085; }`,
@@ -72,11 +75,23 @@ import { BookingService, Booking } from '../core/booking.service';
 })
 export class MyBookingsComponent implements OnInit {
   private bookingService = inject(BookingService);
+  private offeringService = inject(OfferingService);
 
   bookings: Booking[] = [];
+  offeringTitles = new Map<string, string>();
   isLoading = true;
   hasError = false;
   errorMessage = '';
+
+  statusLabel(status: BookingStatus): string {
+    const labels: Record<BookingStatus, string> = {
+      CREATED: 'Creado',
+      CONFIRMED: 'Confirmado',
+      CANCELLED: 'Cancelado',
+      COMPLETED: 'Completado'
+    };
+    return labels[status];
+  }
 
   ngOnInit(): void {
     this.loadBookings();
@@ -86,11 +101,23 @@ export class MyBookingsComponent implements OnInit {
     this.isLoading = true;
     this.hasError = false;
     this.errorMessage = '';
+    this.offeringTitles = new Map();
 
     this.bookingService.getMyBookings().subscribe({
-      next: (data) => {
-        this.bookings = data;
+      next: (bookings) => {
+        this.bookings = bookings;
         this.isLoading = false;
+
+        if (bookings.length > 0) {
+          this.offeringService.list().subscribe({
+            next: (offerings) => {
+              this.offeringTitles = new Map(offerings.map((offering) => [offering.id, offering.title]));
+            },
+            error: (error) => {
+              console.error('Error al obtener los nombres de los servicios de tus reservas', error);
+            }
+          });
+        }
       },
       error: (error) => {
         console.error('Error al obtener mis reservas', error);
