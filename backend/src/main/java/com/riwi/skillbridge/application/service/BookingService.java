@@ -2,6 +2,7 @@ package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
 import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
+import com.riwi.skillbridge.application.port.in.CancelBookingUseCase;
 import com.riwi.skillbridge.application.port.out.*;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class BookingService implements CreateBookingUseCase,  ListMyBookingsUseCase {
+public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCase, CancelBookingUseCase {
     private final BookingRepositoryPort bookingRepository;
     private final OfferingRepositoryPort offeringRepository;
     private final UserAccountPort userAccountPort;
@@ -62,5 +63,27 @@ public class BookingService implements CreateBookingUseCase,  ListMyBookingsUseC
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
             .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
         return bookingRepository.findByCustomerId(customerId);
+    }
+
+    @Override
+    public Booking cancelBooking(UUID bookingId, String customerEmail) {
+        // 1. Obtener usuario autenticado
+        UUID customerId = userAccountPort.findIdByEmail(customerEmail)
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+
+        // 2. Buscar la reserva
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new DomainNotFoundException("Reserva no encontrada"));
+
+        // 3. Verificar propiedad
+        if (!booking.customerId().equals(customerId)) {
+            throw new com.riwi.skillbridge.domain.exception.UnauthorizedActionException("No tienes permiso para cancelar esta reserva");
+        }
+
+        // 4. Ejecutar la lógica de dominio (retorna nueva reserva con estado actualizado)
+        Booking cancelledBooking = booking.cancel(Instant.now());
+
+        // 5. Persistir la modificación y retornar
+        return bookingRepository.save(cancelledBooking);
     }
 }

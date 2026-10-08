@@ -40,4 +40,71 @@ class BookingServiceTest {
         verify(bookings).save(any(Booking.class));
         verify(publisher).bookingCreated(result);
     }
+
+    // HU-09: Tests de cancelación
+    @Test
+    void shouldCancelBookingSuccessfully() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        UserAccountPort users = mock(UserAccountPort.class);
+        
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        
+        when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
+        when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
+
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        Booking result = service.cancelBooking(bookingId, "user@example.com");
+
+        assertEquals(com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED, result.status());
+        verify(bookings).save(any(Booking.class));
+    }
+
+    @Test
+    void shouldThrowWhenCancelingAnotherUsersBooking() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        UserAccountPort users = mock(UserAccountPort.class);
+        
+        UUID bookingId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        UUID hackerId = UUID.randomUUID();
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), ownerId, Instant.now().plusSeconds(3600), com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        
+        when(users.findIdByEmail("hacker@example.com")).thenReturn(Optional.of(hackerId));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
+
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        
+        org.junit.jupiter.api.Assertions.assertThrows(
+            com.riwi.skillbridge.domain.exception.UnauthorizedActionException.class, 
+            () -> service.cancelBooking(bookingId, "hacker@example.com")
+        );
+        verify(bookings, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowWhenCancelingOutOfTimeWindow() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        UserAccountPort users = mock(UserAccountPort.class);
+        
+        UUID bookingId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        // Reserva en 12 horas (dentro del límite prohibido de 24 horas)
+        Instant scheduledAt = Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        
+        when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
+
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        
+        org.junit.jupiter.api.Assertions.assertThrows(
+            com.riwi.skillbridge.domain.exception.BusinessRuleException.class, 
+            () -> service.cancelBooking(bookingId, "user@example.com")
+        );
+        verify(bookings, never()).save(any());
+    }
 }

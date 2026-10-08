@@ -19,6 +19,17 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     }
 
     @Override
+    public java.util.Optional<Booking> findById(UUID id) {
+        return repository.findById(id).map(entity -> new Booking(
+            entity.getId(),
+            entity.getOfferingId(),
+            entity.getCustomerId(),
+            entity.getScheduledAt(),
+            entity.getStatus()
+        ));
+    }
+
+    @Override
     public Booking save(Booking booking) {
         BookingEntity entity = new BookingEntity(
             booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now());

@@ -22,4 +22,8 @@ export class BookingService {
   getMyBookings(): Observable<Booking[]> {
     return this.http.get<Booking[]>(`${apiBase()}/bookings/me`);
   }
+
+  cancelBooking(id: string): Observable<Booking> {
+    return this.http.patch<Booking>(`${apiBase()}/bookings/${id}/cancel`, {});
+  }
 }

@@ -49,6 +49,12 @@ import { OfferingService } from '../core/offering.service';
                   <p class="booking-note">Esperando confirmación</p>
                   <h3>{{ offeringTitles.get(booking.offeringId) ?? 'Servicio no disponible' }}</h3>
                   <p class="muted">Fecha programada: {{ booking.scheduledAt | date:'medium' }}</p>
+                  
+                  @if (isCancelable(booking)) {
+                    <button class="btn secondary cancel-btn" (click)="cancel(booking.id)" [disabled]="isCanceling(booking.id)">
+                      {{ isCanceling(booking.id) ? 'Cancelando...' : 'Cancelar reserva' }}
+                    </button>
+                  }
                 </article>
               }
             </div>
@@ -70,7 +76,8 @@ import { OfferingService } from '../core/offering.service';
     `.badge-status.confirmed { background: #d4edda; color: #155724; }`,
     `.badge-status.created { background: #cce5ff; color: #004085; }`,
     `.badge-status.cancelled { background: #f8d7da; color: #721c24; }`,
-    `.badge-status.completed { background: #e2e3e5; color: #383d41; }`
+    `.badge-status.completed { background: #e2e3e5; color: #383d41; }`,
+    `.cancel-btn { margin-top: 10px; font-size: 14px; padding: 6px 12px; }`
   ]
 })
 export class MyBookingsComponent implements OnInit {
@@ -82,6 +89,36 @@ export class MyBookingsComponent implements OnInit {
   isLoading = true;
   hasError = false;
   errorMessage = '';
+  cancelingIds = new Set<string>();
+
+  isCancelable(booking: Booking): boolean {
+    return booking.status === 'CREATED' || booking.status === 'CONFIRMED';
+  }
+
+  isCanceling(id: string): boolean {
+    return this.cancelingIds.has(id);
+  }
+
+  cancel(id: string): void {
+    if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
+      return;
+    }
+    
+    this.cancelingIds.add(id);
+    this.bookingService.cancelBooking(id).subscribe({
+      next: () => {
+        window.alert('Reserva cancelada exitosamente.');
+        this.cancelingIds.delete(id);
+        this.loadBookings();
+      },
+      error: (error) => {
+        console.error('Error al cancelar', error);
+        this.cancelingIds.delete(id);
+        const msg = error.error?.detail || 'Ocurrió un error al cancelar la reserva.';
+        window.alert(msg);
+      }
+    });
+  }
 
   statusLabel(status: BookingStatus): string {
     const labels: Record<BookingStatus, string> = {
