@@ -17,7 +17,10 @@ export class LoginComponent {
   showPassword = false;
   readonly year = new Date().getFullYear();
 
-  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {
+    // El botón "Crear cuenta" del header abre directamente el formulario de registro
+    if (this.route.snapshot.queryParamMap.get('mode') === 'register') this.mode = 'register';
+  }
 
   toggle(form: NgForm): void {
     this.mode = this.mode === 'login' ? 'register' : 'login';

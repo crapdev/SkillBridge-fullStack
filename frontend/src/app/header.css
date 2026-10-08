@@ -1,43 +1,185 @@
 .nav {
-  background: rgba(10, 20, 36, 0.9);
-  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  --nav-bg: #1e293b;
+  --nav-border: rgba(148, 163, 184, 0.14);
+  --nav-text: #cbd5e1;
+  --nav-text-strong: #f8fafc;
+  --nav-accent: #38bdf8;
+  --nav-primary: #2563eb;
+  --nav-primary-hover: #1d4ed8;
+
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
   position: sticky;
   top: 0;
   z-index: 5;
 }
+
 .nav-inner {
-  height: 64px;
+  min-height: 76px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
+}
 
-}
+/* Marca */
 .brand {
-  font-weight: 800;
-}
-.nav nav {
-  display: flex;
-  gap: 18px;
+  display: inline-flex;
   align-items: center;
+  gap: 12px;
+  color: var(--nav-text-strong);
+  flex-shrink: 0;
 }
-.link-button {
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #0f172a;
+  border: 1px solid rgba(56, 189, 248, 0.6);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+  color: var(--nav-accent);
+}
+.brand-logo svg { width: 22px; height: 22px; }
+.brand-text { display: grid; line-height: 1.1; }
+.brand-name { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.01em; }
+.brand-accent { color: var(--nav-accent); }
+.brand-tagline {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+/* Enlaces */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+.nav-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nav-text);
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+.nav-links a:hover,
+.nav-links a.active { color: var(--nav-text-strong); }
+
+.badge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: var(--nav-accent);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+}
+
+/* Acciones */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.nav-login {
   border: 0;
   background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--nav-text-strong);
+  font-size: 0.95rem;
+}
+.nav-login:hover { color: var(--nav-accent); }
+
+.button-primary {
+  background: var(--nav-primary);
+  color: #fff;
+  font-weight: 500;
+  padding: 11px 20px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.button-primary:hover { background: var(--nav-primary-hover); }
+
+.nav a:focus-visible,
+.nav button:focus-visible {
+  outline: 2px solid var(--nav-accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (max-width: 1100px) {
+  .nav-links { gap: 24px; }
+}
+
+/* Botón hamburguesa: solo visible en móvil */
+.menu-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--nav-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--nav-text-strong);
   cursor: pointer;
 }
-a {
-  color: #fff;
-}
+.menu-toggle svg { width: 22px; height: 22px; }
 
+/* En escritorio el contenedor del menú no genera caja: sus hijos se alinean dentro de .nav-inner */
+.nav-menu { display: contents; }
 
-.buttons{
-    display: flex;
-    gap: 20px;
-    align-items: center;
-}
+/* En pantallas angostas los enlaces y acciones pasan a un panel desplegable */
+@media (max-width: 960px) {
+  .nav-inner { min-height: 64px; }
+  .brand { gap: 10px; }
+  .brand-logo { width: 34px; height: 34px; border-radius: 8px; }
+  .brand-logo svg { width: 19px; height: 19px; }
+  .brand-name { font-size: 1.05rem; }
+  .brand-tagline { display: none; }
 
-.button-primary{
-    background-color:rgba(37, 99, 235, 1) ;
-    padding: 10px 20px;
-    border-radius: 0.5rem;
+  .menu-toggle { display: grid; }
+
+  .nav-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 8px 4vw 20px;
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--nav-border);
+    box-shadow: 0 16px 32px rgba(2, 6, 23, 0.35);
+  }
+  .nav-menu.open { display: block; }
+
+  .nav-links { flex-direction: column; align-items: stretch; gap: 0; }
+  .nav-links a {
+    padding: 14px 4px;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--nav-border);
+  }
+
+  .nav-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .nav-login {
+    text-align: center;
+    padding: 11px;
+    border: 1px solid var(--nav-border);
+    border-radius: 8px;
+  }
+  .button-primary { text-align: center; }
 }
