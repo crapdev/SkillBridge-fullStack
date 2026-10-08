@@ -1,12 +1,14 @@
 package com.riwi.skillbridge.infrastructure.security;
 
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
+import com.riwi.skillbridge.application.port.in.GenerateRecommendationUseCase;
 import com.riwi.skillbridge.application.port.in.ListOfferingsUseCase;
 import com.riwi.skillbridge.application.port.out.PasswordHasherPort;
 import com.riwi.skillbridge.application.port.out.UserRepositoryPort;
 import com.riwi.skillbridge.application.service.AuthService;
 import com.riwi.skillbridge.domain.model.Role;
 import com.riwi.skillbridge.domain.model.UserAccount;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.AiController;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.AuthController;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.BookingController;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.OfferingController;
@@ -53,8 +55,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * RestAuthenticationEntryPoint + JwtService) junto con AuthService y GlobalExceptionHandler;
  * solo se simulan los puertos de persistencia.
  */
-@WebMvcTest(controllers = {AuthController.class, BookingController.class, OfferingController.class})
+@WebMvcTest(controllers = {AuthController.class, BookingController.class, OfferingController.class, AiController.class})
 @Import({SecurityConfiguration.class, JwtAuthenticationFilter.class, RestAuthenticationEntryPoint.class,
+        RestAccessDeniedHandler.class,
         JwtService.class, AuthService.class})
 @TestPropertySource(properties = {
         "app.jwt.secret=" + AuthSecurityIntegrationTest.SECRET,
@@ -82,6 +85,7 @@ class AuthSecurityIntegrationTest {
     @MockitoBean DatabaseUserDetailsService userDetailsService;
     @MockitoBean CreateBookingUseCase createBooking;
     @MockitoBean ListOfferingsUseCase listOfferings;
+    @MockitoBean GenerateRecommendationUseCase recommendations;
 
     @BeforeEach
     void setUp() {
@@ -91,6 +95,7 @@ class AuthSecurityIntegrationTest {
         when(userDetailsService.loadUserByUsername(EMAIL))
                 .thenReturn(User.withUsername(EMAIL).password(HASH).roles("CUSTOMER").build());
         when(listOfferings.listActive()).thenReturn(List.of());
+        when(recommendations.recommend(anyString())).thenReturn("Te recomiendo Mentoría Java Backend");
     }
 
     private ResultActions login(String email, String password) throws Exception {
@@ -213,6 +218,79 @@ class AuthSecurityIntegrationTest {
         @Test
         void publicRoute_withInvalidToken_isStillAccessible() throws Exception {
             mvc.perform(get("/api/offerings").header("Authorization", "Bearer token-corrupto"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    class RoleAuthorization {
+
+        private static final String PROVIDER_EMAIL = "proveedor@email.com";
+        private static final String ADMIN_EMAIL = "admin@email.com";
+
+        @BeforeEach
+        void otherRoles() {
+            when(userDetailsService.loadUserByUsername(PROVIDER_EMAIL))
+                    .thenReturn(User.withUsername(PROVIDER_EMAIL).password(HASH).roles("PROVIDER").build());
+            when(userDetailsService.loadUserByUsername(ADMIN_EMAIL))
+                    .thenReturn(User.withUsername(ADMIN_EMAIL).password(HASH).roles("ADMIN").build());
+        }
+
+        private ResultActions recommend(String authorization) throws Exception {
+            var request = post("/api/ai/recommendations")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                            {"goal":"Quiero aprender Spring Boot para trabajar como backend"}""");
+            if (authorization != null) {
+                request.header("Authorization", authorization);
+            }
+            return mvc.perform(request);
+        }
+
+        private static void assertForbiddenProblem(ResultActions result) throws Exception {
+            result.andExpect(status().isForbidden())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.status").value(403))
+                    .andExpect(jsonPath("$.title").value("Forbidden"));
+        }
+
+        @Test
+        void visitor_cannotUseAi() throws Exception {
+            assertUnauthorizedProblem(recommend(null));
+        }
+
+        @Test
+        void customer_canUseAi() throws Exception {
+            recommend("Bearer " + jwtService.generate(EMAIL, "CUSTOMER"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.recommendation").exists());
+        }
+
+        @Test
+        void provider_cannotBookNorUseAi() throws Exception {
+            String token = "Bearer " + jwtService.generate(PROVIDER_EMAIL, "PROVIDER");
+            assertForbiddenProblem(createBooking(token));
+            assertForbiddenProblem(recommend(token));
+        }
+
+        @Test
+        void admin_cannotBookNorUseAi() throws Exception {
+            String token = "Bearer " + jwtService.generate(ADMIN_EMAIL, "ADMIN");
+            assertForbiddenProblem(createBooking(token));
+            assertForbiddenProblem(recommend(token));
+        }
+
+        @Test
+        void roleIsTakenFromDatabase_notFromTokenClaim() throws Exception {
+            // Un token con el claim role=CUSTOMER no sirve si en la base de datos el usuario es PROVIDER
+            String token = "Bearer " + jwtService.generate(PROVIDER_EMAIL, "CUSTOMER");
+            assertForbiddenProblem(createBooking(token));
+        }
+
+        @Test
+        void otherRoles_canStillBrowsePublicCatalog() throws Exception {
+            mvc.perform(get("/api/offerings")
+                            .header("Authorization", "Bearer " + jwtService.generate(PROVIDER_EMAIL, "PROVIDER")))
                     .andExpect(status().isOk());
         }
     }

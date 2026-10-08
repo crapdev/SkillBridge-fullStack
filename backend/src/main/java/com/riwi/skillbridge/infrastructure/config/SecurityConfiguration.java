@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.infrastructure.config;
 
 import com.riwi.skillbridge.infrastructure.security.JwtAuthenticationFilter;
+import com.riwi.skillbridge.infrastructure.security.RestAccessDeniedHandler;
 import com.riwi.skillbridge.infrastructure.security.RestAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,16 +26,21 @@ import java.util.List;
 public class SecurityConfiguration {
     @Bean
     SecurityFilterChain security(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
-                                 RestAuthenticationEntryPoint entryPoint) throws Exception {
+                                 RestAuthenticationEntryPoint entryPoint,
+                                 RestAccessDeniedHandler accessDeniedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/offerings/**").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
+                        // Reservas y recomendaciones con IA son exclusivas de clientes
+                        .requestMatchers("/api/bookings/**", "/api/ai/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
