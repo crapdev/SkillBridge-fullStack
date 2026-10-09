@@ -7,5 +7,7 @@ package com.riwi.skillbridge.domain.model;
 public enum AccountStatus {
     ACTIVE,
     PENDING_APPROVAL,
-    REJECTED
+    REJECTED,
+    /** Desactivada por un administrador; se puede reactivar y conserva su historial. */
+    INACTIVE
 }

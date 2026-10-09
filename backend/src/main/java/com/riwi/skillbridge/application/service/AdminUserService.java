@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -30,12 +32,12 @@ public class AdminUserService implements AdminManageUsersUseCase {
     }
 
     @Override
-    public Page<UserAccount> listUsers(Role role, String query, Pageable pageable) {
+    public Page<UserAccount> listUsers(Role role, String query, Collection<AccountStatus> statuses, Pageable pageable) {
         if (role == Role.ADMIN) {
             throw new IllegalArgumentException("Cannot list ADMIN users");
         }
         String q = query != null && !query.trim().isEmpty() ? query.trim() : "";
-        return users.findUsers(role, q, pageable);
+        return users.findUsers(role, q, statuses, pageable);
     }
 
     @Override
@@ -49,18 +51,20 @@ public class AdminUserService implements AdminManageUsersUseCase {
         Instant startOfMonth = firstDayOfMonth.toInstant();
 
         Map<String, Map<String, Long>> stats = new HashMap<>();
-
-        Map<String, Long> providers = new HashMap<>();
-        providers.put("total", users.countByRole(Role.PROVIDER));
-        providers.put("newThisMonth", users.countByRoleAndCreatedAtGreaterThanEqual(Role.PROVIDER, startOfMonth));
-        stats.put("providers", providers);
-
-        Map<String, Long> customers = new HashMap<>();
-        customers.put("total", users.countByRole(Role.CUSTOMER));
-        customers.put("newThisMonth", users.countByRoleAndCreatedAtGreaterThanEqual(Role.CUSTOMER, startOfMonth));
-        stats.put("customers", customers);
-
+        stats.put("providers", roleStats(Role.PROVIDER, startOfMonth));
+        stats.put("customers", roleStats(Role.CUSTOMER, startOfMonth));
         return stats;
+    }
+
+    private Map<String, Long> roleStats(Role role, Instant startOfMonth) {
+        Map<String, Long> values = new HashMap<>();
+        values.put("total", users.countByRole(role));
+        values.put("newThisMonth", users.countByRoleAndCreatedAtGreaterThanEqual(role, startOfMonth));
+        values.put("active", users.countByRoleAndStatusIn(role, EnumSet.of(AccountStatus.ACTIVE)));
+        values.put("pending", users.countByRoleAndStatusIn(role, EnumSet.of(AccountStatus.PENDING_APPROVAL)));
+        // "Inactivos" agrupa las cuentas desactivadas y las solicitudes rechazadas: ninguna puede iniciar sesión
+        values.put("inactive", users.countByRoleAndStatusIn(role, EnumSet.of(AccountStatus.INACTIVE, AccountStatus.REJECTED)));
+        return values;
     }
 
     @Override
@@ -103,5 +107,39 @@ public class AdminUserService implements AdminManageUsersUseCase {
         // Editar datos no cambia el estado de la cuenta (pendiente, activa o rechazada)
         return users.save(new UserAccount(
                 existing.id(), name.trim(), normalizedEmail, existing.passwordHash(), role, existing.status(), existing.createdAt()));
+    }
+
+    /**
+     * Transiciones permitidas:
+     * - ACTIVE: aprobar un proveedor pendiente o rechazado, o reactivar una cuenta desactivada.
+     * - REJECTED: solo para solicitudes de proveedor pendientes.
+     * - INACTIVE: solo para cuentas activas.
+     * Ninguna cuenta vuelve a PENDING_APPROVAL: ese estado solo lo asigna el registro de proveedores.
+     */
+    @Override
+    public UserAccount changeStatus(UUID id, AccountStatus status) {
+        UserAccount existing = getUserById(id);
+        if (existing == null) {
+            return null; // Will trigger 404 in controller
+        }
+        if (existing.status() == status) {
+            return existing;
+        }
+        switch (status) {
+            case PENDING_APPROVAL -> throw new BusinessRuleException("Una cuenta no puede volver a quedar pendiente de aprobación");
+            case REJECTED -> {
+                if (existing.status() != AccountStatus.PENDING_APPROVAL) {
+                    throw new BusinessRuleException("Solo se pueden rechazar solicitudes de proveedor pendientes");
+                }
+            }
+            case INACTIVE -> {
+                if (existing.status() != AccountStatus.ACTIVE) {
+                    throw new BusinessRuleException("Solo se pueden desactivar cuentas activas");
+                }
+            }
+            case ACTIVE -> { /* aprobar o reactivar: permitido desde cualquier otro estado */ }
+        }
+        return users.save(new UserAccount(existing.id(), existing.name(), existing.email(), existing.passwordHash(),
+                existing.role(), status, existing.createdAt()));
     }
 }

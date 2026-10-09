@@ -1,9 +1,11 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
 import com.riwi.skillbridge.application.port.in.AdminManageUsersUseCase;
+import com.riwi.skillbridge.domain.model.AccountStatus;
 import com.riwi.skillbridge.domain.model.Role;
 import com.riwi.skillbridge.domain.model.UserAccount;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.AdminCreateUserRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.AdminStatusRequest;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.AdminUpdateUserRequest;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.AdminUser;
 import jakarta.validation.Valid;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -29,16 +32,28 @@ public class AdminUserController {
         this.adminManageUsersUseCase = adminManageUsersUseCase;
     }
 
+    /** `status` admite varios valores (?status=INACTIVE&status=REJECTED); sin él se listan todos los estados. */
     @GetMapping
     public Page<AdminUser> listUsers(
             @RequestParam Role role,
             @RequestParam(required = false) String q,
+            @RequestParam(required = false) List<AccountStatus> status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (role == Role.ADMIN) {
             throw new IllegalArgumentException("Cannot list ADMIN users");
         }
-        return adminManageUsersUseCase.listUsers(role, q, pageable)
+        return adminManageUsersUseCase.listUsers(role, q, status, pageable)
                 .map(AdminUser::fromDomain);
+    }
+
+    /** Aprobar o rechazar proveedores, y desactivar o reactivar cuentas. */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AdminUser> changeStatus(@PathVariable UUID id, @Valid @RequestBody AdminStatusRequest request) {
+        UserAccount updated = adminManageUsersUseCase.changeStatus(id, request.status());
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(AdminUser.fromDomain(updated));
     }
 
     @GetMapping("/stats")

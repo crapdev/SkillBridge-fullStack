@@ -1,7 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
 import { adminMockEnabled } from '../admin.config';
-import { AdminUser, CreateUserRequest, ManagedRole, Page, RoleStats, UpdateUserRequest, UserStats } from './admin-user.model';
+import { AccountStatus, AdminUser, CreateUserRequest, ManagedRole, Page, RoleStats, UpdateUserRequest, UserStats } from './admin-user.model';
 
 /**
  * Backend simulado de /api/admin/users para desarrollo. Implementa el mismo contrato que se le
@@ -30,8 +30,17 @@ const users: AdminUser[] = NAMES.map((name, i) => ({
   email: name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(' ', '.') + '@skillbridge.dev',
   role: (i % 3 === 2 ? 'CUSTOMER' : 'PROVIDER') as ManagedRole,
   createdAt: new Date(Date.now() - i * i * 0.12 * DAY - i * 3_600_000).toISOString(),
-  active: !(i === 4 || i === 7 || i === 17 || i === 26)
+  ...withStatus(mockStatus(i))
 }));
+
+// Algunos proveedores recientes quedan pendientes y uno rechazado, para probar la aprobación
+function mockStatus(i: number): AccountStatus {
+  if (i === 0 || i === 3) return 'PENDING_APPROVAL';
+  if (i === 13) return 'REJECTED';
+  return [4, 7, 17, 26].includes(i) ? 'INACTIVE' : 'ACTIVE';
+}
+
+function withStatus(status: AccountStatus) { return { status, active: status === 'ACTIVE' }; }
 
 function handle(req: HttpRequest<unknown>, id?: string, status?: string): Observable<HttpResponse<unknown>> {
   if (req.method === 'GET' && id === 'stats') return ok(stats());
@@ -43,7 +52,7 @@ function handle(req: HttpRequest<unknown>, id?: string, status?: string): Observ
   if (req.method === 'GET') return ok(user);
   if (req.method === 'PUT') return update(user, req.body as UpdateUserRequest);
   if (req.method === 'PATCH' && status) {
-    user.active = (req.body as { active: boolean }).active;
+    Object.assign(user, withStatus((req.body as { status: AccountStatus }).status));
     return ok(user);
   }
   return fail(405, 'Método no soportado');
@@ -52,13 +61,13 @@ function handle(req: HttpRequest<unknown>, id?: string, status?: string): Observ
 function list(req: HttpRequest<unknown>): Page<AdminUser> {
   const p = req.params;
   const q = (p.get('q') ?? '').toLowerCase();
-  const active = p.get('active');
+  const statuses = p.getAll('status') ?? [];
   const page = Number(p.get('page') ?? 0);
   const size = Number(p.get('size') ?? 10);
   const rows = users
     .filter(u => u.role === p.get('role'))
     .filter(u => !q || u.name.toLowerCase().includes(q) || u.email.includes(q))
-    .filter(u => active === null || String(u.active !== false) === active)
+    .filter(u => statuses.length === 0 || statuses.includes(u.status))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return {
     content: rows.slice(page * size, page * size + size),
@@ -70,8 +79,14 @@ function stats(): UserStats {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
   const forRole = (role: ManagedRole): RoleStats => {
     const rows = users.filter(u => u.role === role);
-    const active = rows.filter(u => u.active !== false).length;
-    return { total: rows.length, newThisMonth: rows.filter(u => u.createdAt >= monthStart).length, active, inactive: rows.length - active };
+    const count = (...statuses: AccountStatus[]) => rows.filter(u => statuses.includes(u.status)).length;
+    return {
+      total: rows.length,
+      newThisMonth: rows.filter(u => u.createdAt >= monthStart).length,
+      active: count('ACTIVE'),
+      pending: count('PENDING_APPROVAL'),
+      inactive: count('INACTIVE', 'REJECTED')
+    };
   };
   return { providers: forRole('PROVIDER'), customers: forRole('CUSTOMER') };
 }
@@ -79,7 +94,7 @@ function stats(): UserStats {
 function create(body: CreateUserRequest) {
   const email = body.email.trim().toLowerCase();
   if (users.some(u => u.email === email)) return fail(422, 'El correo ya está registrado');
-  const user: AdminUser = { id: crypto.randomUUID(), name: body.name.trim(), email, role: body.role, createdAt: new Date().toISOString(), active: true };
+  const user: AdminUser = { id: crypto.randomUUID(), name: body.name.trim(), email, role: body.role, createdAt: new Date().toISOString(), ...withStatus('ACTIVE') };
   users.unshift(user);
   return ok(user, 201);
 }

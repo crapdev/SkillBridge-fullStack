@@ -61,6 +61,9 @@ public class AuthService implements AuthUseCase {
         if (user.status() == AccountStatus.REJECTED) {
             throw new AccountNotActiveException("Tu solicitud de cuenta de proveedor fue rechazada");
         }
+        if (user.status() == AccountStatus.INACTIVE) {
+            throw new AccountNotActiveException("Tu cuenta fue desactivada por un administrador");
+        }
         return tokens.generate(user.email(), user.role().name());
     }
 }

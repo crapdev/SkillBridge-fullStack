@@ -22,3 +22,17 @@
 @media (max-width: 560px) {
   .when { display: none; }
 }
+
+/* Solicitudes de proveedores pendientes */
+.requests { padding: 20px; display: grid; gap: 12px; margin-top: 20px; }
+.requests--alert { border-color: #fedf89; box-shadow: 0 0 0 3px #fffaeb; }
+.requests h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.requests__actions { display: flex; gap: 8px; flex-shrink: 0; }
+.requests__reject { color: var(--adm-danger); }
+.requests__reject:hover:not(:disabled) { background: var(--adm-danger-soft); }
+.requests__empty { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--adm-muted); font-size: .9rem; }
+.requests__empty svg { width: 18px; height: 18px; fill: none; stroke: var(--adm-ok); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 560px) {
+  .requests .recent__list li { flex-wrap: wrap; }
+  .requests__actions { width: 100%; justify-content: flex-end; }
+}

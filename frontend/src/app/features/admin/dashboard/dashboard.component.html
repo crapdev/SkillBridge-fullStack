@@ -64,13 +64,65 @@
     </span>
     @if (status(); as s) {
       <span class="adm-kpi__value">{{ s.inactive }}</span>
-      <span class="adm-kpi__hint">{{ statusEnabled ? 'Requieren revisión o reactivación' : 'Estados pendientes de backend' }}</span>
+      <span class="adm-kpi__hint">Desactivados o rechazados</span>
     } @else if (!statsError()) {
       <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:50%"></span>
     } @else {
       <span class="adm-kpi__value">—</span>
     }
   </article>
+</section>
+
+<!-- SOLICITUDES DE PROVEEDORES: se aprueban o rechazan desde aquí -->
+@let p = pending();
+<section class="adm-card requests" [class.requests--alert]="p.rows.length > 0" aria-labelledby="requests-title">
+  <header class="recent__head">
+    <div>
+      <h2 id="requests-title">
+        Solicitudes de proveedores
+        @if (status(); as s) {
+          @if (s.pending > 0) { <span class="adm-chip adm-chip--warn adm-chip--plain">{{ s.pending }} pendiente{{ s.pending === 1 ? '' : 's' }}</span> }
+        }
+      </h2>
+      <p>Revisa a los nuevos proveedores antes de que puedan iniciar sesión y publicar mentorías.</p>
+    </div>
+    @if ((status()?.pending ?? 0) > p.rows.length) {
+      <a class="recent__all" routerLink="/admin/proveedores" [queryParams]="{ estado: 'pendientes' }">Ver todas <span aria-hidden="true">→</span></a>
+    }
+  </header>
+
+  @if (p.loading) {
+    <ul class="recent__list" aria-busy="true">
+      @for (i of [1, 2]; track i) {
+        <li><span class="adm-skeleton" style="width:36px;height:36px;border-radius:50%"></span>
+          <span class="grow"><span class="adm-skeleton" style="width:60%"></span></span></li>
+      }
+    </ul>
+  } @else if (p.error) {
+    <div class="recent__state">
+      <p class="adm-notice adm-notice--error" role="alert">{{ p.error }}</p>
+      <button type="button" class="adm-btn adm-btn--outline" (click)="loadPending()">Reintentar</button>
+    </div>
+  } @else if (p.rows.length === 0) {
+    <p class="requests__empty">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+      No hay solicitudes pendientes. Todo al día.
+    </p>
+  } @else {
+    <ul class="recent__list">
+      @for (u of p.rows; track u.id) {
+        <li>
+          <adm-avatar [name]="u.name" />
+          <span class="grow person"><strong>{{ u.name }}</strong><small>{{ u.email }}</small></span>
+          <time class="when" [attr.datetime]="u.createdAt">{{ timeAgo(u.createdAt) }}</time>
+          <span class="requests__actions">
+            <button type="button" class="adm-btn adm-btn--ghost requests__reject" (click)="ask(u, 'reject')">Rechazar</button>
+            <button type="button" class="adm-btn adm-btn--primary" (click)="ask(u, 'approve')">Aprobar</button>
+          </span>
+        </li>
+      }
+    </ul>
+  }
 </section>
 
 <div class="recent-grid">
@@ -103,12 +155,10 @@
       } @else {
         <ul class="recent__list">
           @for (u of state.rows; track u.id) {
-            <li [class.off]="!isActive(u)">
-              <adm-avatar [name]="u.name" [muted]="!isActive(u)" />
+            <li [class.off]="isBlocked(u)">
+              <adm-avatar [name]="u.name" [muted]="isBlocked(u)" />
               <span class="grow person"><strong>{{ u.name }}</strong><small>{{ u.email }}</small></span>
-              <span class="adm-chip" [class.adm-chip--ok]="isActive(u)" [class.adm-chip--off]="!isActive(u)">
-                {{ isActive(u) ? 'Activo' : 'Inactivo' }}
-              </span>
+              <span [class]="'adm-chip ' + statusLabels[u.status].chip">{{ statusLabels[u.status].text }}</span>
               <time class="when" [attr.datetime]="u.createdAt">{{ timeAgo(u.createdAt) }}</time>
             </li>
           }
@@ -117,3 +167,6 @@
     </section>
   }
 </div>
+
+<adm-user-status-dialog [user]="selected()" [action]="action()" [busy]="saving()"
+                        (confirm)="confirmStatus()" (cancel)="selected.set(null)" />

@@ -19,9 +19,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -85,13 +87,72 @@ class AdminUserControllerTest {
     @WithMockUser(roles = "ADMIN")
     void listUsers_ShouldReturnPage() throws Exception {
         UserAccount u = mockUser();
-        when(adminManageUsersUseCase.listUsers(eq(Role.PROVIDER), any(), any(Pageable.class)))
+        when(adminManageUsersUseCase.listUsers(eq(Role.PROVIDER), any(), any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(Collections.singletonList(u)));
 
         mockMvc.perform(get("/api/admin/users?role=PROVIDER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(u.id().toString()))
+                .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$.content[0].active").value(true))
                 .andExpect(jsonPath("$.content[0].password").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void listUsers_ShouldPassStatusFilter() throws Exception {
+        when(adminManageUsersUseCase.listUsers(eq(Role.PROVIDER), any(),
+                eq(List.of(AccountStatus.INACTIVE, AccountStatus.REJECTED)), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        mockMvc.perform(get("/api/admin/users?role=PROVIDER&status=INACTIVE&status=REJECTED"))
+                .andExpect(status().isOk());
+
+        verify(adminManageUsersUseCase).listUsers(eq(Role.PROVIDER), any(),
+                eq(List.of(AccountStatus.INACTIVE, AccountStatus.REJECTED)), any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeStatus_ShouldApprovePendingProvider() throws Exception {
+        UserAccount approved = mockUser();
+        when(adminManageUsersUseCase.changeStatus(approved.id(), AccountStatus.ACTIVE)).thenReturn(approved);
+
+        mockMvc.perform(patch("/api/admin/users/" + approved.id() + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACTIVE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeStatus_ShouldReturn404WhenUserMissing() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(adminManageUsersUseCase.changeStatus(id, AccountStatus.INACTIVE)).thenReturn(null);
+
+        mockMvc.perform(patch("/api/admin/users/" + id + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"INACTIVE\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void changeStatus_ShouldReturn400WhenStatusMissing() throws Exception {
+        mockMvc.perform(patch("/api/admin/users/" + UUID.randomUUID() + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "PROVIDER")
+    void changeStatus_ShouldReturn403ForNonAdmin() throws Exception {
+        mockMvc.perform(patch("/api/admin/users/" + UUID.randomUUID() + "/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"ACTIVE\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

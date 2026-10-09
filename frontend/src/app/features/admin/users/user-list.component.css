@@ -48,3 +48,11 @@ tr.dim { opacity: .55; }
   .count { margin-left: 0; }
   .pager { justify-content: center; text-align: center; }
 }
+
+/* KPI de solicitudes pendientes: es un botón que aplica el filtro "Pendientes" */
+.kpi-pending { text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+.kpi-pending:hover { border-color: #fdb022; }
+.kpi-pending:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+.kpi-pending--alert { border-color: #fedf89; background: #fffcf5; }
+.kpi-pending--alert .adm-kpi__value { color: #b54708; }
+.kpi-pending--alert .adm-kpi__hint { color: #b54708; font-weight: 600; }

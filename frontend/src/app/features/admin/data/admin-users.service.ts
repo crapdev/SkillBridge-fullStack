@@ -2,7 +2,15 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { apiBase } from '../../../core/api';
 import { KEEP_SESSION_ON_401 } from '../../../core/auth.interceptor';
-import { AdminUser, CreateUserRequest, Page, UpdateUserRequest, UserQuery, UserStats } from './admin-user.model';
+import { AccountStatus, AdminUser, CreateUserRequest, Page, StatusFilter, UpdateUserRequest, UserQuery, UserStats } from './admin-user.model';
+
+/** Estados que pide al backend cada filtro del listado (sin estados = todos) */
+const STATUS_FILTERS: Record<StatusFilter, AccountStatus[]> = {
+  ALL: [],
+  PENDING: ['PENDING_APPROVAL'],
+  ACTIVE: ['ACTIVE'],
+  INACTIVE: ['INACTIVE', 'REJECTED']
+};
 
 // Un 401 del panel se muestra como error en la vista en lugar de cerrar la sesión
 const context = () => new HttpContext().set(KEEP_SESSION_ON_401, true);
@@ -20,7 +28,7 @@ export class AdminUsersService {
       .set('size', query.size)
       .set('sort', 'createdAt,desc');
     if (query.q?.trim()) params = params.set('q', query.q.trim());
-    if (query.status && query.status !== 'ALL') params = params.set('active', query.status === 'ACTIVE');
+    for (const status of STATUS_FILTERS[query.status ?? 'ALL']) params = params.append('status', status);
     return this.http.get<Page<AdminUser>>(this.base(), { params, context: context() });
   }
 
@@ -29,8 +37,8 @@ export class AdminUsersService {
   create(body: CreateUserRequest) { return this.http.post<AdminUser>(this.base(), body, { context: context() }); }
   update(id: string, body: UpdateUserRequest) { return this.http.put<AdminUser>(`${this.base()}/${id}`, body, { context: context() }); }
 
-  // Pendiente de backend: requiere la columna app_users.active
-  setStatus(id: string, active: boolean) {
-    return this.http.patch<AdminUser>(`${this.base()}/${id}/status`, { active }, { context: context() });
+  /** Aprobar, rechazar, desactivar o reactivar; el backend valida que la transición sea permitida */
+  setStatus(id: string, status: AccountStatus) {
+    return this.http.patch<AdminUser>(`${this.base()}/${id}/status`, { status }, { context: context() });
   }
 }

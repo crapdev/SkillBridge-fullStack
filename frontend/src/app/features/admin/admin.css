@@ -56,6 +56,8 @@
 .adm-icon-btn:hover:not(:disabled) { background: var(--adm-surface-2); color: var(--adm-text); }
 .adm-icon-btn--danger:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }
 .adm-icon-btn--ok { color: var(--adm-primary); }
+.adm-icon-btn--approve { color: var(--adm-ok); }
+.adm-icon-btn--approve:hover:not(:disabled) { background: var(--adm-ok-soft); color: var(--adm-ok); }
 .adm-icon-btn:disabled { opacity: .4; cursor: not-allowed; }
 
 /* Estado */
@@ -67,6 +69,8 @@
 .adm-chip--ok { color: var(--adm-ok); background: var(--adm-ok-soft); }
 .adm-chip--off { color: var(--adm-off); background: var(--adm-off-soft); }
 .adm-chip--info { color: var(--adm-primary); background: var(--adm-primary-soft); }
+.adm-chip--warn { color: #b54708; background: #fffaeb; }
+.adm-chip--danger { color: var(--adm-danger); background: var(--adm-danger-soft); }
 .adm-chip--plain::before { display: none; }
 
 /* Tarjetas y KPIs */

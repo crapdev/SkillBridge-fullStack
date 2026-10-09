@@ -3,12 +3,22 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import { AdminUsersService } from '../data/admin-users.service';
-import { AdminUser, ManagedRole, Page, ROLE_LABELS, RoleStats, StatusFilter, isActive } from '../data/admin-user.model';
+import {
+  ACTION_TARGET, AdminUser, ManagedRole, Page, ROLE_LABELS, RoleStats, STATUS_LABELS, StatusAction, StatusFilter,
+  availableActions, isBlocked
+} from '../data/admin-user.model';
 import { AvatarComponent } from '../shared/avatar.component';
 import { UserStatusDialogComponent } from '../shared/user-status-dialog.component';
 import { ToastService } from '../shared/toast.service';
 import { errorMessage, formatDate } from '../shared/format';
-import { userStatusEnabled } from '../admin.config';
+
+/** Mensaje del aviso tras cada acción */
+const DONE: Record<StatusAction, string> = {
+  approve: 'fue aprobado y ya puede iniciar sesión',
+  reject: 'fue rechazado',
+  deactivate: 'fue desactivado',
+  activate: 'fue reactivado'
+};
 
 const PAGE_SIZE = 10;
 
@@ -24,17 +34,25 @@ export class UserListComponent {
   private toast = inject(ToastService);
   private destroyRef = inject(DestroyRef);
 
-  protected readonly role: ManagedRole = inject(ActivatedRoute).snapshot.data['role'];
+  private route = inject(ActivatedRoute);
+  protected readonly role: ManagedRole = this.route.snapshot.data['role'];
   protected readonly label = ROLE_LABELS[this.role];
-  protected readonly statusEnabled = userStatusEnabled();
   protected readonly formatDate = formatDate;
-  protected readonly isActive = isActive;
+  protected readonly isBlocked = isBlocked;
+  protected readonly statusLabels = STATUS_LABELS;
+  protected readonly availableActions = availableActions;
+  // "Pendientes" solo aplica a proveedores: los clientes nacen activos
   protected readonly filters: { value: StatusFilter; text: string }[] = [
-    { value: 'ALL', text: 'Todos' }, { value: 'ACTIVE', text: 'Activos' }, { value: 'INACTIVE', text: 'Inactivos' }
+    { value: 'ALL', text: 'Todos' },
+    ...(this.role === 'PROVIDER' ? [{ value: 'PENDING' as StatusFilter, text: 'Pendientes' }] : []),
+    { value: 'ACTIVE', text: 'Activos' },
+    { value: 'INACTIVE', text: 'Inactivos' }
   ];
 
   protected readonly q = signal('');
-  protected readonly status = signal<StatusFilter>('ALL');
+  // El dashboard enlaza a /admin/proveedores?estado=pendientes para revisar solicitudes
+  protected readonly status = signal<StatusFilter>(
+    this.route.snapshot.queryParamMap.get('estado') === 'pendientes' && this.role === 'PROVIDER' ? 'PENDING' : 'ALL');
   protected readonly pageIndex = signal(0);
 
   protected readonly loading = signal(true);
@@ -43,6 +61,7 @@ export class UserListComponent {
   protected readonly stats = signal<RoleStats | null>(null);
 
   protected readonly selected = signal<AdminUser | null>(null);
+  protected readonly action = signal<StatusAction>('deactivate');
   protected readonly saving = signal(false);
 
   protected readonly rows = computed(() => this.page()?.content ?? []);
@@ -106,16 +125,21 @@ export class UserListComponent {
     });
   }
 
+  protected ask(user: AdminUser, action: StatusAction) {
+    this.action.set(action);
+    this.selected.set(user);
+  }
+
   protected confirmStatus() {
     const user = this.selected();
     if (!user) return;
-    const activate = !isActive(user);
+    const action = this.action();
     this.saving.set(true);
-    this.service.setStatus(user.id, activate).subscribe({
+    this.service.setStatus(user.id, ACTION_TARGET[action]).subscribe({
       next: () => {
         this.saving.set(false);
         this.selected.set(null);
-        this.toast.success(`${user.name} fue ${activate ? 'reactivado' : 'desactivado'}.`);
+        this.toast.success(`${user.name} ${DONE[action]}.`);
         this.load();
         this.loadStats();
       },
