@@ -13,6 +13,7 @@ export const routes: Routes = [
   { path: 'services/:id', component: ServiceDetailComponent },
   { path: 'ai', component: AiComponent, canActivate: [customerGuard] },
   { path: 'book', component: BookingComponent, canActivate: [customerGuard] },
-  { path: 'my-bookings', component: MyBookingsComponent, canActivate: [customerGuard] },
+  { path: 'bookings/me', component: MyBookingsComponent, canActivate: [customerGuard] },
+  { path: 'my-bookings', redirectTo: 'bookings/me' },
   { path: '**', redirectTo: '' }
 ];

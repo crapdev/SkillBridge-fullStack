@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { BookingService, Booking, BookingStatus } from '../core/booking.service';
 import { OfferingService } from '../core/offering.service';
+import { AlertService } from '../shared/alert.service';
 
 @Component({
   selector: 'app-my-bookings',
@@ -46,7 +47,9 @@ import { OfferingService } from '../core/offering.service';
                   <div class="badge-status {{ booking.status.toLowerCase() }}">
                     {{ statusLabel(booking.status) }}
                   </div>
-                  <p class="booking-note">Esperando confirmación</p>
+                  @if (booking.status === 'CREATED') {
+                    <p class="booking-note">Esperando confirmación</p>
+                  }
                   <h3>{{ offeringTitles.get(booking.offeringId) ?? 'Servicio no disponible' }}</h3>
                   <p class="muted">Fecha programada: {{ booking.scheduledAt | date:'medium' }}</p>
                   
@@ -83,6 +86,7 @@ import { OfferingService } from '../core/offering.service';
 export class MyBookingsComponent implements OnInit {
   private bookingService = inject(BookingService);
   private offeringService = inject(OfferingService);
+  private alerts = inject(AlertService);
 
   bookings: Booking[] = [];
   offeringTitles = new Map<string, string>();
@@ -99,15 +103,22 @@ export class MyBookingsComponent implements OnInit {
     return this.cancelingIds.has(id);
   }
 
-  cancel(id: string): void {
-    if (!window.confirm('¿Estás seguro de que deseas cancelar esta reserva?')) {
+  async cancel(id: string): Promise<void> {
+    const confirmed = await this.alerts.confirm({
+      title: '¿Cancelar esta reserva?',
+      message: 'La sesión quedará cancelada y no podrás reactivarla.',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'Volver',
+      danger: true
+    });
+    if (!confirmed) {
       return;
     }
-    
+
     this.cancelingIds.add(id);
     this.bookingService.cancelBooking(id).subscribe({
       next: () => {
-        window.alert('Reserva cancelada exitosamente.');
+        this.alerts.success('Reserva cancelada', 'Tu reserva se canceló correctamente.');
         this.cancelingIds.delete(id);
         this.loadBookings();
       },
@@ -115,7 +126,7 @@ export class MyBookingsComponent implements OnInit {
         console.error('Error al cancelar', error);
         this.cancelingIds.delete(id);
         const msg = error.error?.detail || 'Ocurrió un error al cancelar la reserva.';
-        window.alert(msg);
+        this.alerts.error('No se pudo cancelar', msg);
       }
     });
   }
