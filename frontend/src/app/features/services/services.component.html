@@ -1,0 +1,104 @@
+<!-- HERO -->
+<section class="catalog-hero">
+  <div class="catalog-hero__glow" aria-hidden="true"></div>
+  <div class="container catalog-hero__inner">
+    <nav class="breadcrumb enter" style="--i: 0" aria-label="Ruta de navegación">
+      <a routerLink="/">Inicio</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">Servicios</span>
+    </nav>
+    <h1 class="enter" style="--i: 1">
+      Todas nuestras <span class="highlight">mentorías</span>
+    </h1>
+    <p class="catalog-hero__lead enter" style="--i: 2">
+      Sesiones 1:1 y revisiones de código con especialistas en backend, frontend y cloud.
+      Encuentra la que necesitas y reserva en minutos.
+    </p>
+  </div>
+</section>
+
+<section class="catalog">
+  <div class="container">
+
+    <!-- FILTROS -->
+    <div class="toolbar" role="search">
+      <label class="search">
+        <span class="visually-hidden">Buscar servicios</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+        <input type="search" placeholder="Buscar por tema, tecnología o nombre…"
+               [value]="query()" (input)="setQuery($any($event.target).value)">
+      </label>
+
+      <label class="sort">
+        <span>Ordenar</span>
+        <select [value]="sort()" (change)="setSort($any($event.target).value)">
+          <option value="relevancia">Relevancia</option>
+          <option value="precio-asc">Precio: menor a mayor</option>
+          <option value="precio-desc">Precio: mayor a menor</option>
+        </select>
+      </label>
+
+      @if (categories().length) {
+        <div class="chips" role="group" aria-label="Filtrar por categoría">
+          <button type="button" class="chip" [class.active]="!category()" [attr.aria-pressed]="!category()"
+                  (click)="setCategory('')">
+            Todas <span class="chip__count">{{ offerings().length }}</span>
+          </button>
+          @for (cat of categories(); track cat.name) {
+            <button type="button" class="chip" [class.active]="category() === cat.name"
+                    [attr.aria-pressed]="category() === cat.name" (click)="setCategory(cat.name)">
+              {{ cat.name }} <span class="chip__count">{{ cat.count }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    @switch (status()) {
+      @case ('loading') {
+        <div class="grid" aria-busy="true" aria-label="Cargando servicios">
+          @for (s of skeletons; track s) { <div class="skeleton"></div> }
+        </div>
+      }
+
+      @case ('error') {
+        <div class="state">
+          <span class="state__icon" aria-hidden="true">!</span>
+          <h2>No fue posible cargar los servicios</h2>
+          <p>Revisa tu conexión e inténtalo de nuevo.</p>
+          <button type="button" class="state__action" (click)="load()">Reintentar</button>
+        </div>
+      }
+
+      @case ('ready') {
+        <div class="results" aria-live="polite">
+          <p>
+            Mostrando <strong>{{ filtered().length }}</strong> de {{ offerings().length }}
+            {{ offerings().length === 1 ? 'servicio' : 'servicios' }}
+          </p>
+          @if (hasFilters()) {
+            <button type="button" class="link" (click)="clearFilters()">Limpiar filtros</button>
+          }
+        </div>
+
+        @if (filtered().length) {
+          <div class="grid">
+            @for (offering of filtered(); track offering.id; let i = $index) {
+              <app-service-card [offering]="offering" appReveal [revealDelay]="(i % 6) * 60" />
+            }
+          </div>
+        } @else {
+          <div class="state">
+            <span class="state__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+            </span>
+            <h2>No encontramos servicios con esos filtros</h2>
+            <p>Prueba con otra palabra o revisa todas las categorías.</p>
+            <button type="button" class="state__action" (click)="clearFilters()">Limpiar filtros</button>
+          </div>
+        }
+      }
+    }
+
+  </div>
+</section>

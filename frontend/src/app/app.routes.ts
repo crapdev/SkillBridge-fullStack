@@ -6,11 +6,13 @@ import { BookingComponent } from './features/booking.component';
 import { MyBookingsComponent } from './features/my-bookings.component';
 import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { AboutComponent } from './features/about/about.component';
+import { ServicesComponent } from './features/services/services.component';
 import { customerGuard } from './core/role.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'login', component: LoginComponent },
+  { path: 'servicios', component: ServicesComponent },
   { path: 'services/:id', component: ServiceDetailComponent },
   { path: 'sobre-nosotros', component: AboutComponent },
   { path: 'ai', component: AiComponent, canActivate: [customerGuard] },

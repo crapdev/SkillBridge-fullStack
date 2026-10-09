@@ -44,14 +44,6 @@
           para acelerar tu desarrollo profesional.
         </p>
       </div>
-
-      <!-- Filtros -->
-      <!-- <div class="filters">
-        <button class="filter active">Todos</button>
-        <button class="filter">Cloud</button>
-        <button class="filter">Frontend</button>
-        <button class="filter">Backend</button>
-      </div> -->
     </div>
 
 
@@ -61,83 +53,20 @@
     }
 
 
-    <!-- Servicios -->
+    <!-- Vista previa: el catálogo completo está en /servicios -->
     <div class="services-grid">
-
-      @for (offering of offerings; track offering.id) {
-
-        <article class="service-card">
-
-          <!-- Categoría + icono -->
-          <div class="card-top">
-
-            <span
-              class="category"
-              [class.cloud]="offering.category.toLowerCase() === 'cloud'"
-              [class.frontend]="offering.category.toLowerCase() === 'frontend'"
-              [class.backend]="offering.category.toLowerCase() === 'backend'"
-            >
-              {{ offering.category }}
-            </span>
-
-            <div
-              class="service-icon"
-              [class.cloud]="offering.category.toLowerCase() === 'cloud'"
-              [class.frontend]="offering.category.toLowerCase() === 'frontend'"
-              [class.backend]="offering.category.toLowerCase() === 'backend'"
-            >
-              @if (offering.category.toLowerCase() === 'cloud') {
-                <img src="icons/CLOUD.png" alt="icon cloud">
-              }
-              @else if (offering.category.toLowerCase() === 'frontend') {
-                <img src="icons/FRONTEND.png" alt="icon frontend">
-              }
-              @else {
-                <img src="icons/BACKEND.png" alt="icon backend">
-              }
-            </div>
-
-          </div>
-
-
-          <!-- Información -->
-          <div class="card-content">
-
-            <h3><a [routerLink]="['/services', offering.id]">{{ offering.title }}</a></h3>
-
-            <p class="description">
-              {{ offering.description }}
-            </p>
-
-          </div>
-
-
-          <!-- Precio + botón -->
-          <div class="card-footer">
-
-            <div class="price-container">
-              <span class="price-label">
-                INVERSIÓN
-              </span>
-
-              <div class="price">
-                {{ offering.price | currency:'COP':'symbol-narrow':'1.0-0' }}
-                <span>/ sesión</span>
-              </div>
-            </div>
-
-            <a class="reserve-button" [routerLink]="['/services', offering.id]">
-              Ver detalle
-              <span aria-hidden="true">→</span>
-            </a>
-
-          </div>
-
-        </article>
-
+      @for (offering of offerings.slice(0, previewSize); track offering.id) {
+        <app-service-card [offering]="offering" />
       }
-
     </div>
+
+    @if (offerings.length) {
+      <div class="services-more">
+        <a routerLink="/servicios" class="services-more__link">
+          Ver todos los servicios <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    }
 
   </div>
 </section>

@@ -109,7 +109,7 @@
       <h2>¿Listo para empezar?</h2>
       <p>Explora el catálogo y reserva tu primera sesión con un especialista.</p>
       <div class="cta-box__actions">
-        <a routerLink="/" class="cta">Ver servicios <span class="cta__arrow" aria-hidden="true">→</span></a>
+        <a routerLink="/servicios" class="cta">Ver servicios <span class="cta__arrow" aria-hidden="true">→</span></a>
         @if (!auth.isAuthenticated()) {
           <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="cta cta--ghost">Crear cuenta</a>
         }

@@ -40,7 +40,8 @@ import { AlertHostComponent } from './shared/alert-host.component';
         <!-- En escritorio este contenedor no existe visualmente (display: contents); en móvil es el panel desplegable -->
         <div id="nav-menu" class="nav-menu" [class.open]="menuOpen()" (click)="closeOnSelect($event)">
           <nav class="nav-links">
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Servicios</a>
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
+            <a routerLink="/servicios" routerLinkActive="active">Servicios</a>
             <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER -->
             @if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/book" routerLinkActive="active">Reservar</a>
