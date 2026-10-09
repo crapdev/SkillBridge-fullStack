@@ -5,11 +5,12 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { AlertHostComponent } from './shared/alert-host.component';
+import { SiteFooterComponent } from './shared/site-footer/site-footer.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent, SiteFooterComponent],
   template: `
     <!-- La pantalla de login tiene su propio encabezado -->
     @if (!isAuthPage()) {
@@ -70,6 +71,7 @@ import { AlertHostComponent } from './shared/alert-host.component';
     </header>
     }
     <main><router-outlet /></main>
+    @if (!isAuthPage()) { <app-site-footer /> }
     <app-alert-host />
   `,
   styleUrls: ['./header.css']
