@@ -3,6 +3,7 @@ package com.riwi.skillbridge.infrastructure.security;
 import com.riwi.skillbridge.application.port.in.CancelBookingUseCase;
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
 import com.riwi.skillbridge.application.port.in.GenerateRecommendationUseCase;
+import com.riwi.skillbridge.application.port.in.ListAvailableSlotsUseCase;
 import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
 import com.riwi.skillbridge.application.port.in.ListOfferingsUseCase;
 import com.riwi.skillbridge.application.port.out.PasswordHasherPort;
@@ -89,6 +90,7 @@ class AuthSecurityIntegrationTest {
     @MockitoBean ListMyBookingsUseCase listMyBookings;
     @MockitoBean CancelBookingUseCase cancelBooking;
     @MockitoBean ListOfferingsUseCase listOfferings;
+    @MockitoBean ListAvailableSlotsUseCase listAvailableSlots;
     @MockitoBean GenerateRecommendationUseCase recommendations;
 
     @BeforeEach

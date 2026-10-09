@@ -1,7 +1,10 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
 import com.riwi.skillbridge.application.service.ProviderOfferingService;
+import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -46,5 +49,25 @@ public class ProviderOfferingController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteOffering(@PathVariable UUID id, Authentication authentication) {
         providerOfferingService.deleteOffering(id, authentication.getName());
+    }
+
+    // ---- Horarios disponibles de una mentoría del proveedor ----
+
+    @GetMapping("/{id}/slots")
+    public List<AvailabilitySlot> listSlots(@PathVariable UUID id, Authentication authentication) {
+        return providerOfferingService.listOwnedSlots(id, authentication.getName());
+    }
+
+    @PostMapping("/{id}/slots")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AvailabilitySlot addSlot(@PathVariable UUID id, @Valid @RequestBody CreateSlotRequest request,
+                                    Authentication authentication) {
+        return providerOfferingService.addAvailabilitySlot(id, request.scheduledAt(), authentication.getName());
+    }
+
+    @DeleteMapping("/{id}/slots/{slotId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteSlot(@PathVariable UUID id, @PathVariable UUID slotId, Authentication authentication) {
+        providerOfferingService.deleteAvailabilitySlot(id, slotId, authentication.getName());
     }
 }

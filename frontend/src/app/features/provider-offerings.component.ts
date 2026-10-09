@@ -1,11 +1,12 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { OfferingService, Offering } from '../core/offering.service';
 
 @Component({
   selector: 'app-provider-offerings',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   template: `
     <section class="container section">
       <div class="dashboard-header">
@@ -70,7 +71,7 @@ import { OfferingService, Offering } from '../core/offering.service';
                   <p class="price">\${{ offering.price }}</p>
                 </div>
                 <div class="offering-actions">
-                  <button class="btn btn-outline btn-sm">Horarios</button>
+                  <a class="btn btn-outline btn-sm" [routerLink]="['/provider/offerings', offering.id, 'horarios']">Horarios</a>
                   <button class="btn btn-danger btn-sm" (click)="deleteOffering(offering.id)">Eliminar</button>
                 </div>
               </div>
@@ -164,10 +165,14 @@ export class ProviderOfferingsComponent implements OnInit {
     if(confirm('¿Estás seguro de eliminar esta mentoría?')) {
       this.offeringService.deleteProviderOffering(id).subscribe({
         next: () => {
+          this.errorMessage = '';
           this.successMessage = 'Mentoría eliminada correctamente.';
           this.loadOfferings();
         },
-        error: (err) => console.error('Error eliminando', err)
+        error: (err) => {
+          this.successMessage = '';
+          this.errorMessage = err?.error?.detail || 'No fue posible eliminar la mentoría.';
+        }
       });
     }
   }

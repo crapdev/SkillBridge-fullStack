@@ -12,4 +12,8 @@ public interface AvailabilitySlotRepositoryPort {
     Optional<AvailabilitySlot> findByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
     List<AvailabilitySlot> findAvailableByOfferingId(UUID offeringId);
     boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
+    Optional<AvailabilitySlot> findById(UUID id);
+    List<AvailabilitySlot> findByOfferingId(UUID offeringId);
+    void deleteById(UUID id);
+    void deleteByOfferingId(UUID offeringId);
 }

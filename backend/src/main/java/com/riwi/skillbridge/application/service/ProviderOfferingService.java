@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.ListAvailableSlotsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class ProviderOfferingService {
+public class ProviderOfferingService implements ListAvailableSlotsUseCase {
 
     private final OfferingRepositoryPort offeringRepositoryPort;
     private final AvailabilitySlotRepositoryPort slotRepositoryPort;
@@ -49,8 +50,7 @@ public class ProviderOfferingService {
     // NUEVO MÉTODO: Trae la lista de mentorías de este proveedor específico
     public List<Offering> getOwnedOfferings(String providerEmail) {
         // 1. Buscamos el ID del proveedor usando su correo
-        UUID providerId = userAccountPort.findIdByEmail(providerEmail)
-            .orElseThrow(() -> new RuntimeException("Proveedor no encontrado")); // Usa DomainNotFoundException si lo tienes importado
+        UUID providerId = getProviderId(providerEmail);
 
         // 2. Buscamos todas las mentorías asociadas a ese ID
         return offeringRepositoryPort.findByProviderId(providerId);
@@ -59,6 +59,11 @@ public class ProviderOfferingService {
     // DELETE OFFERING (VALIDATE THE OWNER IS PROVIDER)
     public void deleteOffering(UUID offeringId, String providerEmail) {
         Offering existing = getOwnedOffering(offeringId, providerEmail);
+        // Los horarios dependen de la mentoría: sin borrarlos antes, la base de datos rechaza la eliminación
+        if (slotRepositoryPort.findByOfferingId(existing.id()).stream().anyMatch(AvailabilitySlot::reserved)) {
+            throw new BusinessRuleException("No puedes eliminar una mentoría que tiene horarios reservados");
+        }
+        slotRepositoryPort.deleteByOfferingId(existing.id());
         offeringRepositoryPort.deleteById(existing.id());
     }
 
@@ -77,9 +82,34 @@ public class ProviderOfferingService {
         return slotRepositoryPort.save(slot);
     }
 
-    // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED)
+    // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED AND IN THE FUTURE)
+    @Override
     public List<AvailabilitySlot> listAvailableSlots(UUID offeringId) {
-        return slotRepositoryPort.findAvailableByOfferingId(offeringId);
+        Instant now = Instant.now();
+        return slotRepositoryPort.findAvailableByOfferingId(offeringId).stream()
+            .filter(slot -> slot.scheduledAt().isAfter(now))
+            .toList();
+    }
+
+    // LIST THE PROVIDER'S UPCOMING SLOTS (FREE AND RESERVED) FOR ONE OF THEIR OFFERINGS
+    public List<AvailabilitySlot> listOwnedSlots(UUID offeringId, String providerEmail) {
+        getOwnedOffering(offeringId, providerEmail);
+        Instant now = Instant.now();
+        return slotRepositoryPort.findByOfferingId(offeringId).stream()
+            .filter(slot -> slot.scheduledAt().isAfter(now))
+            .toList();
+    }
+
+    // DELETE A FREE SLOT (A RESERVED ONE ALREADY HAS A CUSTOMER BOOKING)
+    public void deleteAvailabilitySlot(UUID offeringId, UUID slotId, String providerEmail) {
+        getOwnedOffering(offeringId, providerEmail);
+        AvailabilitySlot slot = slotRepositoryPort.findById(slotId)
+            .filter(s -> s.offeringId().equals(offeringId))
+            .orElseThrow(() -> new DomainNotFoundException("Horario no encontrado"));
+        if (slot.reserved()) {
+            throw new BusinessRuleException("No puedes eliminar un horario que ya fue reservado");
+        }
+        slotRepositoryPort.deleteById(slotId);
     }
 
     public Offering getOwnedOffering(UUID offeringId, String providerEmail) {

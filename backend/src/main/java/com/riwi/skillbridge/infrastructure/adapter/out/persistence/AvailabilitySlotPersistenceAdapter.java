@@ -51,4 +51,28 @@ public class AvailabilitySlotPersistenceAdapter implements AvailabilitySlotRepos
     public boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt) {
         return repository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt);
     }
+
+    @Override
+    public Optional<AvailabilitySlot> findById(UUID id) {
+        return repository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<AvailabilitySlot> findByOfferingId(UUID offeringId) {
+        return repository.findByOfferingIdOrderByScheduledAtAsc(offeringId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        repository.deleteById(id);
+    }
+
+    @Override
+    public void deleteByOfferingId(UUID offeringId) {
+        repository.deleteByOfferingId(offeringId);
+    }
+
+    private AvailabilitySlot toDomain(AvailabilitySlotEntity e) {
+        return new AvailabilitySlot(e.getId(), e.getOfferingId(), e.getScheduledAt(), e.isReserved());
+    }
 }
