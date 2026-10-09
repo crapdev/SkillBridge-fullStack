@@ -67,7 +67,7 @@ class BookingServiceTest {
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
         when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
         Booking result = service.cancelBooking(bookingId, "user@example.com");
 
         assertEquals(com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED, result.status());
@@ -87,7 +87,7 @@ class BookingServiceTest {
         when(users.findIdByEmail("hacker@example.com")).thenReturn(Optional.of(hackerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
         
         org.junit.jupiter.api.Assertions.assertThrows(
             com.riwi.skillbridge.domain.exception.UnauthorizedActionException.class, 
@@ -110,7 +110,7 @@ class BookingServiceTest {
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
         
         org.junit.jupiter.api.Assertions.assertThrows(
             com.riwi.skillbridge.domain.exception.BusinessRuleException.class, 
