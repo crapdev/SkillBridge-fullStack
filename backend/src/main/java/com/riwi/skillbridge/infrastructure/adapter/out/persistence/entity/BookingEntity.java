@@ -20,6 +20,8 @@ public class BookingEntity {
     private BookingStatus status;
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
+    private PaymentEntity payment;
 
     protected BookingEntity() {}
 
