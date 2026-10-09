@@ -15,106 +15,149 @@
 
   <main class="auth-main">
     <section class="auth-card" aria-labelledby="auth-title">
-      <p class="auth-switch">
-        @if (mode === 'login') {
-          ¿No tienes una cuenta?
-          <button type="button" class="link" (click)="toggle(f)">Regístrate gratis ›</button>
-        } @else {
-          ¿Ya tienes una cuenta?
-          <button type="button" class="link" (click)="toggle(f)">Inicia sesión ›</button>
-        }
-      </p>
-
-      <span class="pill"><span class="pill__dot" aria-hidden="true"></span>Acceso profesional</span>
-      <h1 id="auth-title">{{ mode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta' }}</h1>
-      <p class="auth-lead">
-        {{ mode === 'login'
-          ? 'Ingresa tus credenciales para acceder a tu panel de mentorías y recursos técnicos.'
-          : 'Regístrate para reservar mentorías y recibir recomendaciones con IA.' }}
-      </p>
-
-      <!-- Login social: pendiente de implementar OAuth2 en el backend -->
-      <div class="social">
-        <button type="button" class="social__btn" disabled title="Próximamente">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z" />
-            <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z" />
-            <path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9l3.7-2.8z" />
-            <path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z" />
-          </svg>
-          Google <span class="soon">Pronto</span>
-        </button>
-        <button type="button" class="social__btn" disabled title="Próximamente">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z" />
-          </svg>
-          GitHub <span class="soon">Pronto</span>
-        </button>
-      </div>
-
-      <div class="divider"><span>o ingresa con tu correo</span></div>
-
-      <form #f="ngForm" (ngSubmit)="submit(f)" novalidate>
-        @if (mode === 'register') {
-          <div class="field">
-            <label for="name">Nombre completo</label>
-            <div class="input">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
-              <input id="name" name="name" [(ngModel)]="name" #nameCtrl="ngModel" required maxlength="120"
-                     autocomplete="name" placeholder="Ana Pérez"
-                     [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched">
-            </div>
-            @if (nameCtrl.invalid && nameCtrl.touched) { <p class="hint hint--error">Ingresa tu nombre.</p> }
+      @if (providerRequestMessage) {
+        <!-- Solicitud de proveedor enviada: la cuenta queda pendiente hasta que un admin la apruebe -->
+        <div class="request-sent" role="status">
+          <span class="request-sent__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+          </span>
+          <h1 id="auth-title">¡Solicitud enviada!</h1>
+          <p>{{ providerRequestMessage }}</p>
+          <p class="request-sent__email">Registramos tu solicitud con <strong>{{ email }}</strong>.</p>
+          <div class="request-sent__actions">
+            <a routerLink="/" class="submit submit--ghost">Volver al inicio</a>
+            <button type="button" class="submit" (click)="backToLogin()">Ir a iniciar sesión</button>
           </div>
-        }
-
-        <div class="field">
-          <label for="email">Correo electrónico</label>
-          <div class="input">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
-            <input id="email" type="email" name="email" [(ngModel)]="email" #emailCtrl="ngModel" required email
-                   autocomplete="email" placeholder="nombre@correo.com"
-                   [attr.aria-invalid]="emailCtrl.invalid && emailCtrl.touched">
-          </div>
-          @if (emailCtrl.invalid && emailCtrl.touched) { <p class="hint hint--error">Ingresa un correo válido.</p> }
         </div>
-
-        <div class="field">
-          <label for="password">Contraseña</label>
-          <div class="input">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-            <input id="password" [type]="showPassword ? 'text' : 'password'" name="password" [(ngModel)]="password"
-                   #passwordCtrl="ngModel" required [minlength]="mode === 'register' ? 8 : 1" maxlength="72"
-                   [attr.autocomplete]="mode === 'login' ? 'current-password' : 'new-password'" placeholder="••••••••••••"
-                   [attr.aria-invalid]="passwordCtrl.invalid && passwordCtrl.touched">
-            <button type="button" class="eye" (click)="showPassword = !showPassword"
-                    [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                    [attr.aria-pressed]="showPassword">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
-                @if (showPassword) { <path d="M3 3l18 18" /> }
-              </svg>
-            </button>
-          </div>
-          @if (passwordCtrl.invalid && passwordCtrl.touched) {
-            <p class="hint hint--error">{{ mode === 'register' ? 'Usa al menos 8 caracteres.' : 'Ingresa tu contraseña.' }}</p>
-          } @else if (mode === 'register') {
-            <p class="hint">Mínimo 8 caracteres.</p>
+      } @else {
+        <p class="auth-switch">
+          @if (mode === 'login') {
+            ¿No tienes una cuenta?
+            <button type="button" class="link" (click)="toggle(f)">Regístrate gratis ›</button>
+          } @else {
+            ¿Ya tienes una cuenta?
+            <button type="button" class="link" (click)="toggle(f)">Inicia sesión ›</button>
           }
+        </p>
+
+        <span class="pill"><span class="pill__dot" aria-hidden="true"></span>Acceso profesional</span>
+        <h1 id="auth-title">{{ mode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta' }}</h1>
+        <p class="auth-lead">
+          @if (mode === 'login') {
+            Ingresa tus credenciales para acceder a tu panel de mentorías y recursos técnicos.
+          } @else if (accountType === 'PROVIDER') {
+            Ofrece tus mentorías y servicios técnicos a la comunidad de SkillBridge.
+          } @else {
+            Regístrate para reservar mentorías y recibir recomendaciones con IA.
+          }
+        </p>
+
+        <!-- Login social: pendiente de implementar OAuth2 en el backend -->
+        <div class="social">
+          <button type="button" class="social__btn" disabled title="Próximamente">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z" />
+              <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z" />
+              <path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.1a11 11 0 0 0 0 9.9l3.7-2.8z" />
+              <path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z" />
+            </svg>
+            Google <span class="soon">Pronto</span>
+          </button>
+          <button type="button" class="social__btn" disabled title="Próximamente">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.7.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5z" />
+            </svg>
+            GitHub <span class="soon">Pronto</span>
+          </button>
         </div>
 
-        @if (error) { <p class="alert" role="alert">{{ error }}</p> }
+        <div class="divider"><span>o ingresa con tu correo</span></div>
 
-        <button type="submit" class="submit" [disabled]="loading">
-          @if (loading) { <span class="spinner" aria-hidden="true"></span> Procesando… }
-          @else { {{ mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta' }} <span aria-hidden="true">→</span> }
-        </button>
-      </form>
+        <form #f="ngForm" (ngSubmit)="submit(f)" novalidate>
+          @if (mode === 'register') {
+            <fieldset class="account-type">
+              <legend>¿Cómo quieres usar SkillBridge?</legend>
+              <label class="account-type__option" [class.selected]="accountType === 'CUSTOMER'">
+                <input type="radio" name="accountType" value="CUSTOMER" [(ngModel)]="accountType">
+                <strong>Quiero aprender</strong>
+                <span>Reservo mentorías como cliente</span>
+              </label>
+              <label class="account-type__option" [class.selected]="accountType === 'PROVIDER'">
+                <input type="radio" name="accountType" value="PROVIDER" [(ngModel)]="accountType">
+                <strong>Quiero enseñar</strong>
+                <span>Ofrezco mis servicios como proveedor</span>
+              </label>
+            </fieldset>
+            @if (accountType === 'PROVIDER') {
+              <p class="provider-note">
+                Revisamos cada perfil de proveedor: tu cuenta quedará <strong>pendiente de aprobación</strong>
+                y podrás iniciar sesión cuando un administrador la apruebe.
+              </p>
+            }
 
-      <p class="secure">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-        Tu contraseña se guarda cifrada con BCrypt y nunca se comparte.
-      </p>
+            <div class="field">
+              <label for="name">Nombre completo</label>
+              <div class="input">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+                <input id="name" name="name" [(ngModel)]="name" #nameCtrl="ngModel" required maxlength="120"
+                       autocomplete="name" placeholder="Ana Pérez"
+                       [attr.aria-invalid]="nameCtrl.invalid && nameCtrl.touched">
+              </div>
+              @if (nameCtrl.invalid && nameCtrl.touched) { <p class="hint hint--error">Ingresa tu nombre.</p> }
+            </div>
+          }
+
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <div class="input">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8" /></svg>
+              <input id="email" type="email" name="email" [(ngModel)]="email" #emailCtrl="ngModel" required email
+                     autocomplete="email" placeholder="nombre@correo.com"
+                     [attr.aria-invalid]="emailCtrl.invalid && emailCtrl.touched">
+            </div>
+            @if (emailCtrl.invalid && emailCtrl.touched) { <p class="hint hint--error">Ingresa un correo válido.</p> }
+          </div>
+
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <div class="input">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              <input id="password" [type]="showPassword ? 'text' : 'password'" name="password" [(ngModel)]="password"
+                     #passwordCtrl="ngModel" required [minlength]="mode === 'register' ? 8 : 1" maxlength="72"
+                     [attr.autocomplete]="mode === 'login' ? 'current-password' : 'new-password'" placeholder="••••••••••••"
+                     [attr.aria-invalid]="passwordCtrl.invalid && passwordCtrl.touched">
+              <button type="button" class="eye" (click)="showPassword = !showPassword"
+                      [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                      [attr.aria-pressed]="showPassword">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
+                  @if (showPassword) { <path d="M3 3l18 18" /> }
+                </svg>
+              </button>
+            </div>
+            @if (passwordCtrl.invalid && passwordCtrl.touched) {
+              <p class="hint hint--error">{{ mode === 'register' ? 'Usa al menos 8 caracteres.' : 'Ingresa tu contraseña.' }}</p>
+            } @else if (mode === 'register') {
+              <p class="hint">Mínimo 8 caracteres.</p>
+            }
+          </div>
+
+          @if (error) { <p class="alert" role="alert">{{ error }}</p> }
+
+          <button type="submit" class="submit" [disabled]="loading">
+            @if (loading) { <span class="spinner" aria-hidden="true"></span> Procesando… }
+            @else {
+              {{ mode === 'login' ? 'Iniciar sesión' : (accountType === 'PROVIDER' ? 'Enviar solicitud' : 'Crear cuenta') }}
+              <span aria-hidden="true">→</span>
+            }
+          </button>
+        </form>
+
+        <p class="secure">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+          Tu contraseña se guarda cifrada con BCrypt y nunca se comparte.
+        </p>
+      }
     </section>
   </main>
 

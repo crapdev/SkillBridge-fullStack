@@ -5,6 +5,7 @@ import { tap } from 'rxjs';
 import { apiBase } from './api';
 
 interface AuthResponse { token: string; tokenType: string; }
+export interface ProviderRegistration { status: string; message: string; }
 interface JwtPayload { sub?: string; role?: string; exp?: number; }
 
 export type Role = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
@@ -27,6 +28,11 @@ export class AuthService {
   register(name: string, email: string, password: string) {
     return this.http.post<AuthResponse>(`${apiBase()}/auth/register`, { name, email, password })
       .pipe(tap(r => this.save(r.token)));
+  }
+
+  // El proveedor queda pendiente de aprobación: el backend no devuelve token, así que no se inicia sesión
+  registerProvider(name: string, email: string, password: string) {
+    return this.http.post<ProviderRegistration>(`${apiBase()}/auth/register/provider`, { name, email, password });
   }
 
   token(): string | null { return localStorage.getItem(this.key); }
