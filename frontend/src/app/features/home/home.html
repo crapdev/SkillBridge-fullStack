@@ -103,7 +103,7 @@
           <!-- Información -->
           <div class="card-content">
 
-            <h3>{{ offering.title }}</h3>
+            <h3><a [routerLink]="['/services', offering.id]">{{ offering.title }}</a></h3>
 
             <p class="description">
               {{ offering.description }}
@@ -126,10 +126,10 @@
               </div>
             </div>
 
-            <button class="reserve-button" routerLink="/book">
-              Reservar sesión
-              <span>→</span>
-            </button>
+            <a class="reserve-button" [routerLink]="['/services', offering.id]">
+              Ver detalle
+              <span aria-hidden="true">→</span>
+            </a>
 
           </div>
 

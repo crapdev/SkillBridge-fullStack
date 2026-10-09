@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
+import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
 import com.riwi.skillbridge.application.port.out.*;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
@@ -10,10 +11,11 @@ import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
-public class BookingService implements CreateBookingUseCase {
+public class BookingService implements CreateBookingUseCase,  ListMyBookingsUseCase {
     private final BookingRepositoryPort bookingRepository;
     private final OfferingRepositoryPort offeringRepository;
     private final UserAccountPort userAccountPort;
@@ -36,17 +38,29 @@ public class BookingService implements CreateBookingUseCase {
         }
 
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(() -> new DomainNotFoundException("Servicio no encontrado"));
+            .orElseThrow(() -> new DomainNotFoundException("Servicio no encontrado"));
         if (!offering.active()) {
             throw new BusinessRuleException("El servicio no está activo");
         }
 
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
-                .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+
+        if(bookingRepository.existsDuplicateBooking(customerId, offeringId, scheduledAt)) {
+            throw new BusinessRuleException("La reserva ya existe");
+        }
 
         Booking booking = new Booking(UUID.randomUUID(), offeringId, customerId, scheduledAt, BookingStatus.CREATED);
         Booking saved = bookingRepository.save(booking);
         eventPublisher.bookingCreated(saved);
         return saved;
+
+    }
+
+    @Override
+    public List<Booking> listMyBookings(String customerEmail) {
+        UUID customerId = userAccountPort.findIdByEmail(customerEmail)
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+        return bookingRepository.findByCustomerId(customerId);
     }
 }

@@ -5,15 +5,24 @@ server:
 spring:
   application:
     name: skillbridge-api
+  autoconfigure:
+    exclude: org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
   ai:
-    google:
-      genai:
-        api-key: ${GEMINI_API_KEY:}
-        chat:
-          options:
-            model: ${GEMINI_MODEL:gemini-3.8-flash}
-            temperature: 0.2
-            max-output-tokens: 800
+    openai:
+      api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: ${DEEPSEEK_MODEL:deepseek-chat}
+          temperature: 0.2
+          max-tokens: ${DEEPSEEK_MAX_TOKENS:2500}
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 1s
+        multiplier: 2
+        max-interval: 5s
+
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillbridge}
     username: ${DATABASE_USER:skillbridge}
@@ -25,10 +34,10 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+      properties:
+        hibernate:
+          jdbc:
+            time_zone: UTC
   flyway:
     enabled: true
   data:
@@ -36,7 +45,7 @@ spring:
       url: ${REDIS_URL:redis://localhost:6379}
       timeout: 2s
   rabbitmq:
-    addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    addresses: ${RABBITMQ_URL:amqp://guest:[REDACTED]@localhost:5672}
     listener:
       simple:
         default-requeue-rejected: false
@@ -63,10 +72,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: ${JWT_EXPIRATION:86400000}
+
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-at-least-32-characters}
-    expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    expiration: ${JWT_EXPIRATION:86400000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8088,http://localhost:4200}
   cache:
