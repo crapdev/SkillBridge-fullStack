@@ -109,4 +109,22 @@ class JwtAuthenticationFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain, times(1)).doFilter(request, response);
     }
+
+    @Test
+    void shouldNotAuthenticate_WhenAccountIsDisabled() throws ServletException, IOException {
+        // Arrange: token bien firmado de un proveedor pendiente o rechazado (cuenta deshabilitada)
+        String token = "token_de_cuenta_inactiva";
+        String email = "proveedor@email.com";
+        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        when(jwtService.extractUsername(token)).thenReturn(email);
+        UserDetails disabledUser = User.withUsername(email).password("password").roles("PROVIDER").disabled(true).build();
+        when(userDetailsService.loadUserByUsername(email)).thenReturn(disabledUser);
+
+        // Act
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        // Assert: no se autentica y la petición sigue para que el EntryPoint responda 401
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(filterChain, times(1)).doFilter(request, response);
+    }
 }

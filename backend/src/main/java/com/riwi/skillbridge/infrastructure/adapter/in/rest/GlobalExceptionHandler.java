@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
+import com.riwi.skillbridge.domain.exception.AccountNotActiveException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
@@ -34,6 +35,13 @@ public class GlobalExceptionHandler {
     ProblemDetail unauthorizedAction(com.riwi.skillbridge.domain.exception.UnauthorizedActionException ex) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
         p.setTitle("Forbidden action");
+        return p;
+    }
+
+    @ExceptionHandler(AccountNotActiveException.class)
+    ProblemDetail accountNotActive(AccountNotActiveException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        p.setTitle("Account not active");
         return p;
     }
 

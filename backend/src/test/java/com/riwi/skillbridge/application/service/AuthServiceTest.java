@@ -3,12 +3,15 @@ package com.riwi.skillbridge.application.service;
 import com.riwi.skillbridge.application.port.out.PasswordHasherPort;
 import com.riwi.skillbridge.application.port.out.TokenPort;
 import com.riwi.skillbridge.application.port.out.UserRepositoryPort;
+import com.riwi.skillbridge.domain.exception.AccountNotActiveException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
+import com.riwi.skillbridge.domain.model.AccountStatus;
 import com.riwi.skillbridge.domain.model.Role;
 import com.riwi.skillbridge.domain.model.UserAccount;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -171,5 +174,77 @@ class AuthServiceTest {
 
         // Verificamos que al fallar la contraseña, el token no se genera
         verify(tokens, never()).generate(anyString(), anyString());
+    }
+
+    // ==========================================
+    // TESTS PARA PROVEEDORES PENDIENTES DE APROBACIÓN
+    // ==========================================
+
+    @Test
+    void registerProvider_ShouldSavePendingProvider_AndNotIssueToken() {
+        // Arrange
+        when(users.existsByEmail("ana@email.com")).thenReturn(false);
+        when(passwords.encode("password123")).thenReturn("hashed_password");
+        when(users.save(any(UserAccount.class))).thenAnswer(i -> i.getArgument(0));
+
+        // Act
+        authService.registerProvider(" Ana ", " Ana@Email.com ", "password123");
+
+        // Assert: se guarda como PROVIDER pendiente y no se emite token
+        ArgumentCaptor<UserAccount> saved = ArgumentCaptor.forClass(UserAccount.class);
+        verify(users).save(saved.capture());
+        assertEquals(Role.PROVIDER, saved.getValue().role());
+        assertEquals(AccountStatus.PENDING_APPROVAL, saved.getValue().status());
+        assertEquals("ana@email.com", saved.getValue().email());
+        verify(tokens, never()).generate(anyString(), anyString());
+    }
+
+    @Test
+    void registerProvider_ShouldThrowException_WhenEmailAlreadyExists() {
+        when(users.existsByEmail("ana@email.com")).thenReturn(true);
+
+        assertThrows(BusinessRuleException.class,
+            () -> authService.registerProvider("Ana", "ana@email.com", "password123"));
+
+        verify(users, never()).save(any(UserAccount.class));
+    }
+
+    @Test
+    void login_ShouldThrowAccountNotActive_WhenProviderIsPending() {
+        UserAccount pending = new UserAccount(UUID.randomUUID(), "Ana", "ana@email.com",
+            "hashed_password", Role.PROVIDER, AccountStatus.PENDING_APPROVAL);
+        when(users.findByEmail("ana@email.com")).thenReturn(Optional.of(pending));
+        when(passwords.matches("password123", "hashed_password")).thenReturn(true);
+
+        AccountNotActiveException exception = assertThrows(AccountNotActiveException.class,
+            () -> authService.login("ana@email.com", "password123"));
+
+        assertTrue(exception.getMessage().contains("pendiente de aprobación"));
+        verify(tokens, never()).generate(anyString(), anyString());
+    }
+
+    @Test
+    void login_ShouldThrowAccountNotActive_WhenProviderWasRejected() {
+        UserAccount rejected = new UserAccount(UUID.randomUUID(), "Ana", "ana@email.com",
+            "hashed_password", Role.PROVIDER, AccountStatus.REJECTED);
+        when(users.findByEmail("ana@email.com")).thenReturn(Optional.of(rejected));
+        when(passwords.matches("password123", "hashed_password")).thenReturn(true);
+
+        assertThrows(AccountNotActiveException.class,
+            () -> authService.login("ana@email.com", "password123"));
+
+        verify(tokens, never()).generate(anyString(), anyString());
+    }
+
+    @Test
+    void login_ShouldNotRevealPendingStatus_WhenPasswordIsIncorrect() {
+        // Sin la contraseña correcta, una cuenta pendiente responde igual que cualquier credencial inválida
+        UserAccount pending = new UserAccount(UUID.randomUUID(), "Ana", "ana@email.com",
+            "hashed_password", Role.PROVIDER, AccountStatus.PENDING_APPROVAL);
+        when(users.findByEmail("ana@email.com")).thenReturn(Optional.of(pending));
+        when(passwords.matches("wrong_password", "hashed_password")).thenReturn(false);
+
+        assertThrows(InvalidCredentialsException.class,
+            () -> authService.login("ana@email.com", "wrong_password"));
     }
 }

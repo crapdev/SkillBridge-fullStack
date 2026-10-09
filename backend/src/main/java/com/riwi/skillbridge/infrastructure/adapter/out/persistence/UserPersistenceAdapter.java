@@ -26,7 +26,7 @@ public class UserPersistenceAdapter implements UserRepositoryPort, UserAccountPo
     @Override
     public UserAccount save(UserAccount user) {
         UserEntity saved = repository.save(new UserEntity(
-                user.id(), user.name(), user.email(), user.passwordHash(), user.role(), Instant.now()));
+                user.id(), user.name(), user.email(), user.passwordHash(), user.role(), user.status(), Instant.now()));
         return toDomain(saved);
     }
 
@@ -34,6 +34,6 @@ public class UserPersistenceAdapter implements UserRepositoryPort, UserAccountPo
     public Optional<UUID> findIdByEmail(String email) { return findByEmail(email).map(UserAccount::id); }
 
     private UserAccount toDomain(UserEntity e) {
-        return new UserAccount(e.getId(), e.getName(), e.getEmail(), e.getPassword(), e.getRole());
+        return new UserAccount(e.getId(), e.getName(), e.getEmail(), e.getPassword(), e.getRole(), e.getStatus());
     }
 }

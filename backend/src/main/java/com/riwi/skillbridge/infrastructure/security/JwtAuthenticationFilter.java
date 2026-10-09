@@ -55,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
                 // 4. Usamos isTokenValid respetando el contrato de TokenPort
-                if (jwtService.isTokenValid(jwt, userDetails.getUsername())) {
+                if (userDetails.isEnabled() && jwtService.isTokenValid(jwt, userDetails.getUsername())) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -66,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // 5. Establecer la autenticación en el contexto
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
-                    log.debug("JWT rechazado en {}: no corresponde al usuario o esta expirado", request.getRequestURI());
+                    log.debug("JWT rechazado en {}: no corresponde al usuario, esta expirado o la cuenta no esta activa", request.getRequestURI());
                 }
             }
         } catch (Exception e) {
