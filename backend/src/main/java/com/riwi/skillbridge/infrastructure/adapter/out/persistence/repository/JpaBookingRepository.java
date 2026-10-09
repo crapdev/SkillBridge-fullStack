@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface JpaBookingRepository extends JpaRepository<BookingEntity, UUID> {
     List<BookingEntity> findByCustomerIdOrderByScheduledAtDesc(UUID customerId);
     boolean existsByCustomerIdAndOfferingIdAndScheduledAt(UUID customerId, UUID offeringId, Instant scheduledAt);
+    boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
+    boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt);
 }

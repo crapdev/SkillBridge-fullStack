@@ -11,4 +11,6 @@ public interface BookingRepositoryPort {
     Booking save(Booking booking);
     List<Booking> findByCustomerId(UUID customerId);
     boolean existsDuplicateBooking(UUID customerId, UUID offeringId, Instant scheduledAt);
+    boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
+    boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt);
 }

@@ -55,4 +55,14 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     public boolean existsDuplicateBooking(UUID customerId, UUID offeringId, Instant scheduledAt) {
         return repository.existsByCustomerIdAndOfferingIdAndScheduledAt(customerId, offeringId, scheduledAt);
     }
+
+    @Override
+    public boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt) {
+        return repository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt);
+    }
+
+    @Override
+    public boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt) {
+        return repository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt);
+    }
 }

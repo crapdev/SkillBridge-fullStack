@@ -6,6 +6,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface OfferingRepositoryPort {
-    List<Offering> findAllActive();
+    Offering save(Offering offering);
     Optional<Offering> findById(UUID id);
+    List<Offering> findAllActive();
+    List<Offering> findByProviderId(UUID providerId);
+    void deleteById(UUID id);
 }
