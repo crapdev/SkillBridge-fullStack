@@ -27,4 +27,12 @@ export class AuthService {
   isAuthenticated(): boolean { return this.authenticated(); }
   logout(): void { localStorage.removeItem(this.key); this.authenticated.set(false); this.router.navigateByUrl('/'); }
   private save(token: string): void { localStorage.setItem(this.key, token); this.authenticated.set(true); }
+
+    // En tu auth.service.ts
+  hasRole(expectedRole: string): boolean {
+    // Aquí deberías leer el rol del localStorage o de tu variable de estado
+    const currentRole = localStorage.getItem('role') || 'CUSTOMER'; // Ejemplo
+    return currentRole === expectedRole;
+  }
+
 }
