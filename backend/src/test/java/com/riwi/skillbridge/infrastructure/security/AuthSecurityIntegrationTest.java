@@ -93,7 +93,7 @@ class AuthSecurityIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        UserAccount account = new UserAccount(UUID.randomUUID(), "Daniel", EMAIL, HASH, Role.CUSTOMER);
+        UserAccount account = new UserAccount(UUID.randomUUID(), "Daniel", EMAIL, HASH, Role.CUSTOMER, null);
         when(users.findByEmail(EMAIL)).thenReturn(Optional.of(account));
         when(passwords.matches(PASSWORD, HASH)).thenReturn(true);
         when(userDetailsService.loadUserByUsername(EMAIL))

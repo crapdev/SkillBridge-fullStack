@@ -31,7 +31,7 @@ public class AuthService implements AuthUseCase {
             throw new BusinessRuleException("El correo ya está registrado");
         }
         UserAccount saved = users.save(new UserAccount(
-                UUID.randomUUID(), name.trim(), normalizedEmail, passwords.encode(rawPassword), Role.CUSTOMER));
+                UUID.randomUUID(), name.trim(), normalizedEmail, passwords.encode(rawPassword), Role.CUSTOMER, null));
         return tokens.generate(saved.email(), saved.role().name());
     }
 

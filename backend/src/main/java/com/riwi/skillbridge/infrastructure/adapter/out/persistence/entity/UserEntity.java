@@ -34,4 +34,5 @@ public class UserEntity {
     public String getEmail() { return email; }
     public String getPassword() { return password; }
     public Role getRole() { return role; }
+    public Instant getCreatedAt() { return createdAt; }
 }

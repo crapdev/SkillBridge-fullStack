@@ -56,7 +56,8 @@ class AuthServiceTest {
             "Daniel",
             normalizedEmail,
             "hashed_password",
-            Role.CUSTOMER
+            Role.CUSTOMER,
+            null
         );
 
         when(users.save(any(UserAccount.class))).thenReturn(mockSavedUser);
@@ -108,7 +109,8 @@ class AuthServiceTest {
             "Daniel",
             normalizedEmail,
             "hashed_password",
-            Role.CUSTOMER
+            Role.CUSTOMER,
+            null
         );
 
         when(users.findByEmail(normalizedEmail)).thenReturn(Optional.of(mockUser));
@@ -155,7 +157,8 @@ class AuthServiceTest {
             "Daniel",
             email,
             "hashed_password",
-            Role.CUSTOMER
+            Role.CUSTOMER,
+            null
         );
 
         when(users.findByEmail(email)).thenReturn(Optional.of(mockUser));
