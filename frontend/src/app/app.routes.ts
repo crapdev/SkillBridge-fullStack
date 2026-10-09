@@ -4,6 +4,7 @@ import { LoginComponent } from './features/login/login.component';
 import { AiComponent } from './features/ai/ai.component';
 import { BookingComponent } from './features/booking.component';
 import { MyBookingsComponent } from './features/my-bookings/my-bookings.component';
+import { PaymentComponent } from './features/payment/payment.component';
 import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { AboutComponent } from './features/about/about.component';
 import { ServicesComponent } from './features/services/services.component';
@@ -24,6 +25,7 @@ export const routes: Routes = [
   { path: 'ai', component: AiComponent, canActivate: [customerGuard], title },
   { path: 'book', component: BookingComponent, canActivate: [customerGuard], title },
   { path: 'bookings/me', component: MyBookingsComponent, canActivate: [customerGuard], title },
+  { path: 'bookings/:id/pay', component: PaymentComponent, canActivate: [customerGuard], title },
   { path: 'my-bookings', redirectTo: 'bookings/me' },
   { path: 'provider/offerings', component: ProviderOfferingsComponent, canActivate: [providerGuard], title },
   { path: 'provider/offerings/:id/horarios', component: ProviderSlotsComponent, canActivate: [providerGuard], title },

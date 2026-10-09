@@ -16,5 +16,10 @@ public interface PaymentGatewayPort {
      */
     PaymentIntent createPaymentIntent(UUID bookingId, BigDecimal amount, String currency);
 
+    /** Consulta en la pasarela el estado real de un cobro (no se confía en lo que diga el navegador). */
+    PaymentOutcome checkOutcome(String paymentIntentId);
+
     record PaymentIntent(String id, String clientSecret) {}
+
+    enum PaymentOutcome { SUCCEEDED, FAILED, PENDING }
 }

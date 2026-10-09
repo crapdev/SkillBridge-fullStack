@@ -1,0 +1,123 @@
+<section class="pay-page">
+  <div class="container">
+    <a routerLink="/bookings/me" class="back">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+      Mis reservas
+    </a>
+
+    @switch (state()) {
+      @case ('loading') {
+        <div class="center-card" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Preparando tu pago…</p>
+        </div>
+      }
+
+      @case ('notice') {
+        @if (notice(); as n) {
+          <div class="center-card">
+            <span class="status-icon" [class.error]="n.tone === 'error'" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                @if (n.tone === 'error') { <path d="M12 8v4M12 16h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" /> }
+                @else { <path d="M20 6 9 17l-5-5" /> }
+              </svg>
+            </span>
+            <h1>{{ n.title }}</h1>
+            <p class="lead">{{ n.message }}</p>
+            <a routerLink="/bookings/me" class="btn-primary">Volver a Mis reservas</a>
+          </div>
+        }
+      }
+
+      @case ('success') {
+        <div class="center-card success-card">
+          <span class="status-icon success" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></svg>
+          </span>
+          <span class="pill"><span class="pill__dot"></span>Pago aprobado</span>
+          <h1>¡Listo, tu reserva está pagada!</h1>
+          <p class="lead">
+            @if (offering(); as o) { Pagaste <strong>{{ price() }}</strong> por <strong>{{ o.title }}</strong>. }
+            En unos segundos verás la reserva como <strong>Confirmada</strong> en Mis reservas.
+          </p>
+          <div class="actions">
+            <a routerLink="/bookings/me" class="btn-primary">Ver mis reservas</a>
+            <a routerLink="/" class="btn-ghost">Explorar servicios</a>
+          </div>
+        </div>
+      }
+
+      @case ('form') {
+        <header class="pay-header">
+          <span class="pill"><span class="pill__dot"></span>Checkout</span>
+          <h1>Confirma y paga tu reserva</h1>
+          <p class="lead">Al completar el pago tu sesión queda confirmada.</p>
+        </header>
+
+        <div class="pay-grid">
+          <form class="card pay-form" (submit)="$event.preventDefault(); pay()">
+            <h2>Método de pago</h2>
+
+            @if (payments.isTestMode()) {
+              <div class="test-banner" role="note">
+                <strong>Modo de prueba.</strong> Usa la tarjeta <code>4242 4242 4242 4242</code>,
+                cualquier fecha futura y cualquier CVC. No se hará ningún cobro real.
+              </div>
+            }
+
+            @if (!elementReady()) {
+              <div class="skeleton" aria-hidden="true">
+                <span></span><span></span><span class="short"></span>
+              </div>
+            }
+            <div #paymentElement class="stripe-host" [class.hidden]="!elementReady()"></div>
+
+            @if (formError()) {
+              <p class="form-error" role="alert">{{ formError() }}</p>
+            }
+
+            <button type="submit" class="btn-primary btn-pay" [disabled]="!elementReady() || !formComplete() || processing()">
+              @if (processing()) {
+                <span class="spinner small" aria-hidden="true"></span> Procesando pago…
+              } @else {
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                Pagar {{ price() }}
+              }
+            </button>
+
+            <p class="secure-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /></svg>
+              Pago seguro procesado por Stripe. SkillBridge nunca ve ni guarda los datos de tu tarjeta.
+            </p>
+          </form>
+
+          <aside class="summary">
+            <p class="summary-label">Resumen de la reserva</p>
+            @if (offering(); as o) {
+              <span class="category">{{ o.category }}</span>
+              <h2>{{ o.title }}</h2>
+              <p class="summary-desc">{{ o.description }}</p>
+            }
+            @if (booking()) {
+              <dl>
+                <div>
+                  <dt>Fecha</dt>
+                  <dd>{{ sessionDate() }}</dd>
+                </div>
+                <div>
+                  <dt>Hora</dt>
+                  <dd>{{ sessionTime() }}</dd>
+                </div>
+              </dl>
+            }
+            <div class="total">
+              <span>Total a pagar</span>
+              <strong>{{ price() }}</strong>
+            </div>
+            <p class="summary-foot">Precio en pesos colombianos (COP), impuestos incluidos.</p>
+          </aside>
+        </div>
+      }
+    }
+  </div>
+</section>

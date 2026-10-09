@@ -83,6 +83,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # Clave publicable (pk_test_...); la secreta solo la usa el backend
+        STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
     depends_on:
       backend:
         condition: service_healthy

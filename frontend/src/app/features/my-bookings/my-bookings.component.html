@@ -62,6 +62,9 @@
               </div>
               <div class="next__actions">
                 <span class="badge" [class]="'badge badge--' + b.status.toLowerCase()">{{ statusLabel(b) }}</span>
+                @if (canPay(b)) {
+                  <a class="pay" [routerLink]="['/bookings', b.id, 'pay']">Pagar y confirmar</a>
+                }
                 @if (offering(b)) {
                   <a class="link" [routerLink]="['/services', b.offeringId]">Ver servicio →</a>
                 }
@@ -112,6 +115,9 @@
                     <span class="badge" [class]="'badge badge--' + b.status.toLowerCase()" [title]="statusHint(b)">
                       {{ statusLabel(b) }}
                     </span>
+                    @if (canPay(b)) {
+                      <a class="pay" [routerLink]="['/bookings', b.id, 'pay']">Pagar</a>
+                    }
                     @if (canCancel(b)) {
                       <button type="button" class="cancel" (click)="cancel(b)" [disabled]="isCanceling(b)">
                         {{ isCanceling(b) ? 'Cancelando…' : 'Cancelar' }}

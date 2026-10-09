@@ -18,8 +18,8 @@ public class PaymentEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Relación OneToOne con la reserva (usando tu BookingEntity actual)
-    @OneToOne
+    // Una reserva puede tener varios intentos de pago (reintentos, tarjetas rechazadas): ManyToOne
+    @ManyToOne
     @JoinColumn(name = "booking_id", nullable = false)
     private BookingEntity booking;
 

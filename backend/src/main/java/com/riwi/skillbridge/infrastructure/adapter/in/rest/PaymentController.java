@@ -1,6 +1,13 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
+import com.riwi.skillbridge.application.port.in.CreatePaymentUseCase;
 import com.riwi.skillbridge.application.port.in.ProcessPaymentUseCase;
+import com.riwi.skillbridge.application.port.in.SyncPaymentUseCase;
+import com.riwi.skillbridge.domain.model.PaymentStatus;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreatePaymentRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.PaymentSecretResponse;
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.net.Webhook;
 import com.stripe.model.Event;
@@ -10,18 +17,39 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
 
     private final ProcessPaymentUseCase processPaymentUseCase;
+    private final CreatePaymentUseCase createPaymentUseCase;
+    private final SyncPaymentUseCase syncPaymentUseCase;
 
-    // Se inyecta desde application.properties (ej. whsec_.....)
+    // Se inyecta desde la variable de entorno STRIPE_WEBHOOK_SECRET (ej. whsec_.....)
     @Value("${stripe.webhook.secret}")
     private String endpointSecret;
 
-    public PaymentController(ProcessPaymentUseCase processPaymentUseCase) {
+    public PaymentController(ProcessPaymentUseCase processPaymentUseCase, CreatePaymentUseCase createPaymentUseCase,
+                             SyncPaymentUseCase syncPaymentUseCase) {
         this.processPaymentUseCase = processPaymentUseCase;
+        this.createPaymentUseCase = createPaymentUseCase;
+        this.syncPaymentUseCase = syncPaymentUseCase;
+    }
+
+    // Al terminar el checkout, el frontend pide verificar el pago; el backend lo consulta directamente en Stripe
+    @PostMapping("/{paymentIntentId}/sync")
+    public Map<String, PaymentStatus> syncPayment(@PathVariable String paymentIntentId, Authentication authentication) {
+        return Map.of("status", syncPaymentUseCase.syncPayment(paymentIntentId, authentication.getName()));
+    }
+
+    // El cliente inicia el pago de una reserva propia; el frontend usa el secreto con Stripe Elements
+    @PostMapping("/intent")
+    public PaymentSecretResponse createPaymentIntent(@Valid @RequestBody CreatePaymentRequest request,
+                                                     Authentication authentication) {
+        return new PaymentSecretResponse(
+            createPaymentUseCase.createPaymentIntent(request.bookingId(), authentication.getName()));
     }
 
     @PostMapping("/webhook")
