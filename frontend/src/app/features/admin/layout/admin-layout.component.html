@@ -1,0 +1,77 @@
+<div class="shell" [class.shell--open]="menuOpen()">
+  <aside class="side" id="admin-sidebar" aria-label="Menú de administración">
+    <a routerLink="/admin" class="side__brand" aria-label="SkillBridge, panel de administración">
+      SkillBridge <span class="side__badge">Admin</span>
+    </a>
+
+    <nav class="side__nav">
+      <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a routerLink="/admin/proveedores" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+        Proveedores
+      </a>
+      <a routerLink="/admin/clientes" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+        Clientes
+      </a>
+    </nav>
+
+    <div class="side__footer">
+      <div class="side__user">
+        <adm-avatar [name]="displayName()" [size]="38" />
+        <div>
+          <strong>Administrador</strong>
+          <small [title]="email()">{{ email() }}</small>
+        </div>
+      </div>
+      <a routerLink="/" class="side__link">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        Ir al sitio
+      </a>
+      <button type="button" class="side__link" (click)="logout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <button type="button" class="scrim" aria-label="Cerrar menú" tabindex="-1" (click)="menuOpen.set(false)"></button>
+
+  <div class="main">
+    <header class="top">
+      <button type="button" class="adm-icon-btn top__menu" (click)="menuOpen.set(!menuOpen())"
+              [attr.aria-expanded]="menuOpen()" aria-controls="admin-sidebar"
+              [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <span class="top__title">Administración <span aria-hidden="true">/</span> Plataforma</span>
+      <div class="top__end">
+        @if (devMode) {
+          <!-- Solo en desarrollo: alterna los datos simulados para revisar el panel sin backend -->
+          <button type="button" class="top__mock" [class.on]="mock" (click)="toggleMock()" [attr.aria-pressed]="mock">
+            {{ mock ? 'Datos simulados: ON' : 'Datos simulados: OFF' }}
+          </button>
+        }
+        <adm-avatar [name]="displayName()" [size]="34" />
+      </div>
+    </header>
+
+    <div class="content">
+      <router-outlet />
+    </div>
+  </div>
+</div>
+
+<div class="toasts" aria-live="polite">
+  @for (t of toasts.toasts(); track t.id) {
+    <div class="toast" [class.toast--error]="t.kind === 'error'" role="status">
+      <span>{{ t.text }}</span>
+      <button type="button" class="adm-icon-btn" aria-label="Cerrar aviso" (click)="toasts.dismiss(t.id)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+  }
+</div>

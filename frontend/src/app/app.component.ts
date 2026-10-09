@@ -10,8 +10,8 @@ import { AlertHostComponent } from './shared/alert-host.component';
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent],
   template: `
-    <!-- La pantalla de login tiene su propio encabezado -->
-    @if (!isAuthPage()) {
+    <!-- El login y el panel de administración tienen su propio encabezado -->
+    @if (!hideHeader()) {
     <header class="nav">
       <div class="container nav-inner">
         <a routerLink="/" class="brand" aria-label="SkillBridge AI, ir al inicio">
@@ -45,6 +45,8 @@ import { AlertHostComponent } from './shared/alert-host.component';
             @if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
+            } @else if (auth.hasRole('ADMIN')) {
+              <a routerLink="/admin">Administración</a>
             } @else if (!auth.isAuthenticated()) {
               <!-- Apuntan a secciones del inicio; funcionan en cuanto existan elementos con estos id -->
               <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
@@ -79,12 +81,13 @@ export class AppComponent {
 
   readonly menuOpen = signal(false);
 
-  readonly isAuthPage = toSignal(
+  readonly hideHeader = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map(e => e.urlAfterRedirects.startsWith('/login'))
+      map(e => AppComponent.hasOwnLayout(e.urlAfterRedirects))
     ),
-    { initialValue: false }
+    // Antes de la primera navegación router.url aún es '/', por eso se usa la ruta del navegador
+    { initialValue: AppComponent.hasOwnLayout(location.pathname) }
   );
 
   // Se cierra al elegir una opción; "Salir" hacia la misma URL no dispara navegación, por eso no basta con escuchar el router
@@ -94,4 +97,8 @@ export class AppComponent {
 
   @HostListener('document:keydown.escape')
   closeMenu(): void { this.menuOpen.set(false); }
+
+  private static hasOwnLayout(url: string): boolean {
+    return url.startsWith('/login') || url.startsWith('/admin');
+  }
 }

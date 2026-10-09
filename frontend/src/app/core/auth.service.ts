@@ -16,6 +16,8 @@ export class AuthService {
 
   readonly authenticated = computed(() => this.payload() !== null);
   readonly role = computed(() => (this.payload()?.role ?? null) as Role | null);
+  // El token solo trae el email (sub) y el rol; el nombre del usuario no viaja en el JWT
+  readonly email = computed(() => this.payload()?.sub ?? null);
 
   constructor(private http: HttpClient, private router: Router) {}
 
