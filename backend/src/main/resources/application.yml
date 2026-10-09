@@ -7,15 +7,15 @@ spring:
     name: skillbridge-api
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY:}
+      api-key: ${DEEPSEEK_API_KEY:} # Migracion de Gemini a Deepseek HU-12.
       base-url: https://api.deepseek.com
       chat:
         options:
           # Modelos oficiales de DeepSeek: 'deepseek-chat' (V3) o 'deepseek-reasoner' (R1).
-          # Puedes sobreescribirlo con DEEPSEEK_MODEL si usas un proveedor/gateway específico como OpenRouter o Groq.
           model: ${DEEPSEEK_MODEL:deepseek-chat}
           temperature: 0.2
-          max-tokens: 800
+          # Aumentado de 800 a 2500 tokens para respuestas completas sin cortes:
+          max-tokens: ${DEEPSEEK_MAX_TOKENS:2500}
     # Por defecto Spring AI reintenta 10 veces con backoff de varios minutos; el proxy
     # del frontend corta a los 60 s y el usuario recibe un 504 sin mensaje útil.
     retry:
