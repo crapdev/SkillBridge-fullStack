@@ -7,7 +7,9 @@ import { MyBookingsComponent } from './features/my-bookings/my-bookings.componen
 import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { AboutComponent } from './features/about/about.component';
 import { ServicesComponent } from './features/services/services.component';
-import { customerGuard } from './core/role.guard';
+import { ProviderOfferingsComponent } from './features/provider-offerings.component';
+import { ProviderSlotsComponent } from './features/provider-slots/provider-slots.component';
+import { customerGuard, providerGuard } from './core/role.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -19,5 +21,7 @@ export const routes: Routes = [
   { path: 'book', component: BookingComponent, canActivate: [customerGuard] },
   { path: 'bookings/me', component: MyBookingsComponent, canActivate: [customerGuard] },
   { path: 'my-bookings', redirectTo: 'bookings/me' },
+  { path: 'provider/offerings', component: ProviderOfferingsComponent, canActivate: [providerGuard] },
+  { path: 'provider/offerings/:id/horarios', component: ProviderSlotsComponent, canActivate: [providerGuard] },
   { path: '**', redirectTo: '' }
 ];

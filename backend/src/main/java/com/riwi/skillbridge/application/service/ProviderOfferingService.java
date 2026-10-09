@@ -46,6 +46,16 @@ public class ProviderOfferingService {
         return offeringRepositoryPort.save(offering);
     }
 
+    // NUEVO MÉTODO: Trae la lista de mentorías de este proveedor específico
+    public List<Offering> getOwnedOfferings(String providerEmail) {
+        // 1. Buscamos el ID del proveedor usando su correo
+        UUID providerId = userAccountPort.findIdByEmail(providerEmail)
+            .orElseThrow(() -> new RuntimeException("Proveedor no encontrado")); // Usa DomainNotFoundException si lo tienes importado
+
+        // 2. Buscamos todas las mentorías asociadas a ese ID
+        return offeringRepositoryPort.findByProviderId(providerId);
+    }
+
     // DELETE OFFERING (VALIDATE THE OWNER IS PROVIDER)
     public void deleteOffering(UUID offeringId, String providerEmail) {
         Offering existing = getOwnedOffering(offeringId, providerEmail);

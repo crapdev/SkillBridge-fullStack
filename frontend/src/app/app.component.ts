@@ -48,6 +48,8 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
             @if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
+            } @else if (auth.hasRole('PROVIDER')) {
+              <a routerLink="/provider/offerings" routerLinkActive="active">Panel de mentorías</a>
             } @else if (!auth.isAuthenticated()) {
               <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
               <!-- Contacto apunta a una sección del inicio; funcionará en cuanto exista ese id -->

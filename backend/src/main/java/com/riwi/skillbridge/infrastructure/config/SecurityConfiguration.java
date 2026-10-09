@@ -41,6 +41,8 @@ public class SecurityConfiguration {
                         .requestMatchers("/actuator/prometheus").permitAll()
                         // Reservas y recomendaciones con IA son exclusivas de clientes
                         .requestMatchers("/api/bookings/**", "/api/ai/**").hasRole("CUSTOMER")
+                        // La gestión de mentorías y horarios es exclusiva de proveedores
+                        .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
