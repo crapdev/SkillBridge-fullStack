@@ -5,19 +5,17 @@ server:
 spring:
   application:
     name: skillbridge-api
+  autoconfigure:
+    exclude: org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY:} # Migracion de Gemini a Deepseek HU-12.
+      api-key: ${DEEPSEEK_API_KEY:sk-placeholder}
       base-url: https://api.deepseek.com
       chat:
         options:
-          # Modelos oficiales de DeepSeek: 'deepseek-chat' (V3) o 'deepseek-reasoner' (R1).
           model: ${DEEPSEEK_MODEL:deepseek-chat}
           temperature: 0.2
-          # Aumentado de 800 a 2500 tokens para respuestas completas sin cortes:
           max-tokens: ${DEEPSEEK_MAX_TOKENS:2500}
-    # Por defecto Spring AI reintenta 10 veces con backoff de varios minutos; el proxy
-    # del frontend corta a los 60 s y el usuario recibe un 504 sin mensaje útil.
     retry:
       max-attempts: 2
       backoff:
@@ -47,7 +45,7 @@ spring:
       url: ${REDIS_URL:redis://localhost:6379}
       timeout: 2s
   rabbitmq:
-    addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    addresses: ${RABBITMQ_URL:amqp://guest:[REDACTED]@localhost:5672}
     listener:
       simple:
         default-requeue-rejected: false
@@ -74,16 +72,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-# Propiedades que busca JwtService
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-  expiration: ${JWT_EXPIRATION:86400000} # 24 horas en milisegundos
+  expiration: ${JWT_EXPIRATION:86400000}
 
 app:
   jwt:
-    # Clave Base64 de al menos 256 bits; en producción se inyecta con JWT_SECRET
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-    expiration: ${JWT_EXPIRATION:86400000} # 24 horas
+    expiration: ${JWT_EXPIRATION:86400000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8088,http://localhost:4200}
   cache:
