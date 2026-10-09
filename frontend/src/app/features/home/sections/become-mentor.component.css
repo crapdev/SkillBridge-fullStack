@@ -1,0 +1,129 @@
+:host { display: block; }
+
+.mentor {
+  position: relative;
+  overflow: hidden;
+  padding: 88px 0;
+  color: #fff;
+  background: linear-gradient(135deg, #0b1d3a 0%, #071326 55%, #0c2a5c 100%);
+}
+.mentor__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+  pointer-events: none;
+  animation: float-orb 12s ease-in-out infinite alternate;
+}
+.mentor__orb--a { width: 420px; height: 420px; top: -180px; right: -120px; background: radial-gradient(circle, rgba(56, 189, 248, 0.28), transparent 65%); }
+.mentor__orb--b { width: 360px; height: 360px; bottom: -200px; left: -100px; background: radial-gradient(circle, rgba(37, 99, 235, 0.35), transparent 65%); animation-delay: -6s; }
+
+.mentor__grid { position: relative; display: grid; grid-template-columns: 1.2fr 1fr; gap: 56px; align-items: center; }
+.eyebrow {
+  display: inline-flex;
+  padding: 4px 9px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h2 { margin: 0 0 16px; font-size: clamp(1.8rem, 3.5vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.highlight {
+  background: linear-gradient(90deg, #7dd3fc, #a5d8ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.mentor__lead { max-width: 520px; margin: 0 0 26px; color: #94a3b8; line-height: 1.7; }
+
+.benefits { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.benefits li { display: flex; align-items: flex-start; gap: 12px; color: #e2e8f0; line-height: 1.5; }
+.benefits svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Tarjeta "Cómo unirte" con efecto vidrio */
+.join {
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.35);
+}
+.join h3 { margin: 0 0 20px; font-size: 1.15rem; }
+.join__steps { display: grid; gap: 18px; margin: 0 0 24px; padding: 0; list-style: none; }
+.join__steps li { display: flex; gap: 14px; }
+.join__steps strong { display: block; margin-bottom: 2px; }
+.join__steps span:not(.join__number) { color: #94a3b8; font-size: 0.88rem; }
+.join__number {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.join__cta {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
+  transition: background 0.2s, transform 0.2s;
+}
+/* Destello que recorre el botón al pasar el cursor */
+.join__cta::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.6s ease;
+}
+.join__cta:hover { background: #1d4ed8; transform: translateY(-2px); }
+.join__cta:hover::after { left: 130%; }
+.join__cta:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+.join__arrow { transition: transform 0.2s; }
+.join__cta:hover .join__arrow { transform: translateX(4px); }
+.join__note { margin: 12px 0 0; color: #94a3b8; font-size: 0.85rem; text-align: center; }
+.join__note--ok { color: #86efac; }
+
+@keyframes float-orb {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-60px, 40px) scale(1.1); }
+}
+
+@media (max-width: 860px) {
+  .mentor { padding: 60px 0; }
+  .mentor__grid { grid-template-columns: 1fr; gap: 36px; }
+  .join { padding: 22px; }
+}

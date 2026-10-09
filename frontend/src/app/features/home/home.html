@@ -1,0 +1,97 @@
+<section class="hero">
+  <div class="hero__orb hero__orb--a" aria-hidden="true"></div>
+  <div class="hero__orb hero__orb--b" aria-hidden="true"></div>
+
+  <div class="container hero__inner">
+    <p class="eyebrow-hero enter" style="--i: 0">
+      <span class="eyebrow__dot" aria-hidden="true"></span>
+      Mentorías técnicas 1:1 • Backend, Frontend y Cloud
+    </p>
+
+    <h1 class="enter" style="--i: 1">
+      Aprende de especialistas
+      <span class="hero__highlight">y lleva tu código al siguiente nivel.</span>
+    </h1>
+
+    <p class="hero__lead enter" style="--i: 2">
+      Reserva sesiones con mentores en arquitectura hexagonal, Angular, Spring Boot y cloud,
+      y deja que la IA te recomiende por dónde empezar.
+    </p>
+
+    <!-- Reservar y la IA son solo para clientes; al visitante se le ofrece explorar o crear su cuenta -->
+    <div class="hero__actions enter" style="--i: 3">
+      @if (auth.hasRole('CUSTOMER')) {
+        <a class="btn btn--primary" routerLink="/book">
+          Realizar una reserva <span aria-hidden="true">→</span>
+        </a>
+        <a class="btn btn--ghost" routerLink="/ai">Obtener recomendación con IA</a>
+      } @else {
+        <a class="btn btn--primary" routerLink="/servicios">
+          Explorar mentorías <span aria-hidden="true">→</span>
+        </a>
+        <a class="btn btn--ghost" routerLink="/" fragment="mentores">Quiero ser mentor</a>
+      }
+    </div>
+
+    @if (offerings.length) {
+      <ul class="hero__stats enter" style="--i: 4">
+        <li><strong>{{ offerings.length }}</strong> mentorías disponibles</li>
+        <li><strong>{{ categoryCount }}</strong> especialidades</li>
+        <li><strong>1:1</strong> sesiones personalizadas</li>
+      </ul>
+    }
+  </div>
+</section>
+
+<!-- SERVICIOS -->
+<section class="services-section">
+  <div class="container">
+
+    <!-- Encabezado -->
+    <div class="services-header" appReveal>
+      <div class="header-content">
+        <span class="eyebrow">
+          CATÁLOGO FORMATIVO & CONSULTORÍA
+        </span>
+
+        <h2>Servicios disponibles</h2>
+
+        <p>
+          Sesiones técnicas 1:1 y revisiones de código de alto estándar
+          para acelerar tu desarrollo profesional.
+        </p>
+      </div>
+    </div>
+
+
+    <!-- Error -->
+    @if (error) {
+      <p class="error">{{ error }}</p>
+    }
+
+
+    <!-- Vista previa: el catálogo completo está en /servicios -->
+    <div class="services-grid">
+      @for (offering of offerings.slice(0, previewSize); track offering.id) {
+        <app-service-card [offering]="offering" appReveal [revealDelay]="$index * 100" />
+      }
+    </div>
+
+    @if (offerings.length) {
+      <div class="services-more">
+        <a routerLink="/servicios" class="services-more__link">
+          Ver todos los servicios <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    }
+
+  </div>
+</section>
+
+<app-how-it-works />
+
+<app-become-mentor />
+
+<app-about-teaser />
+
+<app-final-cta [featured]="offerings[0]" />

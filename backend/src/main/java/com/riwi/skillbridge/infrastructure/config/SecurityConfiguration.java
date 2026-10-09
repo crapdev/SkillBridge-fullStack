@@ -1,6 +1,8 @@
 package com.riwi.skillbridge.infrastructure.config;
 
 import com.riwi.skillbridge.infrastructure.security.JwtAuthenticationFilter;
+import com.riwi.skillbridge.infrastructure.security.RestAccessDeniedHandler;
+import com.riwi.skillbridge.infrastructure.security.RestAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,15 +25,25 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfiguration {
     @Bean
-    SecurityFilterChain security(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
+    SecurityFilterChain security(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
+                                 RestAuthenticationEntryPoint entryPoint,
+                                 RestAccessDeniedHandler accessDeniedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/error", "/api/auth/**", "/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/offerings/**").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
+                        // Reservas y recomendaciones con IA son exclusivas de clientes
+                        .requestMatchers("/api/bookings/**", "/api/ai/**").hasRole("CUSTOMER")
+                        // La gestión de mentorías y horarios es exclusiva de proveedores
+                        .requestMatchers("/api/provider/**").hasRole("PROVIDER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -51,3 +63,4 @@ public class SecurityConfiguration {
         return source;
     }
 }
+

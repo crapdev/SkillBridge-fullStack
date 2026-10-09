@@ -18,7 +18,7 @@ public class BookingEntity {
     private Instant scheduledAt;
     @Enumerated(EnumType.STRING)
     private BookingStatus status;
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     protected BookingEntity() {}

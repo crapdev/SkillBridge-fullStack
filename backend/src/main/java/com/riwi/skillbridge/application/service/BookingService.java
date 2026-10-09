@@ -1,32 +1,40 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
+import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
+import com.riwi.skillbridge.application.port.in.CancelBookingUseCase;
 import com.riwi.skillbridge.application.port.out.*;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
+import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
-public class BookingService implements CreateBookingUseCase {
+public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCase, CancelBookingUseCase {
     private final BookingRepositoryPort bookingRepository;
     private final OfferingRepositoryPort offeringRepository;
     private final UserAccountPort userAccountPort;
     private final BookingEventPublisherPort eventPublisher;
+    private final AvailabilitySlotRepositoryPort slotRepository;
 
     public BookingService(BookingRepositoryPort bookingRepository,
                           OfferingRepositoryPort offeringRepository,
                           UserAccountPort userAccountPort,
-                          BookingEventPublisherPort eventPublisher) {
+                          BookingEventPublisherPort eventPublisher, AvailabilitySlotRepositoryPort slotRepository) {
         this.bookingRepository = bookingRepository;
         this.offeringRepository = offeringRepository;
         this.userAccountPort = userAccountPort;
         this.eventPublisher = eventPublisher;
+        this.slotRepository = slotRepository;
     }
 
     @Override
@@ -36,17 +44,59 @@ public class BookingService implements CreateBookingUseCase {
         }
 
         Offering offering = offeringRepository.findById(offeringId)
-                .orElseThrow(() -> new DomainNotFoundException("Servicio no encontrado"));
+            .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
         if (!offering.active()) {
-            throw new BusinessRuleException("El servicio no está activo");
+            throw new BusinessRuleException("La mentoría no está activa");
         }
 
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
-                .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+
+        AvailabilitySlot slot = slotRepository.findByOfferingIdAndScheduledAt(offeringId, scheduledAt)
+            .orElseThrow(() -> new BusinessRuleException("El proveedor no tiene habilitado este horario"));
+
+        if (slot.reserved() || bookingRepository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
+            throw new BusinessRuleException("Este horario ya fue reservado por otro usuario");
+        }
+
+        if (bookingRepository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt)) {
+            throw new BusinessRuleException("Ya tienes otra mentoría agendada en este mismo horario");
+        }
+
+        slotRepository.save(new AvailabilitySlot(slot.id(), slot.offeringId(), slot.scheduledAt(), true));
 
         Booking booking = new Booking(UUID.randomUUID(), offeringId, customerId, scheduledAt, BookingStatus.CREATED);
         Booking saved = bookingRepository.save(booking);
         eventPublisher.bookingCreated(saved);
         return saved;
+    }
+
+    @Override
+    public List<Booking> listMyBookings(String customerEmail) {
+        UUID customerId = userAccountPort.findIdByEmail(customerEmail)
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+        return bookingRepository.findByCustomerId(customerId);
+    }
+
+    @Override
+    public Booking cancelBooking(UUID bookingId, String customerEmail) {
+        // 1. Obtener usuario autenticado
+        UUID customerId = userAccountPort.findIdByEmail(customerEmail)
+            .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
+
+        // 2. Buscar la reserva
+        Booking booking = bookingRepository.findById(bookingId)
+            .orElseThrow(() -> new DomainNotFoundException("Reserva no encontrada"));
+
+        // 3. Verificar propiedad
+        if (!booking.customerId().equals(customerId)) {
+            throw new com.riwi.skillbridge.domain.exception.UnauthorizedActionException("No tienes permiso para cancelar esta reserva");
+        }
+
+        // 4. Ejecutar la lógica de dominio (retorna nueva reserva con estado actualizado)
+        Booking cancelledBooking = booking.cancel(Instant.now());
+
+        // 5. Persistir la modificación y retornar
+        return bookingRepository.save(cancelledBooking);
     }
 }

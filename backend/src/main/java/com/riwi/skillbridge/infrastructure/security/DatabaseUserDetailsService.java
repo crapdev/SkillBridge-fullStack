@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.infrastructure.security;
 
+import com.riwi.skillbridge.domain.model.AccountStatus;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaUserRepository;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ public class DatabaseUserDetailsService implements UserDetailsService {
         return User.withUsername(user.getEmail())
                 .password(user.getPassword())
                 .roles(user.getRole().name())
+                // Un proveedor pendiente o rechazado no se autentica aunque tenga un token firmado
+                .disabled(user.getStatus() != AccountStatus.ACTIVE)
                 .build();
     }
 }

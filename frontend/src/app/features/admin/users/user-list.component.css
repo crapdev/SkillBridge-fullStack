@@ -1,0 +1,58 @@
+:host { display: block; }
+.head { margin: 28px 0 16px; }
+.table-card { overflow: hidden; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--adm-border); }
+.search { position: relative; flex: 1 1 260px; max-width: 360px; }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; fill: none; stroke: var(--adm-muted); stroke-width: 2; stroke-linecap: round; }
+.search input {
+  width: 100%; height: 40px; padding: 0 12px 0 38px; border-radius: 10px; border: 1px solid var(--adm-border);
+  background: var(--adm-surface-2); color: var(--adm-text);
+}
+.search input:focus { outline: none; border-color: var(--adm-primary); background: #fff; box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.segmented { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--adm-surface-2); border: 1px solid var(--adm-border); }
+.segmented button { border: 0; background: none; padding: 6px 12px; border-radius: 8px; font-size: .8rem; font-weight: 600; color: var(--adm-muted); cursor: pointer; }
+.segmented button.on { background: var(--adm-primary); color: #fff; }
+.segmented button:disabled { cursor: not-allowed; opacity: .5; }
+.segmented button:focus-visible { outline: 2px solid var(--adm-primary); outline-offset: 1px; }
+.count { margin-left: auto; font-size: .8rem; font-weight: 600; color: var(--adm-muted); background: var(--adm-surface-2); padding: 6px 12px; border-radius: 999px; }
+
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+th { text-align: left; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--adm-muted); font-weight: 700; padding: 12px 20px; background: var(--adm-surface-2); }
+td { padding: 12px 20px; border-top: 1px solid var(--adm-border); font-size: .875rem; vertical-align: middle; }
+tbody tr:hover { background: #fafbfd; }
+tr.off { background: #fbfcfe; }
+tr.off strong, tr.off .email, tr.off .date { color: var(--adm-muted); }
+tr.dim { opacity: .55; }
+.person { display: flex; align-items: center; gap: 12px; }
+.person strong { font-weight: 600; }
+.email, .date { color: #475467; }
+.date { white-space: nowrap; }
+.actions { text-align: right; white-space: nowrap; }
+.empty { text-align: center; color: var(--adm-muted); padding: 40px 20px; }
+.empty a { color: var(--adm-primary); font-weight: 600; margin-left: 4px; }
+.state { display: grid; gap: 12px; justify-items: start; padding: 20px; }
+.state .adm-notice { margin: 0; }
+
+.pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--adm-border); font-size: .85rem; color: var(--adm-muted); }
+.pager nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pager .adm-btn { min-height: 34px; padding: 0 10px; font-size: .8rem; }
+.num { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--adm-border); background: #fff; color: var(--adm-text); font-weight: 600; font-size: .8rem; cursor: pointer; }
+.num.on { background: var(--adm-primary); border-color: var(--adm-primary); color: #fff; }
+.num:focus-visible { outline: 2px solid var(--adm-primary); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .toolbar { padding: 14px 16px; }
+  .search { max-width: none; flex-basis: 100%; }
+  .count { margin-left: 0; }
+  .pager { justify-content: center; text-align: center; }
+}
+
+/* KPI de solicitudes pendientes: es un botón que aplica el filtro "Pendientes" */
+.kpi-pending { text-align: left; font: inherit; color: inherit; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+.kpi-pending:hover { border-color: #fdb022; }
+.kpi-pending:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+.kpi-pending--alert { border-color: #fedf89; background: #fffcf5; }
+.kpi-pending--alert .adm-kpi__value { color: #b54708; }
+.kpi-pending--alert .adm-kpi__hint { color: #b54708; font-weight: 600; }

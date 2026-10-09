@@ -1,0 +1,38 @@
+:host { display: grid; gap: 0; }
+.adm-notice { margin: 0 0 16px; }
+.kpi-skel { width: 40%; height: 30px; margin: 4px 0; }
+.recent-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; margin-top: 20px; }
+.recent { padding: 20px; display: grid; align-content: start; gap: 12px; min-width: 0; }
+.recent__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.recent__head h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.recent__head p { margin: 2px 0 0; font-size: .8rem; color: var(--adm-muted); }
+.recent__all { font-size: .85rem; font-weight: 600; color: var(--adm-primary); white-space: nowrap; }
+.recent__all:hover { text-decoration: underline; }
+.recent__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.recent__list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--adm-border); min-width: 0; }
+.recent__list li:first-child { border-top: 0; }
+.recent__list li.off .person { opacity: .65; }
+.grow { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.person strong { font-size: .9rem; }
+.person small { font-size: .8rem; color: var(--adm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.when { font-size: .8rem; color: var(--adm-muted); white-space: nowrap; min-width: 92px; text-align: right; }
+.recent__state { display: grid; gap: 12px; justify-items: start; padding: 8px 0; }
+.recent__state .adm-notice { margin: 0; }
+.recent__empty { color: var(--adm-muted); font-size: .9rem; }
+@media (max-width: 560px) {
+  .when { display: none; }
+}
+
+/* Solicitudes de proveedores pendientes */
+.requests { padding: 20px; display: grid; gap: 12px; margin-top: 20px; }
+.requests--alert { border-color: #fedf89; box-shadow: 0 0 0 3px #fffaeb; }
+.requests h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.requests__actions { display: flex; gap: 8px; flex-shrink: 0; }
+.requests__reject { color: var(--adm-danger); }
+.requests__reject:hover:not(:disabled) { background: var(--adm-danger-soft); }
+.requests__empty { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--adm-muted); font-size: .9rem; }
+.requests__empty svg { width: 18px; height: 18px; fill: none; stroke: var(--adm-ok); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 560px) {
+  .requests .recent__list li { flex-wrap: wrap; }
+  .requests__actions { width: 100%; justify-content: flex-end; }
+}
