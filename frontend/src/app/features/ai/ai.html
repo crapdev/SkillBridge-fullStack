@@ -98,7 +98,8 @@
           </div>
         </div>
 
-        <p class="answer__body">{{ answer }}</p>
+        <!--Formato Enriquecido en Angular (Sin dependencias externas)-->
+        <div class="answer__body" [innerHTML]="formattedAnswer"></div>
 
         <div class="answer__footer">
           <p>¿Te convence la ruta? Agenda una sesión 1:1 para ponerla en práctica.</p>
