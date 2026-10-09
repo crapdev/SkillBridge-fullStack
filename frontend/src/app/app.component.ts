@@ -1,4 +1,5 @@
 import { Component, HostListener, inject, signal } from '@angular/core';
+import { ViewportScroller } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
@@ -47,9 +48,8 @@ import { AlertHostComponent } from './shared/alert-host.component';
               <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (!auth.isAuthenticated()) {
-              <!-- Cómo funciona y Contacto apuntan a secciones del inicio; funcionan en cuanto existan esos id -->
-              <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
               <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
+              <!-- Contacto apunta a una sección del inicio; funcionará en cuanto exista ese id -->
               <a routerLink="/" fragment="contacto">Contacto</a>
             }
           </nav>
@@ -87,6 +87,11 @@ export class AppComponent {
     ),
     { initialValue: false }
   );
+
+  constructor() {
+    // Al saltar a una sección (/#mentores) se descuenta la altura del header fijo para que no la tape
+    inject(ViewportScroller).setOffset(() => [0, (document.querySelector('.nav')?.clientHeight ?? 0) + 8]);
+  }
 
   // Se cierra al elegir una opción; "Salir" hacia la misma URL no dispara navegación, por eso no basta con escuchar el router
   closeOnSelect(event: Event): void {

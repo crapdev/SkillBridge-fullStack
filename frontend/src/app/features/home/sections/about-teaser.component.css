@@ -1,0 +1,61 @@
+:host { display: block; }
+
+.about { padding: 80px 0; background: #f7f8fa; }
+.about__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+.eyebrow {
+  display: inline-flex;
+  padding: 4px 9px;
+  margin-bottom: 10px;
+  border: 1px solid #bcd5ff;
+  border-radius: 4px;
+  background: #f4f8ff;
+  color: #2563eb;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+h2 { margin: 0 0 16px; color: #111827; font-size: 1.85rem; font-weight: 750; letter-spacing: -0.03em; line-height: 1.2; }
+.about__text p { margin: 0 0 24px; color: #475569; line-height: 1.75; }
+.about__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #2563eb;
+  font-weight: 600;
+  transition: gap 0.2s ease;
+}
+.about__link:hover { gap: 12px; }
+.about__link:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; border-radius: 4px; }
+
+.about__features { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.feature {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease, opacity 0.6s ease;
+}
+.feature:hover { transform: translateX(6px); border-color: #bfdbfe; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07); }
+.feature__icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.feature:hover .feature__icon { background: #2563eb; color: #fff; }
+.feature__icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.feature h3 { margin: 0 0 4px; color: #111827; font-size: 1rem; }
+.feature p { margin: 0; color: #64748b; font-size: 0.88rem; line-height: 1.55; }
+
+@media (max-width: 860px) {
+  .about { padding: 56px 0; }
+  .about__grid { grid-template-columns: 1fr; gap: 32px; }
+}

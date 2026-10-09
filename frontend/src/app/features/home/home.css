@@ -9,6 +9,7 @@
 }
 
 .hero__inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,6 +108,44 @@
 }
 
 
+
+/* Animaciones del hero */
+.hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: hero-orb 14s ease-in-out infinite alternate;
+}
+.hero__orb--a { width: 460px; height: 460px; top: -200px; left: -140px; background: radial-gradient(circle, rgba(37, 99, 235, 0.35), transparent 65%); }
+.hero__orb--b { width: 380px; height: 380px; bottom: -220px; right: -100px; background: radial-gradient(circle, rgba(56, 189, 248, 0.25), transparent 65%); animation-delay: -7s; }
+
+.enter {
+  opacity: 0;
+  animation: hero-enter 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 120ms + 100ms);
+}
+
+.hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 32px;
+  margin: -16px 0 0;
+  padding: 0;
+  list-style: none;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
+.hero__stats strong { margin-right: 4px; color: #fff; font-size: 1.15rem; }
+
+@keyframes hero-enter {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes hero-orb {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(80px, 40px) scale(1.12); }
+}
 
 /*Servicios*/
 /* =========================================
@@ -268,139 +307,6 @@
 
   font-size: 12px;
 }
-
-/* =========================================
-   CTA SECTION
-========================================= */
-
-.cta-section {
-  width: 100%;
-
-  padding: 55px 0 65px;
-
-  background: #081426;
-}
-
-.cta-container {
-  width: min(780px, calc(100% - 40px));
-
-  margin: 0 auto;
-
-  padding: 40px 50px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #142747 0%,
-      #10213e 100%
-    );
-
-  border: 1px solid #223d67;
-
-  border-radius: 18px;
-
-  box-shadow:
-    0 15px 40px rgba(0, 0, 0, 0.15);
-
-  text-align: center;
-}
-
-
-/* =========================================
-   CTA CONTENT
-========================================= */
-
-.cta-content {
-  max-width: 680px;
-
-  margin: 0 auto;
-}
-
-.cta-content h2 {
-  margin: 0 auto 12px;
-
-  max-width: 650px;
-
-  color: #ffffff;
-
-  font-size: 28px;
-  line-height: 1.18;
-
-  font-weight: 750;
-
-  letter-spacing: -0.025em;
-}
-
-.cta-content p {
-  max-width: 620px;
-
-  margin: 0 auto;
-
-  color: #b7c4d8;
-
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-
-/* =========================================
-   CTA BUTTONS
-========================================= */
-
-.cta-actions {
-  display: flex;
-
-  justify-content: center;
-  align-items: center;
-
-  gap: 13px;
-
-  margin-top: 25px;
-}
-
-.cta-actions button {
-  min-height: 44px;
-
-  padding: 0 25px;
-
-  border-radius: 9px;
-
-  font-family: inherit;
-
-  font-size: 12px;
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition:
-    transform 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-
-/* PRIMARY */
-
-.cta-primary {
-  border: 1px solid #2563eb;
-
-  background: #2864e8;
-
-  color: #ffffff;
-
-  box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.25);
-}
-
-.cta-primary:hover {
-  background: #3473f2;
-
-  transform: translateY(-2px);
-
-  box-shadow:
-    0 10px 25px rgba(37, 99, 235, 0.35);
-}
-
 
 /* =========================================
    FOOTER
@@ -629,38 +535,6 @@
   .services-grid {
     grid-template-columns: 1fr;
   }
-
-  /*CTA*/
-  .cta-section {
-    padding: 45px 0 50px;
-  }
-
-  .cta-container {
-    width: calc(100% - 28px);
-
-    padding: 32px 20px;
-
-    border-radius: 14px;
-  }
-
-  .cta-content h2 {
-    font-size: 23px;
-  }
-
-  .cta-content p {
-    font-size: 12px;
-  }
-
-  .cta-actions {
-    flex-direction: column;
-
-    width: 100%;
-  }
-
-  .cta-actions button {
-    width: 100%;
-  }
-
 
   /* FOOTER */
 
