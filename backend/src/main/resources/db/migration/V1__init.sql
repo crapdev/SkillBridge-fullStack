@@ -9,6 +9,7 @@ CREATE TABLE app_users (
 
 CREATE TABLE offerings (
     id UUID PRIMARY KEY,
+    provider_id UUID REFERENCES app_users(id),
     title VARCHAR(160) NOT NULL,
     description VARCHAR(1200) NOT NULL,
     category VARCHAR(80) NOT NULL,
@@ -30,7 +31,7 @@ CREATE INDEX idx_offerings_active ON offerings(active);
 CREATE INDEX idx_bookings_customer ON bookings(customer_id);
 CREATE INDEX idx_bookings_offering ON bookings(offering_id);
 
-INSERT INTO offerings (id, title, description, category, price, active) VALUES
+INSERT INTO offerings (id, provider_id,  title, description, category, price, active) VALUES
 ('11111111-1111-1111-1111-111111111111', 'Mentoría Java Backend', 'Sesión de arquitectura, Spring Boot y APIs REST.', 'BACKEND', 85000, true),
 ('22222222-2222-2222-2222-222222222222', 'Mentoría Angular', 'Sesión práctica de Angular, RxJS y arquitectura frontend.', 'FRONTEND', 75000, true),
 ('33333333-3333-3333-3333-333333333333', 'Diseño de Arquitectura Cloud', 'Revisión de una solución distribuida con Docker y cloud.', 'CLOUD', 120000, true);

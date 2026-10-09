@@ -27,6 +27,6 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     }
 
     private Offering toDomain(OfferingEntity e) {
-        return new Offering(e.getId(), e.getTitle(), e.getDescription(), e.getCategory(), e.getPrice(), e.isActive());
+        return new Offering(e.getId(), (e.getProviderId()), e.getTitle(), e.getDescription(), e.getCategory(), e.getPrice(), e.isActive());
     }
 }

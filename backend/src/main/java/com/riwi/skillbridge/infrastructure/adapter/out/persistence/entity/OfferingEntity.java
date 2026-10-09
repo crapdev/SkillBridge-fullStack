@@ -10,6 +10,7 @@ import java.util.UUID;
 public class OfferingEntity {
     @Id
     private UUID id;
+    private UUID providerId;
     private String title;
     private String description;
     private String category;
@@ -21,6 +22,7 @@ public class OfferingEntity {
     protected OfferingEntity() {}
 
     public UUID getId() { return id; }
+    public UUID getProviderId() { return providerId; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getCategory() { return category; }
