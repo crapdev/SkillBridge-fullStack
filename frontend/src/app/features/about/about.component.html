@@ -1,0 +1,119 @@
+<!-- HERO -->
+<section class="about-hero">
+  <div class="about-hero__glow" aria-hidden="true"></div>
+  <div class="container about-hero__inner">
+    <p class="pill enter" style="--i: 0">
+      <span class="pill__dot" aria-hidden="true"></span>
+      Sobre nosotros
+    </p>
+    <h1 class="enter" style="--i: 1">
+      Conectamos talento técnico
+      <span class="highlight">con quienes quieren crecer.</span>
+    </h1>
+    <p class="about-hero__lead enter" style="--i: 2">
+      SkillBridge AI es una plataforma de mentorías y servicios profesionales donde puedes descubrir
+      especialistas, reservar una sesión y recibir recomendaciones con inteligencia artificial.
+    </p>
+  </div>
+</section>
+
+<!-- ORIGEN -->
+<section class="about-section">
+  <div class="container story">
+    <div appReveal>
+      <span class="eyebrow">Nuestra historia</span>
+      <h2>Nacimos como un proyecto integrador</h2>
+    </div>
+    <div class="story__text" appReveal [revealDelay]="120">
+      <p>
+        SkillBridge AI surge como proyecto integrador de arquitectura y computación en la nube.
+        Elegimos un dominio cercano, las mentorías técnicas, para que cada tecnología resolviera
+        un problema real y no fuera solo un ejercicio.
+      </p>
+      <p>
+        El resultado es una plataforma construida con las prácticas que usan los equipos profesionales:
+        arquitectura limpia, seguridad, pruebas automáticas y despliegue con contenedores.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- QUÉ HACEMOS -->
+<section class="about-section about-section--alt">
+  <div class="container">
+    <header class="section-head" appReveal>
+      <span class="eyebrow">Qué hacemos</span>
+      <h2>Tres formas de acelerar tu desarrollo</h2>
+    </header>
+    <div class="pillars">
+      @for (pillar of pillars; track pillar.title; let i = $index) {
+        <article class="pillar" appReveal [revealDelay]="i * 100">
+          <span class="pillar__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path [attr.d]="pillar.icon" /></svg>
+          </span>
+          <h3>{{ pillar.title }}</h3>
+          <p>{{ pillar.text }}</p>
+        </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO TRABAJAMOS -->
+<section class="about-section">
+  <div class="container">
+    <header class="section-head" appReveal>
+      <span class="eyebrow">Cómo trabajamos</span>
+      <h2>Principios que guían cada línea de código</h2>
+    </header>
+    <ol class="principles">
+      @for (principle of principles; track principle.title; let i = $index) {
+        <li class="principle" appReveal [revealDelay]="i * 90">
+          <span class="principle__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+          <div>
+            <h3>{{ principle.title }}</h3>
+            <p>{{ principle.text }}</p>
+          </div>
+        </li>
+      }
+    </ol>
+  </div>
+</section>
+
+<!-- STACK -->
+<section class="about-stack">
+  <div class="container">
+    <header class="section-head section-head--dark" appReveal>
+      <span class="eyebrow eyebrow--dark">Tecnología</span>
+      <h2>El stack detrás de la plataforma</h2>
+    </header>
+    <div class="stack">
+      @for (layer of stack; track layer.group; let i = $index) {
+        <div class="stack__layer" appReveal [revealDelay]="i * 80">
+          <span class="stack__group">{{ layer.group }}</span>
+          <ul class="stack__items">
+            @for (item of layer.items; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="about-section">
+  <div class="container">
+    <div class="cta-box" appReveal>
+      <h2>¿Listo para empezar?</h2>
+      <p>Explora el catálogo y reserva tu primera sesión con un especialista.</p>
+      <div class="cta-box__actions">
+        <a routerLink="/" class="cta">Ver servicios <span class="cta__arrow" aria-hidden="true">→</span></a>
+        @if (!auth.isAuthenticated()) {
+          <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="cta cta--ghost">Crear cuenta</a>
+        }
+      </div>
+    </div>
+  </div>
+</section>

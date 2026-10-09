@@ -46,9 +46,9 @@ import { AlertHostComponent } from './shared/alert-host.component';
               <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (!auth.isAuthenticated()) {
-              <!-- Apuntan a secciones del inicio; funcionan en cuanto existan elementos con estos id -->
+              <!-- Cómo funciona y Contacto apuntan a secciones del inicio; funcionan en cuanto existan esos id -->
               <a routerLink="/" fragment="como-funciona">Cómo funciona</a>
-              <a routerLink="/" fragment="sobre-nosotros">Sobre nosotros</a>
+              <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
               <a routerLink="/" fragment="contacto">Contacto</a>
             }
           </nav>
