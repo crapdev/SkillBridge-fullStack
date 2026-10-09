@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Component
 public class BookingPersistenceAdapter implements BookingRepositoryPort {
@@ -43,5 +44,18 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     @Override
     public boolean existsDuplicateBooking(UUID customerId, UUID offeringId, Instant scheduledAt) {
         return repository.existsByCustomerIdAndOfferingIdAndScheduledAt(customerId, offeringId, scheduledAt);
+    }
+
+    @Override
+    public Optional<Booking> findById(UUID id) {
+        return repository.findById(id).map(entity -> {
+            return new Booking(
+                entity.getId(),
+                entity.getOfferingId(),
+                entity.getCustomerId(),
+                entity.getScheduledAt(),
+                entity.getStatus()
+            );
+        });
     }
 }

@@ -354,7 +354,7 @@ cd skillbridge-ai
 ## Paso 2 — Variables de entorno
 
 ```bash
-cp .env .env
+cp ..env ..env
 ```
 
 Edita `.env`.
@@ -1703,7 +1703,7 @@ El proyecto debe llegar a un estado donde un evaluador pueda:
 ```bash
 git clone <repo>
 cd <repo>
-cp .env .env
+cp ..env ..env
 docker compose up --build
 ```
 
