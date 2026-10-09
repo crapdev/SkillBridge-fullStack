@@ -1,0 +1,144 @@
+<!-- ENCABEZADO -->
+<section class="mb-hero">
+  <div class="mb-hero__glow" aria-hidden="true"></div>
+  <div class="container mb-hero__inner">
+    <div>
+      <nav class="breadcrumb enter" style="--i: 0" aria-label="Ruta de navegación">
+        <a routerLink="/">Inicio</a><span aria-hidden="true">/</span><span aria-current="page">Mis reservas</span>
+      </nav>
+      <h1 class="enter" style="--i: 1">Mis reservas</h1>
+      <p class="mb-hero__lead enter" style="--i: 2">Consulta tus próximas sesiones, revisa el historial y gestiona tus reservas.</p>
+    </div>
+    <a routerLink="/servicios" class="new-btn enter" style="--i: 3">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      Nueva reserva
+    </a>
+  </div>
+</section>
+
+<section class="mb">
+  <div class="container">
+
+    @switch (status()) {
+      @case ('loading') {
+        <div class="skeleton skeleton--next"></div>
+        @for (s of skeletons; track s) { <div class="skeleton"></div> }
+      }
+
+      @case ('error') {
+        <div class="state">
+          <span class="state__icon state__icon--error" aria-hidden="true">!</span>
+          <h2>No pudimos cargar tus reservas</h2>
+          <p>Revisa tu conexión e inténtalo de nuevo.</p>
+          <button type="button" class="state__btn" (click)="load()">Reintentar</button>
+        </div>
+      }
+
+      @case ('ready') {
+        @if (!bookings().length) {
+          <!-- Aún no hay reservas -->
+          <div class="state state--empty">
+            <span class="state__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM4 11h16M9 3v4M15 3v4" /></svg>
+            </span>
+            <h2>Todavía no tienes reservas</h2>
+            <p>Explora el catálogo y agenda tu primera mentoría con un especialista.</p>
+            <a routerLink="/servicios" class="state__btn">Explorar mentorías</a>
+          </div>
+        } @else {
+
+          <!-- PRÓXIMA SESIÓN -->
+          @if (next(); as b) {
+            <article class="next" appReveal>
+              <div class="next__date">
+                <span class="next__month">{{ month(b) }}</span>
+                <span class="next__day">{{ day(b) }}</span>
+                <span class="next__weekday">{{ weekday(b) }}</span>
+              </div>
+              <div class="next__body">
+                <span class="next__label"><span class="pulse" aria-hidden="true"></span> Tu próxima sesión · {{ relative(b) }}</span>
+                <h2>{{ title(b) }}</h2>
+                <p>{{ fullDate(b) }}</p>
+              </div>
+              <div class="next__actions">
+                <span class="badge" [class]="'badge badge--' + b.status.toLowerCase()">{{ statusLabel(b) }}</span>
+                @if (offering(b)) {
+                  <a class="link" [routerLink]="['/services', b.offeringId]">Ver servicio →</a>
+                }
+              </div>
+            </article>
+          }
+
+          <!-- PESTAÑAS -->
+          <div class="tabs" role="group" aria-label="Filtrar reservas">
+            @for (t of tabs; track t.id) {
+              <button type="button" class="tab" [class.active]="tab() === t.id"
+                      [attr.aria-pressed]="tab() === t.id" (click)="tab.set(t.id)">
+                {{ t.label }} <span class="tab__count">{{ counts()[t.id] }}</span>
+              </button>
+            }
+          </div>
+
+          <!-- LISTA -->
+          @if (visible().length) {
+            <ul class="list">
+              @for (b of visible(); track b.id; let i = $index) {
+                <li class="item" [class.item--muted]="!isActive(b)" appReveal [revealDelay]="(i % 8) * 50">
+                  <div class="item__date">
+                    <span>{{ month(b) }}</span>
+                    <strong>{{ day(b) }}</strong>
+                  </div>
+
+                  <div class="item__icon" [class]="'item__icon item__icon--' + category(b)" aria-hidden="true">
+                    <img [src]="icon(b)" alt="">
+                  </div>
+
+                  <div class="item__body">
+                    <h3>
+                      @if (offering(b)) {
+                        <a [routerLink]="['/services', b.offeringId]">{{ title(b) }}</a>
+                      } @else {
+                        {{ title(b) }}
+                      }
+                    </h3>
+                    <p>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                      {{ weekday(b) }} · {{ time(b) }}
+                      @if (isActive(b)) { <span class="item__relative">· {{ relative(b) }}</span> }
+                    </p>
+                  </div>
+
+                  <div class="item__side">
+                    <span class="badge" [class]="'badge badge--' + b.status.toLowerCase()" [title]="statusHint(b)">
+                      {{ statusLabel(b) }}
+                    </span>
+                    @if (canCancel(b)) {
+                      <button type="button" class="cancel" (click)="cancel(b)" [disabled]="isCanceling(b)">
+                        {{ isCanceling(b) ? 'Cancelando…' : 'Cancelar' }}
+                      </button>
+                    } @else if (tooLateToCancel(b)) {
+                      <span class="item__note">Ya no se puede cancelar (menos de 24 h)</span>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="state state--small">
+              <p>No tienes reservas en esta categoría.</p>
+              @if (tab() === 'upcoming') {
+                <a routerLink="/servicios" class="link">Agendar una sesión →</a>
+              }
+            </div>
+          }
+
+          <p class="policy">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8h.01M11 12h1v4h1" /></svg>
+            Puedes cancelar una reserva hasta 24 horas antes de la sesión.
+          </p>
+        }
+      }
+    }
+
+  </div>
+</section>

@@ -3,7 +3,7 @@ import { HomeComponent } from './features/home/home.component';
 import { LoginComponent } from './features/login/login.component';
 import { AiComponent } from './features/ai/ai.component';
 import { BookingComponent } from './features/booking.component';
-import { MyBookingsComponent } from './features/my-bookings.component';
+import { MyBookingsComponent } from './features/my-bookings/my-bookings.component';
 import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { AboutComponent } from './features/about/about.component';
 import { ServicesComponent } from './features/services/services.component';
