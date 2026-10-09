@@ -1,0 +1,194 @@
+@switch (state().status) {
+
+  <!-- CARGANDO -->
+  @case ('loading') {
+    <section class="detail-hero" aria-busy="true" aria-label="Cargando servicio">
+      <div class="container detail-hero__grid">
+        <div class="skeleton-stack">
+          <span class="skeleton skeleton--sm"></span>
+          <span class="skeleton skeleton--title"></span>
+          <span class="skeleton skeleton--title short"></span>
+          <span class="skeleton skeleton--text"></span>
+          <span class="skeleton skeleton--text short"></span>
+        </div>
+        <div class="skeleton skeleton--card"></div>
+      </div>
+    </section>
+  }
+
+  <!-- NO ENCONTRADO / ERROR -->
+  @case ('not-found') {
+    <section class="detail-empty">
+      <div class="container detail-empty__inner">
+        <span class="detail-empty__code">404</span>
+        <h1>No encontramos este servicio</h1>
+        <p>Puede que ya no esté disponible o que el enlace sea incorrecto.</p>
+        <a routerLink="/servicios" class="cta">Ver todos los servicios <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  }
+  @case ('error') {
+    <section class="detail-empty">
+      <div class="container detail-empty__inner">
+        <span class="detail-empty__code">!</span>
+        <h1>No fue posible cargar el servicio</h1>
+        <p>Revisa tu conexión e inténtalo de nuevo en unos segundos.</p>
+        <a routerLink="/" class="cta">Volver al inicio</a>
+      </div>
+    </section>
+  }
+
+  <!-- DETALLE -->
+  @case ('ready') {
+    @if (offering(); as o) {
+    <div [class]="'detail detail--' + category()">
+
+      <!-- HERO -->
+      <section class="detail-hero">
+        <div class="detail-hero__glow" aria-hidden="true"></div>
+        <div class="container detail-hero__grid">
+
+          <div class="detail-hero__content">
+            <nav class="breadcrumb enter" style="--i: 0" aria-label="Ruta de navegación">
+              <a routerLink="/servicios">Servicios</a>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">{{ o.title }}</span>
+            </nav>
+
+            <div class="detail-hero__heading enter" style="--i: 1">
+              <span class="icon-tile">
+                <img [src]="content().icon" alt="" />
+              </span>
+              <span class="category-pill">{{ o.category }}</span>
+            </div>
+
+            <h1 class="enter" style="--i: 2">{{ o.title }}</h1>
+            <p class="detail-hero__lead enter" style="--i: 3">{{ o.description }}</p>
+
+            <ul class="meta enter" style="--i: 4">
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+                Sesión 1:1
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                {{ content().duration }}
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
+                {{ content().level }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tarjeta de precio -->
+          <aside class="price-card" aria-label="Reserva">
+            <span class="price-card__label">Inversión</span>
+            <p class="price-card__price">
+              {{ o.price | currency:'COP':'symbol-narrow':'1.0-0' }}
+              <span>/ sesión</span>
+            </p>
+
+            <ul class="includes">
+              @for (item of includes; track item) {
+                <li>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+                  {{ item }}
+                </li>
+              }
+            </ul>
+
+            @if (auth.hasRole('CUSTOMER')) {
+              <a class="cta" routerLink="/book" [queryParams]="{ offering: o.id }">
+                Reservar esta sesión <span class="cta__arrow" aria-hidden="true">→</span>
+              </a>
+            } @else if (!auth.isAuthenticated()) {
+              <a class="cta" routerLink="/login" [queryParams]="{ mode: 'register', returnUrl: bookingUrl() }">
+                Crear cuenta y reservar <span class="cta__arrow" aria-hidden="true">→</span>
+              </a>
+              <p class="price-card__note">
+                ¿Ya tienes cuenta?
+                <a routerLink="/login" [queryParams]="{ returnUrl: bookingUrl() }">Ingresar</a>
+              </p>
+            } @else {
+              <p class="price-card__note price-card__note--info">
+                Las reservas están disponibles para cuentas de cliente.
+              </p>
+            }
+          </aside>
+
+        </div>
+      </section>
+
+      <!-- QUÉ VAS A TRABAJAR -->
+      <section class="detail-section">
+        <div class="container">
+          <header class="section-head" appReveal>
+            <span class="eyebrow">Contenido de la sesión</span>
+            <h2>Qué vas a trabajar</h2>
+            <p>Adaptamos la sesión a tu nivel y a lo que necesitas resolver hoy.</p>
+          </header>
+
+          <div class="topics">
+            @for (topic of content().topics; track topic.title; let i = $index) {
+              <article class="topic" appReveal [revealDelay]="i * 70">
+                <span class="topic__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                <h3>{{ topic.title }}</h3>
+                <p>{{ topic.text }}</p>
+              </article>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- CÓMO FUNCIONA -->
+      <section class="detail-section detail-section--alt">
+        <div class="container">
+          <header class="section-head" appReveal>
+            <span class="eyebrow">Proceso</span>
+            <h2>Cómo funciona</h2>
+          </header>
+
+          <ol class="steps" appReveal>
+            @for (step of steps; track step.title; let i = $index) {
+              <li class="step" [style.--i]="i">
+                <span class="step__number">{{ i + 1 }}</span>
+                <h3>{{ step.title }}</h3>
+                <p>{{ step.text }}</p>
+              </li>
+            }
+          </ol>
+        </div>
+      </section>
+
+      <!-- OTROS SERVICIOS -->
+      @if (related().length) {
+        <section class="detail-section">
+          <div class="container">
+            <header class="section-head" appReveal>
+              <span class="eyebrow">Sigue explorando</span>
+              <h2>Otros servicios</h2>
+            </header>
+
+            <div class="related">
+              @for (item of related(); track item.id; let i = $index) {
+                <a [class]="'related-card detail--' + categoryOf(item)"
+                   [routerLink]="['/services', item.id]" appReveal [revealDelay]="i * 90">
+                  <span class="related-card__icon"><img [src]="iconOf(item)" alt="" /></span>
+                  <span class="related-card__body">
+                    <span class="related-card__category">{{ item.category }}</span>
+                    <strong>{{ item.title }}</strong>
+                    <span class="related-card__price">{{ item.price | currency:'COP':'symbol-narrow':'1.0-0' }} / sesión</span>
+                  </span>
+                  <span class="related-card__arrow" aria-hidden="true">→</span>
+                </a>
+              }
+            </div>
+          </div>
+        </section>
+      }
+
+    </div>
+    }
+  }
+}

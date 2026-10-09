@@ -30,3 +30,5 @@ backend/target/
 .env
 backend/.env
 frontend/.env
+.claude/
+gi

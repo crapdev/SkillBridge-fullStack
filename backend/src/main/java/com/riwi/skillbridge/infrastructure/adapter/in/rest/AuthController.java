@@ -18,6 +18,15 @@ public class AuthController {
         return new AuthResponse(auth.register(request.name(), request.email(), request.password()), "Bearer");
     }
 
+    // 202: la solicitud queda registrada pero la cuenta no se puede usar hasta que un admin la apruebe
+    @PostMapping("/register/provider")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public ProviderRegistrationResponse registerProvider(@Valid @RequestBody RegisterRequest request) {
+        auth.registerProvider(request.name(), request.email(), request.password());
+        return new ProviderRegistrationResponse("PENDING_APPROVAL",
+                "Tu solicitud fue enviada. Podrás iniciar sesión cuando un administrador apruebe tu cuenta.");
+    }
+
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return new AuthResponse(auth.login(request.email(), request.password()), "Bearer");

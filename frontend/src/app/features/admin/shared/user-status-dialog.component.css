@@ -1,0 +1,27 @@
+.dlg {
+  width: min(440px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 18px;
+  color: var(--adm-text); box-shadow: 0 24px 64px rgba(7, 19, 38, .35);
+}
+.dlg::backdrop { background: rgba(11, 29, 58, .55); backdrop-filter: blur(3px); }
+.dlg__body { padding: 24px; display: grid; gap: 16px; }
+.dlg__head { display: flex; gap: 14px; align-items: flex-start; }
+.dlg__head h2 { margin: 0; font-size: 1.2rem; font-weight: 800; line-height: 1.3; }
+.dlg__icon {
+  flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--adm-warn-soft); color: #dc6803;
+}
+.dlg__icon.ok { background: var(--adm-primary-soft); color: var(--adm-primary); }
+.dlg__icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dlg__eyebrow { margin: 4px 0 0; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--adm-warn); }
+.dlg__eyebrow.ok { color: var(--adm-primary); }
+.dlg__text { margin: 0; color: var(--adm-muted); font-size: .9rem; line-height: 1.5; }
+.dlg__summary { background: var(--adm-surface-2); border: 1px solid var(--adm-border); border-radius: 12px; padding: 14px; display: grid; gap: 12px; }
+.dlg__summary-head { display: flex; justify-content: space-between; align-items: center; font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--adm-muted); }
+.dlg__person { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.dlg__person div { display: grid; min-width: 0; }
+.dlg__person strong { font-size: .9rem; }
+.dlg__person small { color: var(--adm-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dlg__row { display: flex; justify-content: space-between; font-size: .85rem; color: var(--adm-muted); }
+.dlg__row strong { color: var(--adm-text); }
+.dlg__note { margin: 0; font-size: .8rem; color: var(--adm-muted); }
+.dlg__actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }

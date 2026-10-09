@@ -9,18 +9,19 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class GeminiAiAdapter implements AiRecommendationPort {
-        private final ChatClient chatClient;
+public class DeepSeekAiAdapter implements AiRecommendationPort {
 
-        public GeminiAiAdapter(ChatClient.Builder chatClientBuilder) {
-                this.chatClient = chatClientBuilder.build();
+    private final ChatClient chatClient;
+
+    public DeepSeekAiAdapter(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
     }
 
     @Override
     public String recommend(String goal, List<Offering> offerings) {
         String catalog = offerings.stream()
-                .map(o -> "- %s [%s]: %s".formatted(o.title(), o.category(), o.description()))
-                .reduce("", (a, b) -> a + "\n" + b);
+            .map(o -> "- %s [%s]: %s".formatted(o.title(), o.category(), o.description()))
+            .reduce("", (a, b) -> a + "\n" + b);
 
         String prompt = """
                 Eres el asistente de SkillBridge AI. Recomienda como máximo 3 servicios del catálogo
@@ -36,17 +37,18 @@ public class GeminiAiAdapter implements AiRecommendationPort {
 
         try {
             String response = chatClient.prompt()
-                    .user(prompt)
-                    .call()
-                    .content();
+                .user(prompt)
+                .call()
+                .content();
+
             if (response == null || response.isBlank()) {
-                throw new BusinessRuleException("Gemini no devolvió una respuesta válida");
+                throw new BusinessRuleException("DeepSeek no devolvió una respuesta válida");
             }
             return response;
         } catch (BusinessRuleException ex) {
             throw ex;
         } catch (RuntimeException ex) {
-            throw new BusinessRuleException("Gemini no está disponible; inténtalo de nuevo");
+            throw new BusinessRuleException("DeepSeek no está disponible; inténtalo de nuevo");
         }
     }
 }

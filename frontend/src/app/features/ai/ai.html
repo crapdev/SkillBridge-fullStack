@@ -1,0 +1,112 @@
+<section class="ai-hero">
+  <div class="container ai-hero__inner">
+    <p class="eyebrow-hero">
+      <span class="eyebrow__dot" aria-hidden="true"></span>
+      Asistente IA
+    </p>
+
+    <h1>
+      Diseña tu ruta de aprendizaje
+      <span class="ai-hero__highlight">con inteligencia artificial.</span>
+    </h1>
+
+    <p class="ai-hero__lead">
+      Cuéntanos tu objetivo y recibe una recomendación personalizada
+      de sesiones, temas y próximos pasos.
+    </p>
+  </div>
+</section>
+
+<section class="ai-section">
+  <div class="ai-container">
+
+    <!-- Formulario -->
+    <article class="ai-card">
+      <div class="ai-card__header">
+        <div class="ai-avatar" aria-hidden="true">AI</div>
+        <div>
+          <h2>¿Qué quieres lograr?</h2>
+          <p>Mientras más contexto des, más precisa será la recomendación.</p>
+        </div>
+      </div>
+
+      <label class="ai-label" for="goal">Tu objetivo</label>
+      <div class="ai-textarea">
+        <textarea
+          id="goal"
+          rows="5"
+          [maxlength]="maxLength"
+          [(ngModel)]="goal"
+          (keydown.control.enter)="ask()"
+          (keydown.meta.enter)="ask()"
+          placeholder="Ej: Quiero prepararme para una entrevista backend Java..."
+        ></textarea>
+        <span class="ai-counter">{{ goal.length }}/{{ maxLength }}</span>
+      </div>
+
+      <div class="ai-suggestions">
+        <span class="ai-suggestions__label">Ejemplos</span>
+        @for (s of suggestions; track s.label) {
+          <button type="button" class="suggestion" (click)="useSuggestion(s.goal)">
+            <span class="suggestion__dot" [class]="s.category" aria-hidden="true"></span>
+            {{ s.label }}
+          </button>
+        }
+      </div>
+
+      <div class="ai-actions">
+        <button class="btn btn--primary" [disabled]="loading || !goal.trim()" (click)="ask()">
+          @if (loading) {
+            <span class="spinner" aria-hidden="true"></span> Generando...
+          } @else {
+            Pedir recomendación <span aria-hidden="true">→</span>
+          }
+        </button>
+        <span class="ai-hint">Ctrl + Enter para enviar</span>
+      </div>
+
+      @if (error) {
+        <div class="error" role="alert">
+          {{ error }}
+          @if (unauthorized) {
+            <a routerLink="/login">Ingresar →</a>
+          }
+        </div>
+      }
+    </article>
+
+    <!-- Cargando -->
+    @if (loading) {
+      <article class="ai-card answer answer--loading" aria-live="polite">
+        <div class="skeleton" style="width: 40%"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton" style="width: 75%"></div>
+      </article>
+    }
+
+    <!-- Respuesta -->
+    @if (answer) {
+      <article class="ai-card answer" aria-live="polite">
+        <div class="answer__header">
+          <span class="eyebrow">Tu recomendación</span>
+          <div class="answer__tools">
+            <button type="button" class="tool-button" (click)="copy()">
+              {{ copied ? '¡Copiado!' : 'Copiar' }}
+            </button>
+            <button type="button" class="tool-button" (click)="reset()">Nueva consulta</button>
+          </div>
+        </div>
+
+        <!--Formato Enriquecido en Angular (Sin dependencias externas)-->
+        <div class="answer__body" [innerHTML]="formattedAnswer"></div>
+
+        <div class="answer__footer">
+          <p>¿Te convence la ruta? Agenda una sesión 1:1 para ponerla en práctica.</p>
+          <a class="reserve-button" routerLink="/book">Reservar sesión <span>→</span></a>
+        </div>
+      </article>
+    }
+
+  </div>
+</section>

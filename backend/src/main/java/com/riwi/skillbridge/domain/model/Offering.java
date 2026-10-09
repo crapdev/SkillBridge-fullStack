@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record Offering(
         UUID id,
+        UUID providerId,
         String title,
         String description,
         String category,

@@ -1,0 +1,117 @@
+<section class="ps-hero">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="Ruta de navegación">
+      <a routerLink="/provider/offerings">Panel de mentorías</a><span aria-hidden="true">/</span><span aria-current="page">Horarios</span>
+    </nav>
+    <h1>{{ offering()?.title ?? 'Horarios' }}</h1>
+    <p class="ps-hero__lead">Publica los horarios en los que puedes dar esta mentoría. Los clientes solo podrán reservar en ellos.</p>
+    @if (status() === 'ready') {
+      <ul class="stats">
+        <li><strong>{{ freeCount() }}</strong> disponibles</li>
+        <li><strong>{{ reservedCount() }}</strong> reservados</li>
+      </ul>
+    }
+  </div>
+</section>
+
+<section class="ps">
+  <div class="container">
+    @switch (status()) {
+      @case ('loading') {
+        <div class="grid"><div class="skeleton"></div><div class="skeleton"></div></div>
+      }
+
+      @case ('not-found') {
+        <div class="state">
+          <h2>No encontramos esta mentoría</h2>
+          <p>Puede que no exista o que pertenezca a otro proveedor.</p>
+          <a routerLink="/provider/offerings" class="btn">Volver al panel</a>
+        </div>
+      }
+
+      @case ('error') {
+        <div class="state">
+          <h2>No pudimos cargar los horarios</h2>
+          <p>Revisa tu conexión e inténtalo de nuevo.</p>
+          <button type="button" class="btn" (click)="load()">Reintentar</button>
+        </div>
+      }
+
+      @case ('ready') {
+        <div class="grid">
+          <!-- PUBLICAR -->
+          <div class="card">
+            <h2>Publicar horarios</h2>
+            <p class="hint">Elige un día y marca todas las horas que quieras abrir.</p>
+
+            <label class="field">
+              <span>Día</span>
+              <input type="date" [min]="today" [value]="date()" (change)="setDate($any($event.target).value)">
+            </label>
+
+            <span class="field__label">Horas</span>
+            <div class="times" role="group" aria-label="Horas del día">
+              @for (t of times(); track t) {
+                <button type="button" class="time" [class.selected]="isSelected(t)"
+                        [class.published]="isPublished(t)" [disabled]="isPast(t) || isPublished(t)"
+                        [attr.aria-pressed]="isSelected(t)" (click)="toggleTime(t)"
+                        [title]="isPublished(t) ? 'Ya publicado' : isPast(t) ? 'Esta hora ya pasó' : ''">
+                  {{ t }}
+                </button>
+              }
+            </div>
+
+            <div class="custom">
+              <input type="time" aria-label="Otra hora" [value]="customTime()" (input)="customTime.set($any($event.target).value)">
+              <button type="button" class="btn btn--ghost" (click)="addCustomTime()" [disabled]="!customTime()">Agregar otra hora</button>
+            </div>
+
+            <button type="button" class="btn btn--block" (click)="publish()"
+                    [disabled]="!selectedTimes().size || publishing()">
+              @if (publishing()) { Publicando… }
+              @else if (selectedTimes().size) { Publicar {{ selectedTimes().size }} {{ selectedTimes().size === 1 ? 'horario' : 'horarios' }} }
+              @else { Selecciona al menos una hora }
+            </button>
+          </div>
+
+          <!-- PRÓXIMOS HORARIOS -->
+          <div class="card">
+            <h2>Próximos horarios</h2>
+            @if (days().length) {
+              <ul class="legend">
+                <li><span class="dot dot--free"></span> Disponible</li>
+                <li><span class="dot dot--reserved"></span> Reservado por un cliente</li>
+              </ul>
+              @for (day of days(); track day.key) {
+                <div class="day">
+                  <h3>{{ day.label }}</h3>
+                  <div class="chips">
+                    @for (slot of day.slots; track slot.id) {
+                      @if (slot.reserved) {
+                        <span class="chip chip--reserved" title="Reservado: no se puede eliminar">
+                          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                          {{ time(slot) }}
+                        </span>
+                      } @else {
+                        <span class="chip">
+                          {{ time(slot) }}
+                          <button type="button" class="chip__remove" (click)="remove(slot)" [disabled]="isDeleting(slot)"
+                                  [attr.aria-label]="'Eliminar horario de las ' + time(slot)">×</button>
+                        </span>
+                      }
+                    }
+                  </div>
+                </div>
+              }
+            } @else {
+              <div class="empty">
+                <p><strong>Aún no tienes horarios publicados.</strong></p>
+                <p>Mientras no publiques horarios, nadie podrá reservar esta mentoría.</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</section>
