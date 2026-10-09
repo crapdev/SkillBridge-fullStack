@@ -54,4 +54,11 @@ public class GlobalExceptionHandler {
         p.setTitle("Validation error");
         return p;
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ProblemDetail illegalArgument(IllegalArgumentException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        p.setTitle("Bad request");
+        return p;
+    }
 }

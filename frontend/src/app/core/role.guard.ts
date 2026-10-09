@@ -20,3 +20,4 @@ export const roleGuard = (...roles: Role[]): CanActivateFn => (_route, state) =>
 
 export const customerGuard = roleGuard('CUSTOMER');
 export const providerGuard = roleGuard('PROVIDER');
+export const adminGuard = roleGuard('ADMIN');

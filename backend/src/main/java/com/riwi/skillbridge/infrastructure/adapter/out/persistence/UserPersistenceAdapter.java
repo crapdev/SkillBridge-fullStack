@@ -25,15 +25,36 @@ public class UserPersistenceAdapter implements UserRepositoryPort, UserAccountPo
 
     @Override
     public UserAccount save(UserAccount user) {
+        Instant createdAt = user.createdAt() != null ? user.createdAt() : Instant.now();
         UserEntity saved = repository.save(new UserEntity(
-                user.id(), user.name(), user.email(), user.passwordHash(), user.role(), user.status(), Instant.now()));
+                user.id(), user.name(), user.email(), user.passwordHash(), user.role(), user.status(), createdAt));
         return toDomain(saved);
     }
 
     @Override
     public Optional<UUID> findIdByEmail(String email) { return findByEmail(email).map(UserAccount::id); }
 
+    @Override
+    public long countByRole(com.riwi.skillbridge.domain.model.Role role) {
+        return repository.countByRole(role);
+    }
+
+    @Override
+    public long countByRoleAndCreatedAtGreaterThanEqual(com.riwi.skillbridge.domain.model.Role role, Instant createdAt) {
+        return repository.countByRoleAndCreatedAtGreaterThanEqual(role, createdAt);
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<UserAccount> findUsers(com.riwi.skillbridge.domain.model.Role role, String query, org.springframework.data.domain.Pageable pageable) {
+        return repository.findUsers(role, query, pageable).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<UserAccount> findById(UUID id) {
+        return repository.findById(id).map(this::toDomain);
+    }
+
     private UserAccount toDomain(UserEntity e) {
-        return new UserAccount(e.getId(), e.getName(), e.getEmail(), e.getPassword(), e.getRole(), e.getStatus());
+        return new UserAccount(e.getId(), e.getName(), e.getEmail(), e.getPassword(), e.getRole(), e.getStatus(), e.getCreatedAt());
     }
 }

@@ -1,0 +1,121 @@
+/*
+ * Estilos compartidos del panel de administración (prefijo adm-).
+ * Se cargan de forma global desde styles.css porque los usan varios componentes del panel;
+ * la paleta sigue la del home: navy #0b1d3a, acento cian #22d3ee y azul de acción.
+ */
+:root {
+  --adm-navy: #0b1d3a;
+  --adm-navy-2: #071326;
+  --adm-cyan: #22d3ee;
+  --adm-primary: #2563eb;
+  --adm-primary-hover: #1d4ed8;
+  --adm-primary-soft: #eff4ff;
+  --adm-bg: #f6f8fb;
+  --adm-surface: #ffffff;
+  --adm-surface-2: #f3f6fb;
+  --adm-text: #13213c;
+  --adm-muted: #667085;
+  --adm-border: #e5eaf1;
+  --adm-ok: #067647;
+  --adm-ok-soft: #ecfdf3;
+  --adm-off: #475467;
+  --adm-off-soft: #eef1f6;
+  --adm-danger: #d92d20;
+  --adm-danger-hover: #b42318;
+  --adm-danger-soft: #fef3f2;
+  --adm-warn: #b54708;
+  --adm-warn-soft: #fffaeb;
+  --adm-radius: 14px;
+  --adm-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 8px 24px rgba(16, 24, 40, .05);
+}
+
+/* Botones */
+.adm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid transparent;
+  font-size: .875rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.adm-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.adm-btn:focus-visible, .adm-icon-btn:focus-visible { outline: 3px solid rgba(37, 99, 235, .35); outline-offset: 2px; }
+.adm-btn:disabled { opacity: .55; cursor: not-allowed; }
+.adm-btn--primary { background: var(--adm-primary); color: #fff; box-shadow: 0 6px 16px rgba(37, 99, 235, .25); }
+.adm-btn--primary:hover:not(:disabled) { background: var(--adm-primary-hover); }
+.adm-btn--danger { background: var(--adm-danger); color: #fff; }
+.adm-btn--danger:hover:not(:disabled) { background: var(--adm-danger-hover); }
+.adm-btn--ghost { background: transparent; color: var(--adm-text); }
+.adm-btn--ghost:hover:not(:disabled) { background: var(--adm-surface-2); }
+.adm-btn--outline { background: var(--adm-surface); color: var(--adm-text); border-color: var(--adm-border); }
+.adm-btn--outline:hover:not(:disabled) { border-color: #cbd5e1; }
+
+.adm-icon-btn {
+  display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 8px;
+  border: 0; background: transparent; color: var(--adm-muted); cursor: pointer;
+}
+.adm-icon-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.adm-icon-btn:hover:not(:disabled) { background: var(--adm-surface-2); color: var(--adm-text); }
+.adm-icon-btn--danger:hover:not(:disabled) { background: var(--adm-danger-soft); color: var(--adm-danger); }
+.adm-icon-btn--ok { color: var(--adm-primary); }
+.adm-icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Estado */
+.adm-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  font-size: .75rem; font-weight: 600; white-space: nowrap;
+}
+.adm-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.adm-chip--ok { color: var(--adm-ok); background: var(--adm-ok-soft); }
+.adm-chip--off { color: var(--adm-off); background: var(--adm-off-soft); }
+.adm-chip--info { color: var(--adm-primary); background: var(--adm-primary-soft); }
+.adm-chip--plain::before { display: none; }
+
+/* Tarjetas y KPIs */
+.adm-card { background: var(--adm-surface); border: 1px solid var(--adm-border); border-radius: var(--adm-radius); box-shadow: var(--adm-shadow); }
+.adm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.adm-kpi { position: relative; overflow: hidden; padding: 20px; display: grid; gap: 6px; }
+.adm-kpi__label { font-size: .8rem; font-weight: 600; color: var(--adm-muted); text-transform: uppercase; letter-spacing: .06em; }
+.adm-kpi__value { font-size: 2rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.adm-kpi__hint { font-size: .8rem; color: var(--adm-muted); }
+.adm-kpi__icon {
+  position: absolute; top: 18px; right: 18px; width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center; background: var(--adm-primary-soft); color: var(--adm-primary);
+}
+.adm-kpi__icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.adm-kpi__icon--ok { background: var(--adm-ok-soft); color: var(--adm-ok); }
+.adm-kpi__icon--off { background: var(--adm-off-soft); color: var(--adm-off); }
+@media (max-width: 600px) {
+  .adm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .adm-kpi { padding: 16px; }
+  .adm-kpi__icon { display: none; }
+  .adm-kpi__label { font-size: .7rem; }
+  .adm-kpi__value { font-size: 1.6rem; }
+}
+
+/* Encabezado de página */
+.adm-crumbs { display: flex; gap: 8px; font-size: .8rem; color: var(--adm-muted); margin: 0 0 6px; padding: 0; list-style: none; }
+.adm-crumbs li + li::before { content: "/"; margin-right: 8px; color: #cbd5e1; }
+.adm-crumbs a:hover { color: var(--adm-text); }
+.adm-crumbs [aria-current] { color: var(--adm-primary); font-weight: 600; }
+.adm-page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.adm-page-head h1 { margin: 0; font-size: clamp(1.5rem, 3vw, 1.9rem); font-weight: 800; letter-spacing: -.02em; }
+.adm-page-head p { margin: 4px 0 0; color: var(--adm-muted); font-size: .9rem; }
+
+/* Avisos de estado */
+.adm-notice {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px;
+  font-size: .85rem; background: var(--adm-primary-soft); color: #1e3a8a;
+}
+.adm-notice--error { background: var(--adm-danger-soft); color: var(--adm-danger-hover); }
+.adm-notice--warn { background: var(--adm-warn-soft); color: var(--adm-warn); }
+.adm-notice svg { flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Carga */
+.adm-skeleton {
+  display: block; height: 14px; border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 25%, #f6f8fb 50%, #eef2f7 75%); background-size: 200% 100%;
+  animation: adm-shimmer 1.2s infinite;
+}
+@keyframes adm-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .adm-skeleton { animation: none; } }
+
+.adm-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

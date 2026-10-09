@@ -39,4 +39,5 @@ public class UserEntity {
     public String getPassword() { return password; }
     public Role getRole() { return role; }
     public AccountStatus getStatus() { return status; }
+    public Instant getCreatedAt() { return createdAt; }
 }

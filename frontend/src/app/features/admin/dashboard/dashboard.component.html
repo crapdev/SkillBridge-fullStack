@@ -1,0 +1,119 @@
+<ol class="adm-crumbs" aria-label="Ruta">
+  <li>Administración</li>
+  <li aria-current="page">Dashboard</li>
+</ol>
+<div class="adm-page-head">
+  <div>
+    <h1>Panel de administración</h1>
+    <p>Gestiona los proveedores y clientes de la plataforma.</p>
+  </div>
+  <a class="adm-btn adm-btn--primary" routerLink="/admin/proveedores/nuevo">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+    Nuevo proveedor
+  </a>
+</div>
+
+@if (statsError()) {
+  <p class="adm-notice adm-notice--error" role="alert">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+    {{ statsError() }}
+  </p>
+}
+
+<section class="adm-kpis" aria-label="Indicadores">
+  @for (role of roles; track role) {
+    <article class="adm-card adm-kpi">
+      <span class="adm-kpi__label">Total {{ labels[role].many.toLowerCase() }}</span>
+      <span class="adm-kpi__icon" aria-hidden="true">
+        @if (role === 'PROVIDER') {
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+        } @else {
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+        }
+      </span>
+      @if (roleStats(role); as d) {
+        <span class="adm-kpi__value">{{ d.total }}</span>
+        <span class="adm-kpi__hint"><span class="adm-chip adm-chip--info adm-chip--plain">+{{ d.newThisMonth }} este mes</span></span>
+      } @else if (!statsError()) {
+        <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:50%"></span>
+      } @else {
+        <span class="adm-kpi__value">—</span>
+      }
+    </article>
+  }
+
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Activos</span>
+    <span class="adm-kpi__icon adm-kpi__icon--ok" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+    </span>
+    @if (status(); as s) {
+      <span class="adm-kpi__value">{{ s.active }}</span>
+      <span class="adm-kpi__hint">{{ activePercent() }}% de las cuentas</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:50%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Inactivos</span>
+    <span class="adm-kpi__icon adm-kpi__icon--off" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg>
+    </span>
+    @if (status(); as s) {
+      <span class="adm-kpi__value">{{ s.inactive }}</span>
+      <span class="adm-kpi__hint">{{ statusEnabled ? 'Requieren revisión o reactivación' : 'Estados pendientes de backend' }}</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:50%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+</section>
+
+<div class="recent-grid">
+  @for (role of roles; track role) {
+    @let state = recent()[role];
+    @let label = labels[role];
+    <section class="adm-card recent" [attr.aria-labelledby]="'recent-' + role">
+      <header class="recent__head">
+        <div>
+          <h2 [id]="'recent-' + role">{{ label.many }} recientes</h2>
+          <p>Últimas altas en la plataforma</p>
+        </div>
+        <a class="recent__all" [routerLink]="['/admin', label.path]">Ver todos <span aria-hidden="true">→</span></a>
+      </header>
+
+      @if (state.loading) {
+        <ul class="recent__list" aria-busy="true">
+          @for (i of [1, 2, 3, 4, 5]; track i) {
+            <li><span class="adm-skeleton" style="width:36px;height:36px;border-radius:50%"></span>
+              <span class="grow"><span class="adm-skeleton" style="width:60%"></span></span></li>
+          }
+        </ul>
+      } @else if (state.error) {
+        <div class="recent__state">
+          <p class="adm-notice adm-notice--error" role="alert">{{ state.error }}</p>
+          <button type="button" class="adm-btn adm-btn--outline" (click)="loadRecent(role)">Reintentar</button>
+        </div>
+      } @else if (state.rows.length === 0) {
+        <p class="recent__state recent__empty">Aún no hay {{ label.many.toLowerCase() }} registrados.</p>
+      } @else {
+        <ul class="recent__list">
+          @for (u of state.rows; track u.id) {
+            <li [class.off]="!isActive(u)">
+              <adm-avatar [name]="u.name" [muted]="!isActive(u)" />
+              <span class="grow person"><strong>{{ u.name }}</strong><small>{{ u.email }}</small></span>
+              <span class="adm-chip" [class.adm-chip--ok]="isActive(u)" [class.adm-chip--off]="!isActive(u)">
+                {{ isActive(u) ? 'Activo' : 'Inactivo' }}
+              </span>
+              <time class="when" [attr.datetime]="u.createdAt">{{ timeAgo(u.createdAt) }}</time>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

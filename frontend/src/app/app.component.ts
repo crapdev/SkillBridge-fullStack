@@ -12,8 +12,8 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent, SiteFooterComponent],
   template: `
-    <!-- La pantalla de login tiene su propio encabezado -->
-    @if (!isAuthPage()) {
+    <!-- El login y el panel de administración tienen su propio encabezado -->
+    @if (!hideHeader()) {
     <header class="nav">
       <div class="container nav-inner">
         <a routerLink="/" class="brand" aria-label="SkillBridge AI, ir al inicio">
@@ -50,6 +50,8 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (auth.hasRole('PROVIDER')) {
               <a routerLink="/provider/offerings" routerLinkActive="active">Panel de mentorías</a>
+            } @else if (auth.hasRole('ADMIN')) {
+              <a routerLink="/admin">Administración</a>
             } @else if (!auth.isAuthenticated()) {
               <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
               <!-- Contacto apunta a una sección del inicio; funcionará en cuanto exista ese id -->
@@ -73,7 +75,7 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
     </header>
     }
     <main><router-outlet /></main>
-    @if (!isAuthPage()) { <app-site-footer /> }
+    @if (!hideHeader()) { <app-site-footer /> }
     <app-alert-host />
   `,
   styleUrls: ['./header.css']
@@ -84,12 +86,13 @@ export class AppComponent {
 
   readonly menuOpen = signal(false);
 
-  readonly isAuthPage = toSignal(
+  readonly hideHeader = toSignal(
     this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-      map(e => e.urlAfterRedirects.startsWith('/login'))
+      map(e => AppComponent.hasOwnLayout(e.urlAfterRedirects))
     ),
-    { initialValue: false }
+    // Antes de la primera navegación router.url aún es '/', por eso se usa la ruta del navegador
+    { initialValue: AppComponent.hasOwnLayout(location.pathname) }
   );
 
   constructor() {
@@ -104,4 +107,8 @@ export class AppComponent {
 
   @HostListener('document:keydown.escape')
   closeMenu(): void { this.menuOpen.set(false); }
+
+  private static hasOwnLayout(url: string): boolean {
+    return url.startsWith('/login') || url.startsWith('/admin');
+  }
 }
