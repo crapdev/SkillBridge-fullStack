@@ -14,11 +14,31 @@ import java.util.UUID;
 public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     private final JpaOfferingRepository repository;
 
-    public OfferingPersistenceAdapter(JpaOfferingRepository repository) { this.repository = repository; }
+    public OfferingPersistenceAdapter(JpaOfferingRepository repository) {
+        this.repository = repository;
+    }
+
+    @Override
+    public Offering save(Offering offering) {
+        OfferingEntity entity = new OfferingEntity(
+            offering.id(),
+            offering.providerId(),
+            offering.title(),
+            offering.description(),
+            offering.category(),
+            offering.price(),
+            offering.active()
+        );
+        OfferingEntity saved = repository.save(entity);
+        return toDomain(saved);
+    }
 
     @Override
     public List<Offering> findAllActive() {
-        return repository.findByActiveTrueOrderByTitleAsc().stream().map(this::toDomain).toList();
+        return repository.findByActiveTrueOrderByTitleAsc()
+            .stream()
+            .map(this::toDomain)
+            .toList();
     }
 
     @Override
@@ -26,7 +46,28 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
         return repository.findById(id).map(this::toDomain);
     }
 
+    @Override
+    public List<Offering> findByProviderId(UUID providerId) {
+        return repository.findByProviderId(providerId)
+            .stream()
+            .map(this::toDomain)
+            .toList();
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        repository.deleteById(id);
+    }
+
     private Offering toDomain(OfferingEntity e) {
-        return new Offering(e.getId(), (e.getProviderId()), e.getTitle(), e.getDescription(), e.getCategory(), e.getPrice(), e.isActive());
+        return new Offering(
+            e.getId(),
+            e.getProviderId(),
+            e.getTitle(),
+            e.getDescription(),
+            e.getCategory(),
+            e.getPrice(),
+            e.isActive()
+        );
     }
 }
