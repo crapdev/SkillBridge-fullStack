@@ -70,6 +70,14 @@ management:
     tags:
       application: ${spring.application.name}
 
+# Claves de Stripe: solo por variables de entorno, nunca en el repositorio
+stripe:
+  api:
+    key:
+      secret: ${STRIPE_SECRET_KEY:}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET:}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
