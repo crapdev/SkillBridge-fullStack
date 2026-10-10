@@ -14,7 +14,7 @@ type LoadStatus = 'loading' | 'ready' | 'error';
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const STATUS_INFO: Record<BookingStatus, { label: string; hint: string }> = {
-  CREATED: { label: 'Pendiente', hint: 'Pendiente de confirmación' },
+  CREATED: { label: 'Pendiente de pago', hint: 'Paga la reserva para confirmar tu sesión' },
   CONFIRMED: { label: 'Confirmada', hint: 'Todo listo para tu sesión' },
   CANCELLED: { label: 'Cancelada', hint: 'Esta reserva fue cancelada' },
   COMPLETED: { label: 'Completada', hint: 'Sesión finalizada' }
@@ -155,6 +155,10 @@ export class MyBookingsComponent implements OnInit {
   tooLateToCancel(b: Booking): boolean {
     const diff = new Date(b.scheduledAt).getTime() - Date.now();
     return this.isActive(b) && diff > 0 && diff <= CANCEL_WINDOW_MS;
+  }
+  /** Solo las reservas pendientes y futuras se pueden pagar (el backend también lo valida) */
+  canPay(b: Booking): boolean {
+    return b.status === 'CREATED' && new Date(b.scheduledAt).getTime() > Date.now();
   }
   isCanceling(b: Booking): boolean { return this.cancelingIds().has(b.id); }
 }

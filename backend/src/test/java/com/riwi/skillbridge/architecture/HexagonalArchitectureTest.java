@@ -52,4 +52,18 @@ class HexagonalArchitectureTest {
                     .should().dependOnClassesThat()
                     .resideInAPackage(INFRASTRUCTURE)
                     .because("los casos de uso solo deben usar puertos, no adaptadores");
+
+    // Regla 4: application no usa SDKs de servicios externos ni tecnologías de persistencia/mensajería.
+    // Esas integraciones van en un adaptador de infrastructure detrás de un puerto de salida.
+    @ArchTest
+    static final ArchRule application_must_not_depend_on_external_sdks =
+            noClasses().that().resideInAPackage(APPLICATION)
+                    .should().dependOnClassesThat()
+                    .resideInAnyPackage(
+                            "com.stripe..",                       // Pagos (Stripe)
+                            "org.springframework.ai..",           // Proveedor de IA
+                            "org.springframework.amqp..",         // RabbitMQ
+                            "org.springframework.data.redis..",   // Redis
+                            "jakarta.persistence..")              // JPA
+                    .because("los casos de uso deben hablar con servicios externos solo a través de puertos");
 }

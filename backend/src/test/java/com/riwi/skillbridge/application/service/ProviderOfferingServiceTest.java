@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
@@ -33,6 +34,7 @@ class ProviderOfferingServiceTest {
     @Mock private OfferingRepositoryPort offerings;
     @Mock private AvailabilitySlotRepositoryPort slots;
     @Mock private UserAccountPort users;
+    @Mock private OfferingCachePort cache;
 
     @InjectMocks private ProviderOfferingService service;
 
@@ -148,6 +150,8 @@ class ProviderOfferingServiceTest {
 
         verify(slots).deleteByOfferingId(offeringId);
         verify(offerings).deleteById(offeringId);
+        // El catálogo público deja de mostrarla de inmediato
+        verify(cache).evictActiveOfferings();
     }
 
     @Test
@@ -156,5 +160,22 @@ class ProviderOfferingServiceTest {
 
         assertThrows(BusinessRuleException.class, () -> service.deleteOffering(offeringId, EMAIL));
         verify(offerings, never()).deleteById(any());
+        verify(cache, never()).evictActiveOfferings();
+    }
+
+    // ==========================================
+    // CREAR MENTORÍA
+    // ==========================================
+
+    @Test
+    void createOffering_ShouldEvictPublicCatalogCache() {
+        when(offerings.save(any(Offering.class))).thenAnswer(i -> i.getArgument(0));
+
+        Offering created = service.createOffering("Kubernetes", "Despliegues", "CLOUD", new BigDecimal("90000"), EMAIL);
+
+        assertEquals(providerId, created.providerId());
+        assertTrue(created.active());
+        // Sin esto la mentoría nueva no aparece en el catálogo hasta que expire la caché (10 min)
+        verify(cache).evictActiveOfferings();
     }
 }

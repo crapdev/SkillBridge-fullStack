@@ -33,6 +33,21 @@ jobs:
       - name: Architecture rules (hexagonal)
         run: mvn -B test -Dtest=HexagonalArchitectureTest     # solo las reglas de arquitectura
 
+      # Los tests de persistencia (Testcontainers) necesitan la imagen de PostgreSQL. Docker Hub limita
+      # las descargas anónimas desde GitHub Actions y a veces no responde, lo que hacía fallar el CI.
+      # Se descarga antes desde el espejo de Google (sin ese límite) con reintentos; Testcontainers
+      # reutiliza la imagen local y ya no la pide a Docker Hub.
+      - name: Pre-pull PostgreSQL image for Testcontainers
+        run: |
+          for attempt in 1 2 3; do
+            docker pull mirror.gcr.io/library/postgres:17-alpine \
+              && docker tag mirror.gcr.io/library/postgres:17-alpine postgres:17-alpine \
+              && exit 0
+            echo "Intento $attempt fallido; reintentando en 10 s..."
+            sleep 10
+          done
+          docker pull postgres:17-alpine                       # último recurso: Docker Hub
+
       - name: Test and package
         run: mvn -B clean verify                              # compila, corre todos los tests y empaqueta
 
