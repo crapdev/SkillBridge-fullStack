@@ -21,8 +21,8 @@
     <!-- Reservar y la IA son solo para clientes; al visitante se le ofrece explorar o crear su cuenta -->
     <div class="hero__actions enter" style="--i: 3">
       @if (auth.hasRole('CUSTOMER')) {
-        <a class="btn btn--primary" routerLink="/book">
-          Realizar una reserva <span aria-hidden="true">→</span>
+        <a class="btn btn--primary" routerLink="/servicios">
+          Elegir una mentoría <span aria-hidden="true">→</span>
         </a>
         <a class="btn btn--ghost" routerLink="/ai">Obtener recomendación con IA</a>
       } @else {

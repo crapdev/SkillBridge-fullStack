@@ -46,7 +46,6 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
             <a routerLink="/servicios" routerLinkActive="active">Servicios</a>
             <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER -->
             @if (auth.hasRole('CUSTOMER')) {
-              <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (auth.hasRole('PROVIDER')) {
               <a routerLink="/provider/offerings" routerLinkActive="active">Panel de mentorías</a>
