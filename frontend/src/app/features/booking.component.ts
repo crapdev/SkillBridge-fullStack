@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AvailabilitySlot, Offering, OfferingService } from '../core/offering.service';
 import { apiBase } from '../core/api';
+import { CurrencyPipe } from '@angular/common';
+import { SERVICE_CONTENT, categoryKey } from './service-detail/service-content';
 
 const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
 const fullFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
@@ -14,23 +16,25 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
 
 @Component({
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, CurrencyPipe],
   template: `
     <section class="container section">
       <div class="card booking-card">
         <p class="eyebrow">Reserva</p>
         <h1>Reservar una sesión</h1>
-        <p class="muted">Elige la mentoría y uno de los horarios que publicó el especialista.</p>
+        <p class="muted">Elige uno de los horarios que publicó el especialista.</p>
 
-        <label class="field">
-          Servicio
-          <select [value]="offeringId()" (change)="selectOffering($any($event.target).value)">
-            <option value="" disabled>Selecciona un servicio</option>
-            @for (offering of offerings(); track offering.id) {
-              <option [value]="offering.id">{{ offering.title }}</option>
-            }
-          </select>
-        </label>
+        @if (offering(); as o) {
+          <div class="offering" [class]="'offering offering--' + category()">
+            <span class="offering__icon" aria-hidden="true"><img [src]="icon()" alt=""></span>
+            <div class="offering__body">
+              <span class="offering__category">{{ o.category }}</span>
+              <h2>{{ o.title }}</h2>
+              <a [routerLink]="['/services', o.id]">Ver detalle</a>
+            </div>
+            <strong class="offering__price">{{ o.price | currency:'COP':'symbol-narrow':'1.0-0' }}<small>/ sesión</small></strong>
+          </div>
+        }
 
         @if (offeringId()) {
           <div class="field">
@@ -79,7 +83,15 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
   styles: [`
     .section{padding:50px 0}.booking-card{max-width:700px;margin:auto}
     .eyebrow{font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2563eb;font-size:.75rem}
-    .field select{border:1px solid #cfd8e6;border-radius:10px;padding:11px;background:white}
+    .offering{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px;margin:18px 0;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}
+    .offering__icon{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:#fffbeb}
+    .offering--cloud .offering__icon{background:#eff6ff}.offering--frontend .offering__icon{background:#fff1f2}
+    .offering__icon img{width:24px;height:24px;object-fit:contain}
+    .offering__category{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
+    .offering h2{margin:2px 0;font-size:1.1rem}
+    .offering a{font-size:.85rem;font-weight:600;color:#2563eb}
+    .offering__price{font-size:1.15rem;white-space:nowrap}.offering__price small{margin-left:4px;font-weight:500;color:#64748b}
+    @media (max-width:560px){.offering{grid-template-columns:auto 1fr}.offering__price{grid-column:1/-1}}
     .days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
     .day{flex-shrink:0;display:grid;gap:2px;padding:10px 14px;border:1px solid #cfd8e6;border-radius:10px;background:#fff;cursor:pointer;font-weight:600;text-align:left}
     .day span{font-size:.75rem;font-weight:500;color:#667085}
@@ -99,8 +111,12 @@ export class BookingComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
 
-  readonly offerings = signal<Offering[]>([]);
-  readonly offeringId = signal('');
+  /** Mentoría fija que llega desde el detalle (/book?offering=<id>) */
+  readonly offering = signal<Offering | null>(null);
+  readonly offeringId = computed(() => this.offering()?.id ?? '');
+  readonly selectedTitle = computed(() => this.offering()?.title ?? '');
+  readonly category = computed(() => categoryKey(this.offering()?.category ?? ''));
+  readonly icon = computed(() => SERVICE_CONTENT[this.category()].icon);
   readonly slots = signal<AvailabilitySlot[]>([]);
   readonly slotsLoading = signal(false);
   readonly selectedDay = signal('');
@@ -117,22 +133,22 @@ export class BookingComponent implements OnInit {
       .map(([key, slots]) => ({ key, label: capitalize(dayFormat.format(new Date(slots[0].scheduledAt)).replace(/\./g, '')), slots }));
   });
   readonly dayTimes = computed(() => this.days().find(d => d.key === this.selectedDay())?.slots ?? []);
-  readonly selectedTitle = computed(() => this.offerings().find(o => o.id === this.offeringId())?.title ?? '');
+  
 
   ngOnInit(): void {
+    const id = this.route.snapshot.queryParamMap.get('offering');
     this.offeringsService.list().subscribe({
       next: list => {
-        this.offerings.set(list);
-        // Viene preseleccionado desde el detalle del servicio (/book?offering=<id>)
-        const preselected = this.route.snapshot.queryParamMap.get('offering');
-        if (preselected && list.some(o => o.id === preselected)) this.selectOffering(preselected);
+        const found = list.find(o => o.id === id) ?? null;
+        this.offering.set(found);
+        if (found) this.loadSlots(found.id);
+        else this.error.set('No encontramos la mentoría que quieres reservar.');
       },
-      error: () => this.error.set('No fue posible cargar los servicios.')
+      error: () => this.error.set('No fue posible cargar la mentoría.')
     });
   }
 
-  selectOffering(id: string): void {
-    this.offeringId.set(id);
+  private loadSlots(id: string): void {
     this.selectedSlot.set(null);
     this.error.set('');
     this.success.set('');
