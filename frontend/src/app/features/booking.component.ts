@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AvailabilitySlot, Offering, OfferingService } from '../core/offering.service';
 import { apiBase } from '../core/api';
 import { CurrencyPipe } from '@angular/common';
@@ -24,6 +24,13 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
         <h1>Reservar una sesión</h1>
         <p class="muted">Elige uno de los horarios que publicó el especialista.</p>
 
+        @if (notFound()) {
+          <div class="empty">
+            Esta mentoría no existe o ya no está disponible.
+            <a routerLink="/servicios">Ver otras mentorías →</a>
+          </div>
+        }
+
         @if (offering(); as o) {
           <div class="offering" [class]="'offering offering--' + category()">
             <span class="offering__icon" aria-hidden="true"><img [src]="icon()" alt=""></span>
@@ -42,7 +49,10 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
             @if (slotsLoading()) {
               <p class="muted">Cargando horarios…</p>
             } @else if (!days().length) {
-              <p class="empty">Este servicio no tiene horarios disponibles por ahora. Prueba con otra mentoría o vuelve más tarde.</p>
+              <p class="empty">
+                Esta mentoría no tiene horarios disponibles por ahora.
+                <a routerLink="/servicios">Ver otras mentorías →</a>
+              </p>
             } @else {
               <div class="days" role="group" aria-label="Días disponibles">
                 @for (day of days(); track day.key) {
@@ -69,9 +79,11 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
           <p class="summary">Vas a reservar <strong>{{ selectedTitle() }}</strong> el <strong>{{ fullDate(slot) }}</strong></p>
         }
 
-        <button class="btn" [disabled]="loading() || !selectedSlot()" (click)="book()">
-          {{ loading() ? 'Reservando…' : 'Confirmar reserva' }}
-        </button>
+        @if (!notFound()) {
+          <button class="btn" [disabled]="loading() || !selectedSlot()" (click)="book()">
+            {{ loading() ? 'Reservando…' : 'Confirmar reserva' }}
+          </button>
+        }
 
         @if (error()) { <p class="error">{{ error() }}</p> }
         @if (success()) {
@@ -101,6 +113,7 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
     .time:hover,.day:hover{border-color:#93c5fd}
     .time.active{background:#2563eb;border-color:#2563eb;color:#fff}
     .empty{margin:0;padding:12px;border-radius:10px;background:#fffbeb;color:#92400e;font-weight:400}
+    .empty a{display:inline-block;margin-top:4px;font-weight:600;color:#92400e;text-decoration:underline}
     .summary{padding:12px;border-radius:10px;background:#f0f9ff;color:#0c4a6e}
     .btn:disabled{opacity:.6;cursor:not-allowed}
     .success a{font-weight:600;color:#067647;text-decoration:underline}
@@ -110,6 +123,7 @@ export class BookingComponent implements OnInit {
   private readonly offeringsService = inject(OfferingService);
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   /** Mentoría fija que llega desde el detalle (/book?offering=<id>) */
   readonly offering = signal<Offering | null>(null);
@@ -124,6 +138,7 @@ export class BookingComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly success = signal('');
+  readonly notFound = signal(false);
 
   readonly days = computed(() => {
     const groups = new Map<string, AvailabilitySlot[]>();
@@ -133,16 +148,21 @@ export class BookingComponent implements OnInit {
       .map(([key, slots]) => ({ key, label: capitalize(dayFormat.format(new Date(slots[0].scheduledAt)).replace(/\./g, '')), slots }));
   });
   readonly dayTimes = computed(() => this.days().find(d => d.key === this.selectedDay())?.slots ?? []);
-  
 
   ngOnInit(): void {
     const id = this.route.snapshot.queryParamMap.get('offering');
+    // Sin mentoría no hay nada que reservar: se elige desde el catálogo.
+    // replaceUrl evita que "atrás" vuelva a /book y redirija otra vez
+    if (!id) {
+      this.router.navigate(['/servicios'], { replaceUrl: true });
+      return;
+    }
     this.offeringsService.list().subscribe({
       next: list => {
         const found = list.find(o => o.id === id) ?? null;
         this.offering.set(found);
         if (found) this.loadSlots(found.id);
-        else this.error.set('No encontramos la mentoría que quieres reservar.');
+        else this.notFound.set(true);
       },
       error: () => this.error.set('No fue posible cargar la mentoría.')
     });
