@@ -19,6 +19,10 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Avisa al proveedor de lo que pasa con las reservas de sus mentorías. El cliente no recibe
+ * notificaciones: cada acción suya (reservar, cancelar, pagar) ya muestra el resultado en pantalla.
+ */
 @Service
 public class RecordBookingNotificationService implements RecordBookingNotificationUseCase {
     private static final Logger log = LoggerFactory.getLogger(RecordBookingNotificationService.class);
@@ -50,41 +54,25 @@ public class RecordBookingNotificationService implements RecordBookingNotificati
         }
         Booking b = booking.get();
         Optional<Offering> offering = offerings.findById(b.offeringId());
-        String title = offering.map(Offering::title).orElse("tu mentoría");
-        String date = SESSION_DATE.format(b.scheduledAt());
-
-        save(b.customerId(), b.id(), type, customerMessage(type, title, date));
-
-        // El proveedor no necesita enterarse de los pagos fallidos: la reserva sigue pendiente
         UUID providerId = offering.map(Offering::providerId).orElse(null);
-        if (providerId != null && type != NotificationType.PAYMENT_FAILED) {
-            save(providerId, b.id(), type, providerMessage(type, title, date));
+        if (providerId == null) {
+            log.debug("Notificación omitida: la mentoría no tiene proveedor (tipo={}, bookingId={})", type, bookingId);
+            return;
         }
-    }
 
-    private void save(UUID recipientId, UUID bookingId, NotificationType type, String message) {
+        String message = message(type, offering.get().title(), SESSION_DATE.format(b.scheduledAt()));
         boolean saved = notifications.saveIfAbsent(
-            new Notification(UUID.randomUUID(), recipientId, bookingId, type, message, Instant.now(), null));
+            new Notification(UUID.randomUUID(), providerId, b.id(), type, message, Instant.now(), null));
         if (!saved) {
             log.debug("Notificación repetida ignorada (tipo={}, bookingId={})", type, bookingId);
         }
     }
 
-    private static String customerMessage(NotificationType type, String title, String date) {
-        return switch (type) {
-            case BOOKING_CREATED -> "Reservaste %s para el %s. Págala para confirmar tu sesión.".formatted(title, date);
-            case BOOKING_CANCELLED -> "Cancelaste tu reserva de %s del %s.".formatted(title, date);
-            case BOOKING_PAID -> "Tu pago fue aprobado: tu sesión de %s del %s está confirmada.".formatted(title, date);
-            case PAYMENT_FAILED -> "Tu pago de %s no fue aprobado. Puedes intentarlo de nuevo desde Mis reservas.".formatted(title);
-        };
-    }
-
-    private static String providerMessage(NotificationType type, String title, String date) {
+    private static String message(NotificationType type, String title, String date) {
         return switch (type) {
             case BOOKING_CREATED -> "Nueva reserva de %s para el %s.".formatted(title, date);
             case BOOKING_CANCELLED -> "Se canceló la reserva de %s del %s.".formatted(title, date);
             case BOOKING_PAID -> "La reserva de %s del %s fue pagada.".formatted(title, date);
-            case PAYMENT_FAILED -> throw new IllegalArgumentException("El proveedor no recibe pagos fallidos");
         };
     }
 }

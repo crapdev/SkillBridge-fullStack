@@ -15,7 +15,6 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,56 +51,50 @@ class RecordBookingNotificationServiceTest {
     }
 
     @Test
-    @DisplayName("Reserva creada: notifica al cliente y al proveedor")
-    void bookingCreatedNotifiesCustomerAndProvider() {
+    @DisplayName("Solo el proveedor recibe la notificación, nunca el cliente")
+    void onlyTheProviderIsNotified() {
         service.record(NotificationType.BOOKING_CREATED, bookingId);
 
-        List<Notification> saved = captureSaved(2);
-        assertThat(saved).extracting(Notification::recipientId).containsExactly(customerId, providerId);
-        assertThat(saved).allMatch(n -> n.type() == NotificationType.BOOKING_CREATED && n.bookingId().equals(bookingId));
-        assertThat(saved).allMatch(n -> !n.isRead());
+        Notification saved = captureSaved();
+        assertThat(saved.recipientId()).isEqualTo(providerId).isNotEqualTo(customerId);
+        assertThat(saved.bookingId()).isEqualTo(bookingId);
+        assertThat(saved.type()).isEqualTo(NotificationType.BOOKING_CREATED);
+        assertThat(saved.isRead()).isFalse();
     }
 
     @Test
-    @DisplayName("El mensaje lleva el título y la fecha en hora de Colombia")
-    void messageHasTitleAndColombianDate() {
-        service.record(NotificationType.BOOKING_PAID, bookingId);
+    @DisplayName("Reserva creada: mensaje con el título y la fecha en hora de Colombia")
+    void bookingCreatedMessage() {
+        service.record(NotificationType.BOOKING_CREATED, bookingId);
 
-        List<Notification> saved = captureSaved(2);
-        assertThat(saved.get(0).message())
-                .isEqualTo("Tu pago fue aprobado: tu sesión de Java Básico del jueves 10 de octubre a las 10:00 está confirmada.");
-        assertThat(saved.get(1).message()).isEqualTo("La reserva de Java Básico del jueves 10 de octubre a las 10:00 fue pagada.");
+        assertThat(captureSaved().message()).isEqualTo("Nueva reserva de Java Básico para el jueves 10 de octubre a las 10:00.");
     }
 
     @Test
-    @DisplayName("Pago fallido: solo notifica al cliente")
-    void paymentFailedNotifiesOnlyTheCustomer() {
-        service.record(NotificationType.PAYMENT_FAILED, bookingId);
-
-        List<Notification> saved = captureSaved(1);
-        assertThat(saved.get(0).recipientId()).isEqualTo(customerId);
-        assertThat(saved.get(0).message()).contains("Java Básico").contains("Mis reservas");
-    }
-
-    @Test
-    @DisplayName("Reserva cancelada: notifica al cliente y al proveedor")
-    void bookingCancelledNotifiesBoth() {
+    @DisplayName("Reserva cancelada: mensaje para el proveedor")
+    void bookingCancelledMessage() {
         service.record(NotificationType.BOOKING_CANCELLED, bookingId);
 
-        assertThat(captureSaved(2)).extracting(Notification::message)
-                .containsExactly("Cancelaste tu reserva de Java Básico del jueves 10 de octubre a las 10:00.",
-                        "Se canceló la reserva de Java Básico del jueves 10 de octubre a las 10:00.");
+        assertThat(captureSaved().message()).isEqualTo("Se canceló la reserva de Java Básico del jueves 10 de octubre a las 10:00.");
     }
 
     @Test
-    @DisplayName("Una mentoría sin proveedor solo notifica al cliente")
-    void offeringWithoutProviderNotifiesOnlyTheCustomer() {
+    @DisplayName("Reserva pagada: mensaje para el proveedor")
+    void bookingPaidMessage() {
+        service.record(NotificationType.BOOKING_PAID, bookingId);
+
+        assertThat(captureSaved().message()).isEqualTo("La reserva de Java Básico del jueves 10 de octubre a las 10:00 fue pagada.");
+    }
+
+    @Test
+    @DisplayName("Una mentoría sin proveedor no genera notificación")
+    void offeringWithoutProviderIsSkipped() {
         when(offerings.findById(offeringId)).thenReturn(Optional.of(
                 new Offering(offeringId, null, "Java Básico", "Intro", "BACKEND", BigDecimal.TEN, true)));
 
         service.record(NotificationType.BOOKING_CREATED, bookingId);
 
-        assertThat(captureSaved(1).get(0).recipientId()).isEqualTo(customerId);
+        verifyNoInteractions(notifications);
     }
 
     @Test
@@ -121,12 +114,12 @@ class RecordBookingNotificationServiceTest {
 
         service.record(NotificationType.BOOKING_CREATED, bookingId);
 
-        verify(notifications, times(2)).saveIfAbsent(any());
+        verify(notifications).saveIfAbsent(any());
     }
 
-    private List<Notification> captureSaved(int expected) {
+    private Notification captureSaved() {
         ArgumentCaptor<Notification> captor = ArgumentCaptor.forClass(Notification.class);
-        verify(notifications, times(expected)).saveIfAbsent(captor.capture());
-        return captor.getAllValues();
+        verify(notifications).saveIfAbsent(captor.capture());
+        return captor.getValue();
     }
 }

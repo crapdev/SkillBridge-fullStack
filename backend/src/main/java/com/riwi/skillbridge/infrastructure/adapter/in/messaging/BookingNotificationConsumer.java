@@ -21,12 +21,12 @@ import java.util.Map;
 public class BookingNotificationConsumer {
     private static final Logger log = LoggerFactory.getLogger(BookingNotificationConsumer.class);
 
-    // El tipo de evento viaja en la routing key
+    // El tipo de evento viaja en la routing key. El pago fallido no genera notificación: solo le
+    // importa al cliente, que ya ve el error en la pantalla de pago
     private static final Map<String, NotificationType> TYPES = Map.of(
             RabbitConfiguration.BOOKING_CREATED_KEY, NotificationType.BOOKING_CREATED,
             RabbitConfiguration.BOOKING_CANCELLED_KEY, NotificationType.BOOKING_CANCELLED,
-            RabbitConfiguration.BOOKING_PAID_KEY, NotificationType.BOOKING_PAID,
-            RabbitConfiguration.PAYMENT_FAILED_KEY, NotificationType.PAYMENT_FAILED);
+            RabbitConfiguration.BOOKING_PAID_KEY, NotificationType.BOOKING_PAID);
 
     private final RecordBookingNotificationUseCase useCase;
 
@@ -38,7 +38,8 @@ public class BookingNotificationConsumer {
     public void onBookingEvent(BookingEvent event, @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey) {
         NotificationType type = TYPES.get(routingKey);
         if (type == null) {
-            log.warn("Evento de reserva sin notificación asociada: routingKey={}, bookingId={}", routingKey, event.bookingId());
+            // La cola recibe todos los eventos booking.*; los que no notifican se confirman y se descartan
+            log.debug("Evento de reserva sin notificación asociada: routingKey={}, bookingId={}", routingKey, event.bookingId());
             return;
         }
         // Solo ids en el log: nada de emails, nombres ni montos

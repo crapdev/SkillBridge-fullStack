@@ -25,8 +25,7 @@ class BookingNotificationConsumerTest {
     @CsvSource({
             "booking.created, BOOKING_CREATED",
             "booking.cancelled, BOOKING_CANCELLED",
-            "booking.paid, BOOKING_PAID",
-            "booking.payment-failed, PAYMENT_FAILED"
+            "booking.paid, BOOKING_PAID"
     })
     void routingKeyDecidesTheNotificationType(String routingKey, NotificationType expected) {
         consumer.onBookingEvent(event, routingKey);
@@ -34,9 +33,10 @@ class BookingNotificationConsumerTest {
         verify(useCase).record(expected, event.bookingId());
     }
 
-    @Test
-    void unknownRoutingKeyIsIgnored() {
-        consumer.onBookingEvent(event, "booking.rescheduled");
+    @ParameterizedTest
+    @CsvSource({"booking.payment-failed", "booking.rescheduled"})
+    void eventsWithoutNotificationAreIgnored(String routingKey) {
+        consumer.onBookingEvent(event, routingKey);
 
         verifyNoInteractions(useCase);
     }

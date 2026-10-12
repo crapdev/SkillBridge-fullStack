@@ -57,17 +57,24 @@ class NotificationControllerTest {
         mockMvc.perform(get("/api/notifications/me")).andExpect(status().isForbidden());
     }
 
+    // El cliente ve el resultado de sus acciones en pantalla: la campana es solo del proveedor
     @Test
-    @WithMockUser(username = "sofia@test.com", roles = "CUSTOMER")
+    @WithMockUser(roles = "CUSTOMER")
+    void shouldReturn403ForCustomer() throws Exception {
+        mockMvc.perform(get("/api/notifications/me/unread-count")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "laura@test.com", roles = "PROVIDER")
     void shouldListMyNotifications() throws Exception {
         Notification notification = new Notification(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                NotificationType.BOOKING_CREATED, "Reservaste Java Básico", Instant.now(), null);
-        when(useCase.listMine("sofia@test.com", 10)).thenReturn(List.of(notification));
+                NotificationType.BOOKING_CREATED, "Nueva reserva de Java Básico", Instant.now(), null);
+        when(useCase.listMine("laura@test.com", 10)).thenReturn(List.of(notification));
 
         mockMvc.perform(get("/api/notifications/me"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].type").value("BOOKING_CREATED"))
-                .andExpect(jsonPath("$[0].message").value("Reservaste Java Básico"))
+                .andExpect(jsonPath("$[0].message").value("Nueva reserva de Java Básico"))
                 .andExpect(jsonPath("$[0].read").value(false))
                 .andExpect(jsonPath("$[0].recipientId").doesNotExist());
     }
@@ -83,10 +90,10 @@ class NotificationControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "sofia@test.com", roles = "CUSTOMER")
+    @WithMockUser(username = "laura@test.com", roles = "PROVIDER")
     void shouldMarkAllAsRead() throws Exception {
         mockMvc.perform(patch("/api/notifications/me/read-all")).andExpect(status().isNoContent());
 
-        verify(useCase).markAllRead("sofia@test.com");
+        verify(useCase).markAllRead("laura@test.com");
     }
 }

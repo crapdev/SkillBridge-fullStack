@@ -126,7 +126,7 @@ CreateBookingUseCase
               Notification Consumer
 ```
 
-El consumidor guarda una notificación para el cliente y otra para el proveedor (HU-11) en la tabla `notifications`, sin duplicarlas si el evento llega dos veces. Se publican eventos al crear, cancelar, pagar y cuando falla un pago; cada usuario las consulta en `/api/notifications/me`. Las células pueden extenderlo con email, WhatsApp u otro microservicio.
+El consumidor guarda una notificación para el proveedor de la mentoría (HU-11) en la tabla `notifications` cuando una reserva se crea, se cancela o se paga, sin duplicarla si el evento llega dos veces. El proveedor las ve en la campana del header (`/api/notifications/me`); el cliente no las necesita porque cada acción suya ya muestra el resultado en pantalla. Las células pueden extenderlo con email, WhatsApp u otro microservicio.
 
 ### Flujo: IA
 
