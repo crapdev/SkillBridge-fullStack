@@ -46,6 +46,8 @@ public class SecurityConfiguration {
                         // La gestión de mentorías y horarios es exclusiva de proveedores
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // La campana es para clientes y proveedores; cada uno solo ve las suyas
+                        .requestMatchers("/api/notifications/**").hasAnyRole("CUSTOMER", "PROVIDER")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
