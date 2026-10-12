@@ -120,13 +120,13 @@ CreateBookingUseCase
                       RabbitMQ
                          |
                          v
-                booking.created.queue
+                booking.notifications.queue (booking.*)
                          |
                          v
               Notification Consumer
 ```
 
-El consumidor actual registra la notificación en logs. Las células deben extenderlo con email, auditoría, WhatsApp, otro microservicio o persistencia de notificaciones.
+El consumidor guarda una notificación para el proveedor de la mentoría (HU-11) en la tabla `notifications` cuando una reserva se crea, se cancela o se paga, sin duplicarla si el evento llega dos veces. El proveedor las ve en la campana del header (`/api/notifications/me`); el cliente no las necesita porque cada acción suya ya muestra el resultado en pantalla. Las células pueden extenderlo con email, WhatsApp u otro microservicio.
 
 ### Flujo: IA
 
@@ -518,10 +518,10 @@ http://localhost:15672
 Busca:
 
 ```text
-booking.created.queue
+booking.notifications.queue
 ```
 
-El consumer de Spring debería consumir el evento.
+El consumer de Spring debería consumir el evento y guardar las notificaciones.
 
 Logs:
 
@@ -532,7 +532,7 @@ docker compose logs -f backend
 Deberías ver una línea similar a:
 
 ```text
-Async booking notification -> bookingId=...
+Evento de reserva recibido: tipo=BOOKING_CREATED, bookingId=...
 ```
 
 ## 8.4 Probar recomendaciones con Gemini
@@ -583,7 +583,7 @@ La cola principal está configurada con una Dead Letter Queue:
 booking.events
       |
       v
-booking.created.queue
+booking.notifications.queue
       |
    consumer
       |
@@ -593,7 +593,7 @@ booking.created.queue
  booking.dlx
       |
       v
-booking.created.dlq
+booking.notifications.dlq
 ```
 
 Los estudiantes pueden provocar una excepción temporal en el consumer y observar el comportamiento.

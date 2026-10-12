@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
 import com.riwi.skillbridge.domain.exception.AccountNotActiveException;
+import com.riwi.skillbridge.domain.exception.AiProviderException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
@@ -21,6 +22,18 @@ public class GlobalExceptionHandler {
     ProblemDetail business(BusinessRuleException ex) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         p.setTitle("Business rule violation");
+        return p;
+    }
+
+    // Cuota agotada → 429 para que el cliente espere; configuración o caída → 503
+    @ExceptionHandler(AiProviderException.class)
+    ProblemDetail aiProvider(AiProviderException ex) {
+        HttpStatus status = ex.reason() == AiProviderException.Reason.RATE_LIMITED
+                ? HttpStatus.TOO_MANY_REQUESTS
+                : HttpStatus.SERVICE_UNAVAILABLE;
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+        p.setTitle("AI provider error");
+        p.setProperty("reason", ex.reason().name());
         return p;
     }
 

@@ -2,6 +2,7 @@ package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.ListAvailableSlotsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
@@ -21,15 +22,18 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
     private final OfferingRepositoryPort offeringRepositoryPort;
     private final AvailabilitySlotRepositoryPort slotRepositoryPort;
     private final UserAccountPort userAccountPort;
+    private final OfferingCachePort offeringCache;
 
     public ProviderOfferingService(
         OfferingRepositoryPort offeringRepositoryPort,
         AvailabilitySlotRepositoryPort slotRepositoryPort,
-        UserAccountPort userAccountPort
+        UserAccountPort userAccountPort,
+        OfferingCachePort offeringCache
     ) {
         this.offeringRepositoryPort = offeringRepositoryPort;
         this.slotRepositoryPort = slotRepositoryPort;
         this.userAccountPort = userAccountPort;
+        this.offeringCache = offeringCache;
     }
 
     // CREATE OFFERING
@@ -44,7 +48,10 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             price,
             true
         );
-        return offeringRepositoryPort.save(offering);
+        Offering saved = offeringRepositoryPort.save(offering);
+        // El catálogo público está en caché: sin invalidarlo, la mentoría nueva no aparece hasta que expire
+        offeringCache.evictActiveOfferings();
+        return saved;
     }
 
     // NUEVO MÉTODO: Trae la lista de mentorías de este proveedor específico
@@ -65,6 +72,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
         slotRepositoryPort.deleteByOfferingId(existing.id());
         offeringRepositoryPort.deleteById(existing.id());
+        offeringCache.evictActiveOfferings();
     }
 
     // CREATE AVAILABILITY (ASSIGN DATE AND HOURS SPECIFIC TO THE OFFERING)
@@ -79,7 +87,9 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
 
         AvailabilitySlot slot = new AvailabilitySlot(UUID.randomUUID(), offeringId, scheduledAt, false);
-        return slotRepositoryPort.save(slot);
+        AvailabilitySlot saved = slotRepositoryPort.save(slot);
+        offeringCache.evictActiveOfferings();
+        return saved;
     }
 
     // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED AND IN THE FUTURE)
@@ -110,6 +120,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             throw new BusinessRuleException("No puedes eliminar un horario que ya fue reservado");
         }
         slotRepositoryPort.deleteById(slotId);
+        offeringCache.evictActiveOfferings();
     }
 
     public Offering getOwnedOffering(UUID offeringId, String providerEmail) {

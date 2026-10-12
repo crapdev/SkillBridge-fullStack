@@ -54,11 +54,12 @@
   margin-top: 3px;
 }
 
-/* Enlaces */
+/* Enlaces: los márgenes automáticos los centran entre la marca y las acciones, haya o no campana */
 .nav-links {
   display: flex;
   align-items: center;
   gap: 32px;
+  margin-inline: auto;
 }
 .nav-links a {
   display: inline-flex;
@@ -147,7 +148,9 @@
   .brand-name { font-size: 1.05rem; }
   .brand-tagline { display: none; }
 
-  .menu-toggle { display: grid; }
+  .menu-toggle { display: grid; order: 2; }
+  /* En móvil la campana queda a la derecha, junto al botón del menú */
+  .nav-bell { order: 1; margin-left: auto; margin-right: -12px; }
 
   .nav-menu {
     display: none;
