@@ -28,6 +28,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
+import jakarta.servlet.http.Cookie;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -234,11 +235,16 @@ class AuthSecurityIntegrationTest {
     @Nested
     class SessionCookie {
 
+        // La respuesta trae dos Set-Cookie (sb_token y XSRF-TOKEN): se busca la de sesión
+        private static String sessionCookie(ResultActions result) {
+            return result.andReturn().getResponse().getHeaders("Set-Cookie").stream()
+                    .filter(c -> c.startsWith(AuthCookies.NAME + "="))
+                    .findFirst().orElseThrow();
+        }
+
         @Test
         void login_setsHttpOnlySessionCookie() throws Exception {
-            String cookie = login(EMAIL, PASSWORD)
-                    .andExpect(status().isOk())
-                    .andReturn().getResponse().getHeader("Set-Cookie");
+            String cookie = sessionCookie(login(EMAIL, PASSWORD).andExpect(status().isOk()));
 
             assertThat(cookie).startsWith(AuthCookies.NAME + "=")
                     .contains("HttpOnly", "Secure", "SameSite=Strict", "Path=/api", "Max-Age=3600");
@@ -257,7 +263,8 @@ class AuthSecurityIntegrationTest {
 
         @Test
         void failedLogin_doesNotSetCookie() throws Exception {
-            assertThat(login(EMAIL, "wrong_password").andReturn().getResponse().getHeader("Set-Cookie")).isNull();
+            assertThat(login(EMAIL, "wrong_password").andReturn().getResponse().getHeaders("Set-Cookie"))
+                    .noneMatch(c -> c.startsWith(AuthCookies.NAME + "="));
         }
 
         @Test
@@ -275,11 +282,78 @@ class AuthSecurityIntegrationTest {
 
         @Test
         void logout_clearsTheCookieEvenWithoutSession() throws Exception {
-            String cookie = mvc.perform(post("/api/auth/logout"))
-                    .andExpect(status().isNoContent())
-                    .andReturn().getResponse().getHeader("Set-Cookie");
+            String cookie = sessionCookie(mvc.perform(post("/api/auth/logout")).andExpect(status().isNoContent()));
 
             assertThat(cookie).startsWith(AuthCookies.NAME + "=;").contains("Max-Age=0", "Path=/api", "HttpOnly");
+        }
+    }
+
+    // HU-29: el filtro acepta la cookie y, como el navegador la envía solo, las escrituras exigen el token CSRF
+    @Nested
+    class CookieSessionAndCsrf {
+
+        private Cookie session() {
+            return new Cookie(AuthCookies.NAME, jwtService.generate(EMAIL, "CUSTOMER"));
+        }
+
+        @Test
+        void cookieAlone_authenticates() throws Exception {
+            mvc.perform(get("/api/auth/me").cookie(session()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email").value(EMAIL));
+        }
+
+        @Test
+        void bearerHeader_winsOverTheCookie() throws Exception {
+            when(userDetailsService.loadUserByUsername("otro@email.com"))
+                    .thenReturn(User.withUsername("otro@email.com").password(HASH).roles("CUSTOMER").build());
+            when(users.findByEmail("otro@email.com")).thenReturn(Optional.of(
+                    new UserAccount(UUID.randomUUID(), "Otro", "otro@email.com", HASH, Role.CUSTOMER)));
+
+            mvc.perform(get("/api/auth/me").cookie(session())
+                            .header("Authorization", "Bearer " + jwtService.generate("otro@email.com", "CUSTOMER")))
+                    .andExpect(jsonPath("$.email").value("otro@email.com"));
+        }
+
+        @Test
+        void writeWithCookie_withoutCsrfToken_returns403() throws Exception {
+            mvc.perform(post("/api/bookings").cookie(session())
+                            .contentType(MediaType.APPLICATION_JSON).content(BOOKING_BODY))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void writeWithCookie_withCsrfHeader_isAllowed() throws Exception {
+            // Igual que el navegador con Angular: una respuesta deja la cookie XSRF-TOKEN y la siguiente
+            // escritura devuelve esa cookie y copia su valor, tal cual, en la cabecera X-XSRF-TOKEN
+            Cookie xsrf = mvc.perform(get("/api/offerings")).andReturn().getResponse().getCookie("XSRF-TOKEN");
+
+            mvc.perform(post("/api/bookings").cookie(session(), xsrf).header("X-XSRF-TOKEN", xsrf.getValue())
+                            .contentType(MediaType.APPLICATION_JSON).content(BOOKING_BODY))
+                    .andExpect(status().isCreated());
+        }
+
+        @Test
+        void writeWithCookie_withWrongCsrfHeader_returns403() throws Exception {
+            Cookie xsrf = mvc.perform(get("/api/offerings")).andReturn().getResponse().getCookie("XSRF-TOKEN");
+
+            mvc.perform(post("/api/bookings").cookie(session(), xsrf).header("X-XSRF-TOKEN", "token-inventado")
+                            .contentType(MediaType.APPLICATION_JSON).content(BOOKING_BODY))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void writeWithBearer_doesNotNeedCsrf() throws Exception {
+            createBooking("Bearer " + jwtService.generate(EMAIL, "CUSTOMER")).andExpect(status().isCreated());
+        }
+
+        @Test
+        void responses_emitReadableXsrfCookie() throws Exception {
+            String xsrf = mvc.perform(get("/api/offerings")).andReturn().getResponse().getHeaders("Set-Cookie").stream()
+                    .filter(c -> c.startsWith("XSRF-TOKEN="))
+                    .findFirst().orElseThrow();
+            // Angular necesita leerla con JavaScript: no puede ser HttpOnly
+            assertThat(xsrf).doesNotContain("HttpOnly").contains("Path=/");
         }
     }
 
