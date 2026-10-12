@@ -2,6 +2,7 @@ package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.ProcessPaymentUseCase;
 import com.riwi.skillbridge.application.port.in.SyncPaymentUseCase;
+import com.riwi.skillbridge.application.port.out.BookingEventPublisherPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort.PaymentOutcome;
@@ -23,13 +24,16 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
     private final BookingRepositoryPort bookingRepositoryPort;
     private final PaymentGatewayPort paymentGateway;
     private final UserAccountPort userAccountPort;
+    private final BookingEventPublisherPort eventPublisher;
 
     public ProcessPaymentService(PaymentPort paymentPort, BookingRepositoryPort bookingRepositoryPort,
-                                 PaymentGatewayPort paymentGateway, UserAccountPort userAccountPort) {
+                                 PaymentGatewayPort paymentGateway, UserAccountPort userAccountPort,
+                                 BookingEventPublisherPort eventPublisher) {
         this.paymentPort = paymentPort;
         this.bookingRepositoryPort = bookingRepositoryPort;
         this.paymentGateway = paymentGateway;
         this.userAccountPort = userAccountPort;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -83,12 +87,15 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
 
         // El pago aprobado confirma la reserva. Si mientras tanto se canceló, se deja como está:
         // lanzar un error aquí haría que Stripe reintente el webhook indefinidamente.
+        // Solo se avisa cuando la reserva cambia de verdad: un webhook repetido encuentra la reserva
+        // ya confirmada y no vuelve a publicar el evento.
         bookingRepositoryPort.findById(payment.bookingId())
             .filter(Booking::isPayable)
-            .ifPresent(booking -> bookingRepositoryPort.save(booking.confirm()));
-
-        // NOTA: Aquí a futuro se podría emitir un evento (ej. BookingPaidEvent)
-        // a RabbitMQ para enviar un correo de confirmación al usuario.
+            .ifPresent(booking -> {
+                Booking confirmed = booking.confirm();
+                bookingRepositoryPort.save(confirmed);
+                eventPublisher.bookingPaid(confirmed);
+            });
     }
 
     @Override
@@ -107,5 +114,10 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
         );
 
         paymentPort.save(updatedPayment);
+
+        // La reserva sigue pendiente para que el cliente reintente; solo se avisa la primera vez que falla
+        if (payment.status() != PaymentStatus.FAILED) {
+            bookingRepositoryPort.findById(payment.bookingId()).ifPresent(eventPublisher::paymentFailed);
+        }
     }
 }

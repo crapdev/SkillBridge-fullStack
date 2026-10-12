@@ -1,0 +1,47 @@
+<button type="button" class="bell" (click)="toggle()"
+        [attr.aria-expanded]="open()" aria-controls="notification-panel"
+        [attr.aria-label]="unread() ? 'Notificaciones, ' + unread() + ' sin leer' : 'Notificaciones'">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </svg>
+  @if (unread()) { <span class="bell__count" aria-hidden="true">{{ badge() }}</span> }
+</button>
+
+@if (open()) {
+  <section id="notification-panel" class="panel" aria-label="Notificaciones">
+    <header class="panel__head">
+      <h2>Notificaciones</h2>
+      <a [routerLink]="target" (click)="close()">Ir a mi panel</a>
+    </header>
+
+    @switch (status()) {
+      @case ('loading') {
+        <p class="panel__state">Cargando…</p>
+      }
+      @case ('error') {
+        <p class="panel__state">No pudimos cargar tus notificaciones. Inténtalo de nuevo en un momento.</p>
+      }
+      @default {
+        @if (items().length) {
+          <ul class="list">
+            @for (n of items(); track n.id) {
+              <li>
+                <a class="item" [class.item--new]="!n.read" [routerLink]="target" (click)="close()">
+                  <span class="item__dot" [class]="'item__dot item__dot--' + tone(n)" aria-hidden="true"></span>
+                  <span class="item__body">
+                    <strong>{{ label(n) }}</strong>
+                    <span>{{ n.message }}</span>
+                    <small>{{ relative(n) }}</small>
+                  </span>
+                </a>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="panel__state">Aún no tienes notificaciones. Aquí verás las reservas, pagos y cancelaciones de tus mentorías.</p>
+        }
+      }
+    }
+  </section>
+}
