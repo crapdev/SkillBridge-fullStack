@@ -1,10 +1,12 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,7 @@ class ProviderOfferingServiceTest {
     @Mock private OfferingRepositoryPort offerings;
     @Mock private AvailabilitySlotRepositoryPort slots;
     @Mock private UserAccountPort users;
+    @Mock private OfferingCachePort cache;
 
     @InjectMocks private ProviderOfferingService service;
 
@@ -61,6 +64,7 @@ class ProviderOfferingServiceTest {
         assertEquals(offeringId, slot.offeringId());
         assertEquals(tomorrow, slot.scheduledAt());
         assertFalse(slot.reserved());
+        verify(cache).evictActiveOfferings();
     }
 
     @Test
@@ -82,7 +86,7 @@ class ProviderOfferingServiceTest {
     void addSlot_ShouldThrow_WhenOfferingBelongsToAnotherProvider() {
         when(users.findIdByEmail("otro@email.com")).thenReturn(Optional.of(UUID.randomUUID()));
 
-        assertThrows(BusinessRuleException.class,
+        assertThrows(UnauthorizedActionException.class,
             () -> service.addAvailabilitySlot(offeringId, tomorrow, "otro@email.com"));
         verify(slots, never()).save(any());
     }
@@ -120,6 +124,7 @@ class ProviderOfferingServiceTest {
         service.deleteAvailabilitySlot(offeringId, slotId, EMAIL);
 
         verify(slots).deleteById(slotId);
+        verify(cache).evictActiveOfferings();
     }
 
     @Test
@@ -148,6 +153,8 @@ class ProviderOfferingServiceTest {
 
         verify(slots).deleteByOfferingId(offeringId);
         verify(offerings).deleteById(offeringId);
+        // El catálogo público deja de mostrarla de inmediato
+        verify(cache).evictActiveOfferings();
     }
 
     @Test
@@ -156,5 +163,22 @@ class ProviderOfferingServiceTest {
 
         assertThrows(BusinessRuleException.class, () -> service.deleteOffering(offeringId, EMAIL));
         verify(offerings, never()).deleteById(any());
+        verify(cache, never()).evictActiveOfferings();
+    }
+
+    // ==========================================
+    // CREAR MENTORÍA
+    // ==========================================
+
+    @Test
+    void createOffering_ShouldEvictPublicCatalogCache() {
+        when(offerings.save(any(Offering.class))).thenAnswer(i -> i.getArgument(0));
+
+        Offering created = service.createOffering("Kubernetes", "Despliegues", "CLOUD", new BigDecimal("90000"), EMAIL);
+
+        assertEquals(providerId, created.providerId());
+        assertTrue(created.active());
+        // Sin esto la mentoría nueva no aparece en el catálogo hasta que expire la caché (10 min)
+        verify(cache).evictActiveOfferings();
     }
 }

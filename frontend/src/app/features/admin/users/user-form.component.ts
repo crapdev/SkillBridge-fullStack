@@ -23,14 +23,21 @@ export class UserFormComponent {
 
   protected readonly id = this.route.snapshot.paramMap.get('id');
   protected readonly editing = this.id !== null;
-  private readonly routeRole: ManagedRole = this.route.snapshot.data['role'];
+  private readonly routeRole: ManagedRole | undefined = this.route.snapshot.data['role'];
+  protected readonly isDashboard = !this.routeRole;
   protected readonly labels = ROLE_LABELS;
   protected readonly roles: ManagedRole[] = ['PROVIDER', 'CUSTOMER'];
+
+  // El selector de rol solo se muestra cuando se accede desde el dashboard principal
+  protected readonly showRoleSelector = computed(() => this.isDashboard);
+
+  // En creación en sección específica, rol fijo de la sección; en dashboard, valor por defecto PROVIDER
+  private readonly initialRole: ManagedRole = this.routeRole ?? 'PROVIDER';
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
     email: ['', [Validators.required, Validators.email, Validators.maxLength(180)]],
-    role: [this.routeRole, Validators.required],
+    role: [this.initialRole, Validators.required],
     password: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]]
   });
 
@@ -41,11 +48,17 @@ export class UserFormComponent {
   protected readonly submitError = signal('');
   protected readonly showPassword = signal(false);
 
-  private readonly role = toSignal(this.form.controls.role.valueChanges, { initialValue: this.routeRole });
-  // La miga de pan y el botón "Cancelar" vuelven al listado del que se vino
-  protected readonly backLabel = ROLE_LABELS[this.routeRole];
+  private readonly role = toSignal(this.form.controls.role.valueChanges, { initialValue: this.initialRole });
+  // La miga de pan y el botón "Cancelar" vuelven al listado del que se vino, o al dashboard si se abrió desde él
+  protected readonly backLabel = this.routeRole ? ROLE_LABELS[this.routeRole] : null;
   protected readonly roleChanged = computed(() => !!this.original() && this.original()!.role !== this.role());
-  protected readonly title = computed(() => this.editing ? `Editar ${this.labels[this.routeRole].one}` : `Nuevo ${this.labels[this.role()].one}`);
+  protected readonly title = computed(() => {
+    if (this.editing) {
+      const currentRole = this.original()?.role ?? this.routeRole;
+      return currentRole ? `Editar ${this.labels[currentRole].one}` : 'Editar usuario';
+    }
+    return this.isDashboard ? 'Nuevo usuario' : `Nuevo ${this.labels[this.routeRole!].one}`;
+  });
 
   constructor() {
     if (this.editing) {
@@ -83,14 +96,38 @@ export class UserFormComponent {
     }
     this.saving.set(true);
     this.submitError.set('');
-    const { name, email, role, password } = this.form.getRawValue();
+    const { name, email, password } = this.form.getRawValue();
+
+    let roleToSend: ManagedRole;
+    if (this.editing) {
+      if (this.isDashboard) {
+        // En el dashboard se permite cambiar el rol
+        roleToSend = this.form.controls.role.value;
+      } else {
+        // Al editar desde una sección específica, se conserva estrictamente su rol original
+        roleToSend = this.original()?.role ?? this.form.controls.role.value;
+      }
+    } else {
+      if (this.isDashboard) {
+        // En el dashboard se envía el rol elegido por el administrador
+        roleToSend = this.form.controls.role.value;
+      } else {
+        // En sección específica se garantiza el rol fijo correspondiente a la sección
+        roleToSend = this.routeRole!;
+      }
+    }
+
     const request = this.editing
-      ? this.service.update(this.id!, { name: name.trim(), email: email.trim(), role })
-      : this.service.create({ name: name.trim(), email: email.trim(), password, role });
+      ? this.service.update(this.id!, { name: name.trim(), email: email.trim(), role: roleToSend })
+      : this.service.create({ name: name.trim(), email: email.trim(), password, role: roleToSend });
 
     request.subscribe({
       next: saved => {
-        this.toast.success(this.editing ? `Se guardaron los cambios de ${saved.name}.` : `${saved.name} fue registrado como ${this.labels[saved.role].one}.`);
+        this.toast.success(
+          this.editing
+            ? `Se guardaron los cambios de ${saved.name}.`
+            : `${saved.name} fue registrado como ${this.labels[saved.role].one}.`
+        );
         this.router.navigate(['/admin', this.labels[saved.role].path]);
       },
       error: (e: unknown) => {
@@ -106,5 +143,11 @@ export class UserFormComponent {
     });
   }
 
-  protected cancel() { this.router.navigate(['/admin', this.backLabel.path]); }
+  protected cancel() {
+    if (this.backLabel) {
+      this.router.navigate(['/admin', this.backLabel.path]);
+    } else {
+      this.router.navigate(['/admin']);
+    }
+  }
 }

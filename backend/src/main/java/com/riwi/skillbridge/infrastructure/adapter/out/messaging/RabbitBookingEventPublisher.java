@@ -14,12 +14,21 @@ public class RabbitBookingEventPublisher implements BookingEventPublisherPort {
     public RabbitBookingEventPublisher(RabbitTemplate rabbitTemplate) { this.rabbitTemplate = rabbitTemplate; }
 
     @Override
-    public void bookingCreated(Booking booking) {
-        BookingCreatedEvent event = new BookingCreatedEvent(
+    public void bookingCreated(Booking booking) { publish(RabbitConfiguration.BOOKING_CREATED_KEY, booking); }
+
+    @Override
+    public void bookingCancelled(Booking booking) { publish(RabbitConfiguration.BOOKING_CANCELLED_KEY, booking); }
+
+    @Override
+    public void bookingPaid(Booking booking) { publish(RabbitConfiguration.BOOKING_PAID_KEY, booking); }
+
+    @Override
+    public void paymentFailed(Booking booking) { publish(RabbitConfiguration.PAYMENT_FAILED_KEY, booking); }
+
+    // Todos los eventos comparten el mismo contenido; la routing key indica qué pasó
+    private void publish(String routingKey, Booking booking) {
+        BookingEvent event = new BookingEvent(
                 booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), Instant.now());
-        rabbitTemplate.convertAndSend(
-                RabbitConfiguration.BOOKING_EXCHANGE,
-                RabbitConfiguration.BOOKING_CREATED_KEY,
-                event);
+        rabbitTemplate.convertAndSend(RabbitConfiguration.BOOKING_EXCHANGE, routingKey, event);
     }
 }

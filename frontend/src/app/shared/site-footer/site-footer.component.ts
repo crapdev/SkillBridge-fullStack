@@ -48,7 +48,7 @@ import { AuthService } from '../../core/auth.service';
             <h2>Tu cuenta</h2>
             @if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/bookings/me">Mis reservas</a>
-              <a routerLink="/book">Reservar una sesión</a>
+              <a routerLink="/servicios">Explorar mentorías</a>
               <a routerLink="/ai">Asistente IA</a>
             } @else if (!auth.isAuthenticated()) {
               <a routerLink="/login">Ingresar</a>

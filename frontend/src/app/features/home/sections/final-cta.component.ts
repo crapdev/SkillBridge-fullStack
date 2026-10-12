@@ -37,8 +37,8 @@ import { RevealDirective } from '../../../shared/reveal.directive';
 
             <div class="actions">
               @if (auth.hasRole('CUSTOMER')) {
-                <a class="btn btn--primary" routerLink="/book">
-                  Reservar una sesión <span class="btn__arrow" aria-hidden="true">→</span>
+                <a class="btn btn--primary" routerLink="/servicios">
+                  Elegir una mentoría <span class="btn__arrow" aria-hidden="true">→</span>
                 </a>
                 <a class="btn btn--ghost" routerLink="/bookings/me">Ver mis reservas</a>
               } @else if (!auth.isAuthenticated()) {

@@ -2,10 +2,12 @@ package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.ListAvailableSlotsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
@@ -21,15 +23,18 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
     private final OfferingRepositoryPort offeringRepositoryPort;
     private final AvailabilitySlotRepositoryPort slotRepositoryPort;
     private final UserAccountPort userAccountPort;
+    private final OfferingCachePort offeringCache;
 
     public ProviderOfferingService(
         OfferingRepositoryPort offeringRepositoryPort,
         AvailabilitySlotRepositoryPort slotRepositoryPort,
-        UserAccountPort userAccountPort
+        UserAccountPort userAccountPort,
+        OfferingCachePort offeringCache
     ) {
         this.offeringRepositoryPort = offeringRepositoryPort;
         this.slotRepositoryPort = slotRepositoryPort;
         this.userAccountPort = userAccountPort;
+        this.offeringCache = offeringCache;
     }
 
     // CREATE OFFERING
@@ -44,7 +49,10 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             price,
             true
         );
-        return offeringRepositoryPort.save(offering);
+        Offering saved = offeringRepositoryPort.save(offering);
+        // El catálogo público está en caché: sin invalidarlo, la mentoría nueva no aparece hasta que expire
+        offeringCache.evictActiveOfferings();
+        return saved;
     }
 
     // NUEVO MÉTODO: Trae la lista de mentorías de este proveedor específico
@@ -56,6 +64,27 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         return offeringRepositoryPort.findByProviderId(providerId);
     }
 
+    // UPDATE OFFERING (HU-19): SOLO EL DUEÑO PUEDE EDITAR TÍTULO, DESCRIPCIÓN, CATEGORÍA Y PRECIO
+    public Offering updateOffering(UUID offeringId, String title, String description, String category,
+                                   BigDecimal price, String providerEmail) {
+        Offering existing = getOwnedOffering(offeringId, providerEmail);
+        validateDetails(title, description, category, price);
+
+        Offering changes = new Offering(
+            existing.id(),
+            existing.providerId(),
+            title.trim(),
+            description.trim(),
+            category.trim(),
+            price,
+            existing.active()
+        );
+        Offering updated = offeringRepositoryPort.update(changes);
+        // El catálogo público está en caché: sin invalidarlo seguiría mostrando los datos viejos
+        offeringCache.evictActiveOfferings();
+        return updated;
+    }
+
     // DELETE OFFERING (VALIDATE THE OWNER IS PROVIDER)
     public void deleteOffering(UUID offeringId, String providerEmail) {
         Offering existing = getOwnedOffering(offeringId, providerEmail);
@@ -65,6 +94,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
         slotRepositoryPort.deleteByOfferingId(existing.id());
         offeringRepositoryPort.deleteById(existing.id());
+        offeringCache.evictActiveOfferings();
     }
 
     // CREATE AVAILABILITY (ASSIGN DATE AND HOURS SPECIFIC TO THE OFFERING)
@@ -79,7 +109,9 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
 
         AvailabilitySlot slot = new AvailabilitySlot(UUID.randomUUID(), offeringId, scheduledAt, false);
-        return slotRepositoryPort.save(slot);
+        AvailabilitySlot saved = slotRepositoryPort.save(slot);
+        offeringCache.evictActiveOfferings();
+        return saved;
     }
 
     // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED AND IN THE FUTURE)
@@ -110,6 +142,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             throw new BusinessRuleException("No puedes eliminar un horario que ya fue reservado");
         }
         slotRepositoryPort.deleteById(slotId);
+        offeringCache.evictActiveOfferings();
     }
 
     public Offering getOwnedOffering(UUID offeringId, String providerEmail) {
@@ -118,9 +151,24 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
 
         if (!offering.providerId().equals(providerId)) {
-            throw new BusinessRuleException("No tienes permisos para modificar una mentoría de otro proveedor");
+            // 403: la mentoría existe pero pertenece a otro proveedor
+            throw new UnauthorizedActionException("No tienes permisos para modificar una mentoría de otro proveedor");
         }
         return offering;
+    }
+
+    // Segunda barrera además de Bean Validation: el servicio no confía en que el llamador ya validó
+    private void validateDetails(String title, String description, String category, BigDecimal price) {
+        if (isBlank(title) || isBlank(description) || isBlank(category)) {
+            throw new BusinessRuleException("Título, descripción y categoría son obligatorios");
+        }
+        if (price == null || price.signum() <= 0) {
+            throw new BusinessRuleException("El precio debe ser mayor a cero");
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private UUID getProviderId(String email) {

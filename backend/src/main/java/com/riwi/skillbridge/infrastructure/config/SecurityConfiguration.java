@@ -39,11 +39,15 @@ public class SecurityConfiguration {
                         .requestMatchers("/error", "/api/auth/**", "/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/offerings/**").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
-                        // Reservas y recomendaciones con IA son exclusivas de clientes
-                        .requestMatchers("/api/bookings/**", "/api/ai/**").hasRole("CUSTOMER")
+                        // Stripe no envía JWT: el webhook se autentica verificando la firma Stripe-Signature
+                        .requestMatchers(HttpMethod.POST, "/api/payments/webhook").permitAll()
+                        // Reservas, pagos y recomendaciones con IA son exclusivas de clientes
+                        .requestMatchers("/api/bookings/**", "/api/payments/**", "/api/ai/**").hasRole("CUSTOMER")
                         // La gestión de mentorías y horarios es exclusiva de proveedores
                         .requestMatchers("/api/provider/**").hasRole("PROVIDER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // La campana es solo del proveedor; cada uno ve únicamente las suyas
+                        .requestMatchers("/api/notifications/**").hasRole("PROVIDER")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

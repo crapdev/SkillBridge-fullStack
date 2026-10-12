@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Component
 public class BookingPersistenceAdapter implements BookingRepositoryPort {
@@ -19,7 +20,7 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     }
 
     @Override
-    public java.util.Optional<Booking> findById(UUID id) {
+    public Optional<Booking> findById(UUID id) {
         return repository.findById(id).map(entity -> new Booking(
             entity.getId(),
             entity.getOfferingId(),
