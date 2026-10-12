@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.infrastructure.adapter.out.persistence;
 
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
+import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.OfferingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaOfferingRepository;
@@ -31,6 +32,15 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
         );
         OfferingEntity saved = repository.save(entity);
         return toDomain(saved);
+    }
+
+    @Override
+    public Offering update(Offering offering) {
+        // Se modifica la entidad existente: guardar una nueva reiniciaría created_at
+        OfferingEntity entity = repository.findById(offering.id())
+            .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
+        entity.updateDetails(offering.title(), offering.description(), offering.category(), offering.price());
+        return toDomain(repository.save(entity));
     }
 
     @Override

@@ -7,6 +7,7 @@ import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
@@ -61,6 +62,27 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
 
         // 2. Buscamos todas las mentorías asociadas a ese ID
         return offeringRepositoryPort.findByProviderId(providerId);
+    }
+
+    // UPDATE OFFERING (HU-19): SOLO EL DUEÑO PUEDE EDITAR TÍTULO, DESCRIPCIÓN, CATEGORÍA Y PRECIO
+    public Offering updateOffering(UUID offeringId, String title, String description, String category,
+                                   BigDecimal price, String providerEmail) {
+        Offering existing = getOwnedOffering(offeringId, providerEmail);
+        validateDetails(title, description, category, price);
+
+        Offering changes = new Offering(
+            existing.id(),
+            existing.providerId(),
+            title.trim(),
+            description.trim(),
+            category.trim(),
+            price,
+            existing.active()
+        );
+        Offering updated = offeringRepositoryPort.update(changes);
+        // El catálogo público está en caché: sin invalidarlo seguiría mostrando los datos viejos
+        offeringCache.evictActiveOfferings();
+        return updated;
     }
 
     // DELETE OFFERING (VALIDATE THE OWNER IS PROVIDER)
@@ -126,9 +148,24 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
 
         if (!offering.providerId().equals(providerId)) {
-            throw new BusinessRuleException("No tienes permisos para modificar una mentoría de otro proveedor");
+            // 403: la mentoría existe pero pertenece a otro proveedor
+            throw new UnauthorizedActionException("No tienes permisos para modificar una mentoría de otro proveedor");
         }
         return offering;
+    }
+
+    // Segunda barrera además de Bean Validation: el servicio no confía en que el llamador ya validó
+    private void validateDetails(String title, String description, String category, BigDecimal price) {
+        if (isBlank(title) || isBlank(description) || isBlank(category)) {
+            throw new BusinessRuleException("Título, descripción y categoría son obligatorios");
+        }
+        if (price == null || price.signum() <= 0) {
+            throw new BusinessRuleException("El precio debe ser mayor a cero");
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private UUID getProviderId(String email) {

@@ -4,6 +4,7 @@ import com.riwi.skillbridge.application.service.ProviderOfferingService;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.UpdateOfferingRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -43,6 +44,20 @@ public class ProviderOfferingController {
     public List<Offering> listMyOfferings(Authentication authentication) {
         // Llama al servicio para obtener solo las mentorías de este proveedor
         return providerOfferingService.getOwnedOfferings(authentication.getName());
+    }
+
+    // HU-19: editar una mentoría propia. 400 si los datos no son válidos, 403 si es de otro proveedor, 404 si no existe
+    @PutMapping("/{id}")
+    public Offering updateOffering(@PathVariable UUID id, @Valid @RequestBody UpdateOfferingRequest request,
+                                   Authentication authentication) {
+        return providerOfferingService.updateOffering(
+                id,
+                request.title(),
+                request.description(),
+                request.category(),
+                request.price(),
+                authentication.getName()
+        );
     }
 
     @DeleteMapping("/{id}")
