@@ -11,6 +11,14 @@ export interface Offering {
   active: boolean;
 }
 
+/** Campos que el proveedor llena al crear o editar una mentoría */
+export interface OfferingInput {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+}
+
 /** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
 export interface AvailabilitySlot {
   id: string;
@@ -37,8 +45,13 @@ export class OfferingService {
     return this.http.get<Offering[]>(`${apiBase()}/provider/offerings`);
   }
 
-  createProviderOffering(data: any) {
+  createProviderOffering(data: OfferingInput) {
     return this.http.post<Offering>(`${apiBase()}/provider/offerings`, data);
+  }
+
+  // HU-19: solo el dueño puede editarla; el backend responde 403 si es de otro proveedor
+  updateProviderOffering(id: string, data: OfferingInput) {
+    return this.http.put<Offering>(`${apiBase()}/provider/offerings/${id}`, data);
   }
 
   deleteProviderOffering(id: string) {
