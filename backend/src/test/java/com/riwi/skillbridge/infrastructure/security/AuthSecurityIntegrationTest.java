@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -101,6 +102,7 @@ class AuthSecurityIntegrationTest {
         when(userDetailsService.loadUserByUsername(EMAIL))
                 .thenReturn(User.withUsername(EMAIL).password(HASH).roles("CUSTOMER").build());
         when(listOfferings.listActive()).thenReturn(List.of());
+        when(listOfferings.listVisible(any())).thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
         when(recommendations.recommend(anyString())).thenReturn("Te recomiendo Mentoría Java Backend");
     }
 
