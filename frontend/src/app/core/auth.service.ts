@@ -1,88 +1,73 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { apiBase } from './api';
-
-interface AuthResponse { token: string; tokenType: string; }
-export interface ProviderRegistration { status: string; message: string; }
-interface JwtPayload { sub?: string; role?: string; exp?: number; }
 
 export type Role = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
 
+/** Usuario de la sesión, tal como lo devuelve el backend. Nunca incluye el token. */
+export interface SessionUser { email: string; name: string; role: Role; }
+export interface ProviderRegistration { status: string; message: string; }
+
+// Clave de la versión anterior, cuando el JWT se guardaba en el navegador
+const LEGACY_TOKEN_KEY = 'skillbridge_token';
+
+/**
+ * Sesión del usuario (HU-29). El JWT viaja en una cookie HttpOnly que el JavaScript no puede leer:
+ * aquí solo se guarda en memoria quién es el usuario, y al arrancar se le pregunta al backend (/auth/me).
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly key = 'skillbridge_token';
-  private readonly payload = signal<JwtPayload | null>(this.readValidPayload());
+  private readonly user = signal<SessionUser | null>(null);
 
-  readonly authenticated = computed(() => this.payload() !== null);
-  readonly role = computed(() => (this.payload()?.role ?? null) as Role | null);
-  // El token solo trae el email (sub) y el rol; el nombre del usuario no viaja en el JWT
-  readonly email = computed(() => this.payload()?.sub ?? null);
+  readonly authenticated = computed(() => this.user() !== null);
+  readonly role = computed(() => this.user()?.role ?? null);
+  readonly email = computed(() => this.user()?.email ?? null);
+  readonly name = computed(() => this.user()?.name ?? null);
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  login(email: string, password: string) {
-    return this.http.post<AuthResponse>(`${apiBase()}/auth/login`, { email, password })
-      .pipe(tap(r => this.save(r.token)));
+  /** Se ejecuta una vez al arrancar la app: si la cookie sigue vigente, recupera la sesión. */
+  restore(): Observable<void> {
+    try { localStorage.removeItem(LEGACY_TOKEN_KEY); } catch { /* sin storage */ }
+    return this.http.get<SessionUser>(`${apiBase()}/auth/me`).pipe(
+      tap(user => this.user.set(user)),
+      // 401 (sin cookie o expirada) o backend caído: se arranca como visitante
+      catchError(() => { this.user.set(null); return of(null); }),
+      map(() => undefined)
+    );
   }
 
-  register(name: string, email: string, password: string) {
-    return this.http.post<AuthResponse>(`${apiBase()}/auth/register`, { name, email, password })
-      .pipe(tap(r => this.save(r.token)));
+  login(email: string, password: string): Observable<SessionUser> {
+    return this.http.post<SessionUser>(`${apiBase()}/auth/login`, { email, password })
+      .pipe(tap(user => this.user.set(user)));
   }
 
-  // El proveedor queda pendiente de aprobación: el backend no devuelve token, así que no se inicia sesión
+  register(name: string, email: string, password: string): Observable<SessionUser> {
+    return this.http.post<SessionUser>(`${apiBase()}/auth/register`, { name, email, password })
+      .pipe(tap(user => this.user.set(user)));
+  }
+
+  // El proveedor queda pendiente de aprobación: el backend no abre sesión
   registerProvider(name: string, email: string, password: string) {
     return this.http.post<ProviderRegistration>(`${apiBase()}/auth/register/provider`, { name, email, password });
   }
 
-  token(): string | null { return localStorage.getItem(this.key); }
-
-  // El token puede expirar con la app abierta, por eso se vuelve a comprobar `exp` en cada consulta
-  isAuthenticated(): boolean {
-    const payload = this.payload();
-    if (payload && AuthService.isExpired(payload)) {
-      this.clear();
-      return false;
-    }
-    return payload !== null;
-  }
+  // La cookie expira sola en el navegador y, si el backend la rechaza, el interceptor cierra la sesión
+  isAuthenticated(): boolean { return this.authenticated(); }
 
   hasRole(...roles: Role[]): boolean {
     return this.isAuthenticated() && roles.includes(this.role() as Role);
   }
 
-  logout(redirectTo = '/'): void { this.clear(); this.router.navigateByUrl(redirectTo); }
-
-  private save(token: string): void {
-    localStorage.setItem(this.key, token);
-    this.payload.set(AuthService.decode(token));
-  }
-
-  private clear(): void { localStorage.removeItem(this.key); this.payload.set(null); }
-
-  private readValidPayload(): JwtPayload | null {
-    const token = localStorage.getItem(this.key);
-    const payload = token ? AuthService.decode(token) : null;
-    if (!payload || AuthService.isExpired(payload)) {
-      localStorage.removeItem(this.key);
-      return null;
-    }
-    return payload;
-  }
-
-  // Solo lee el payload para la UX (mostrar u ocultar rutas); la firma la valida siempre el backend
-  private static decode(token: string): JwtPayload | null {
-    try {
-      const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(atob(base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=')));
-    } catch {
-      return null;
-    }
-  }
-
-  private static isExpired(payload: JwtPayload): boolean {
-    return payload.exp !== undefined && payload.exp * 1000 <= Date.now();
+  /**
+   * La cookie es HttpOnly: solo el backend puede borrarla. La sesión local se limpia al instante para que
+   * la pantalla responda enseguida, aunque la petición falle (por ejemplo, sin conexión).
+   */
+  logout(redirectTo = '/'): void {
+    this.user.set(null);
+    this.http.post<void>(`${apiBase()}/auth/logout`, {}).subscribe({ error: () => {} });
+    this.router.navigateByUrl(redirectTo);
   }
 }

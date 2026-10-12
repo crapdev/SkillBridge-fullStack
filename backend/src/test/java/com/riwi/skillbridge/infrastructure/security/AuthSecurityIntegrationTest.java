@@ -133,13 +133,16 @@ class AuthSecurityIntegrationTest {
     class Login {
 
         @Test
-        void validCredentials_returnBearerTokenUsableOnProtectedRoutes() throws Exception {
-            String body = login(EMAIL, PASSWORD)
+        void validCredentials_returnSessionTokenOnlyInTheCookie() throws Exception {
+            var response = login(EMAIL, PASSWORD)
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                    .andReturn().getResponse().getContentAsString();
+                    // HU-29: el JWT ya no viaja en el JSON, donde un script podría leerlo
+                    .andExpect(jsonPath("$.token").doesNotExist())
+                    .andExpect(jsonPath("$.tokenType").doesNotExist())
+                    .andReturn().getResponse();
 
-            String token = body.replaceAll(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+            // El mismo JWT de la cookie sirve como Bearer para Swagger, curl o scripts
+            String token = response.getCookie(AuthCookies.NAME).getValue();
             assertThat(jwtService.extractUsername(token)).isEqualTo(EMAIL);
             createBooking("Bearer " + token).andExpect(status().isCreated());
         }
@@ -255,10 +258,10 @@ class AuthSecurityIntegrationTest {
         @Test
         void login_returnsTheSessionUserWithoutSecrets() throws Exception {
             login(EMAIL, PASSWORD)
-                    .andExpect(jsonPath("$.user.email").value(EMAIL))
-                    .andExpect(jsonPath("$.user.name").value("Daniel"))
-                    .andExpect(jsonPath("$.user.role").value("CUSTOMER"))
-                    .andExpect(jsonPath("$.user.passwordHash").doesNotExist());
+                    .andExpect(jsonPath("$.email").value(EMAIL))
+                    .andExpect(jsonPath("$.name").value("Daniel"))
+                    .andExpect(jsonPath("$.role").value("CUSTOMER"))
+                    .andExpect(jsonPath("$.passwordHash").doesNotExist());
         }
 
         @Test

@@ -22,7 +22,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<SessionUserResponse> register(@Valid @RequestBody RegisterRequest request) {
         String token = auth.register(request.name(), request.email(), request.password());
         return session(HttpStatus.CREATED, token, request.email());
     }
@@ -37,7 +37,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<SessionUserResponse> login(@Valid @RequestBody LoginRequest request) {
         String token = auth.login(request.email(), request.password());
         return session(HttpStatus.OK, token, request.email());
     }
@@ -56,10 +56,11 @@ public class AuthController {
                 .build();
     }
 
-    private ResponseEntity<AuthResponse> session(HttpStatus status, String token, String email) {
+    // El JWT solo viaja en la cookie HttpOnly: el cuerpo lleva el usuario, igual que /me (HU-29)
+    private ResponseEntity<SessionUserResponse> session(HttpStatus status, String token, String email) {
         SessionUserResponse user = SessionUserResponse.from(auth.currentUser(email));
         return ResponseEntity.status(status)
                 .header(HttpHeaders.SET_COOKIE, cookies.session(token).toString())
-                .body(new AuthResponse(token, "Bearer", user));
+                .body(user);
     }
 }

@@ -1,25 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService, Role } from './auth.service';
 import { customerGuard } from './role.guard';
 
-const TOKEN_KEY = 'skillbridge_token';
-
-/** Construye un JWT sin firma válida: el frontend solo lee el payload. */
-function fakeJwt(payload: object): string {
-  const encode = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
-  return `${encode({ alg: 'HS256' })}.${encode(payload)}.firma`;
-}
-
-const inOneHour = () => Math.floor(Date.now() / 1000) + 3600;
-
 describe('customerGuard', () => {
-  function setup(token?: string) {
-    localStorage.removeItem(TOKEN_KEY);
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    TestBed.resetTestingModule();
-    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient()] });
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
+  });
+
+  // La sesión vive en memoria (HU-29): se abre simulando la respuesta del backend al login
+  function signIn(role: Role): void {
+    TestBed.inject(AuthService).login('a@a.com', 'secreto').subscribe();
+    TestBed.inject(HttpTestingController).expectOne('/api/auth/login').flush({ email: 'a@a.com', name: 'Ana', role });
   }
 
   function run(url = '/book'): boolean | UrlTree {
@@ -29,45 +23,25 @@ describe('customerGuard', () => {
 
   const serialize = (result: boolean | UrlTree) => TestBed.inject(Router).serializeUrl(result as UrlTree);
 
-  afterEach(() => localStorage.removeItem(TOKEN_KEY));
-
   it('redirige a /login conservando la URL pedida cuando no hay sesión', () => {
-    setup();
     expect(serialize(run('/book'))).toBe('/login?returnUrl=%2Fbook');
   });
 
-  it('redirige a /login y limpia el token cuando está expirado', () => {
-    setup(fakeJwt({ sub: 'a@a.com', role: 'CUSTOMER', exp: Math.floor(Date.now() / 1000) - 10 }));
-    expect(serialize(run('/ai'))).toBe('/login?returnUrl=%2Fai');
-    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  });
-
-  it('redirige a /login cuando el token está malformado', () => {
-    setup('esto-no-es-un-jwt');
-    expect(serialize(run())).toBe('/login?returnUrl=%2Fbook');
-  });
-
-  it('permite el acceso a un CUSTOMER con token vigente', () => {
-    setup(fakeJwt({ sub: 'a@a.com', role: 'CUSTOMER', exp: inOneHour() }));
+  it('permite el acceso a un CUSTOMER con sesión', () => {
+    signIn('CUSTOMER');
     expect(run()).toBeTrue();
   });
 
   it('redirige al inicio a un usuario autenticado con otro rol', () => {
-    setup(fakeJwt({ sub: 'p@a.com', role: 'PROVIDER', exp: inOneHour() }));
+    signIn('PROVIDER');
     expect(serialize(run())).toBe('/');
   });
 
-  it('deja de permitir el acceso si el token expira con la app abierta', () => {
-    setup(fakeJwt({ sub: 'a@a.com', role: 'CUSTOMER', exp: inOneHour() }));
-    expect(run()).toBeTrue();
+  it('deja de permitir el acceso después de cerrar sesión', () => {
+    signIn('CUSTOMER');
+    TestBed.inject(AuthService).logout();
+    TestBed.inject(HttpTestingController).expectOne('/api/auth/logout').flush(null);
 
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(Date.now() + 2 * 3600 * 1000));
-    try {
-      expect(serialize(run())).toBe('/login?returnUrl=%2Fbook');
-      expect(TestBed.inject(AuthService).isAuthenticated()).toBeFalse();
-    } finally {
-      jasmine.clock().uninstall();
-    }
+    expect(serialize(run('/ai'))).toBe('/login?returnUrl=%2Fai');
   });
 });
