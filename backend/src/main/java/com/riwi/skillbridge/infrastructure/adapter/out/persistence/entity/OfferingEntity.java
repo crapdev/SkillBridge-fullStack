@@ -33,6 +33,14 @@ public class OfferingEntity {
         this.createdAt = Instant.now();
     }
 
+    // Edición del proveedor: no toca el dueño, el estado ni la fecha de creación
+    public void updateDetails(String title, String description, String category, BigDecimal price) {
+        this.title = title;
+        this.description = description;
+        this.category = category;
+        this.price = price;
+    }
+
     public UUID getId() { return id; }
     public UUID getProviderId() { return providerId; }
     public String getTitle() { return title; }

@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public interface OfferingRepositoryPort {
     Offering save(Offering offering);
+    /** Actualiza título, descripción, categoría y precio conservando dueño, estado y fecha de creación. */
+    Offering update(Offering offering);
     Optional<Offering> findById(UUID id);
     List<Offering> findAllActive();
     List<Offering> findVisible();
