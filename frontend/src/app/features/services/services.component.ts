@@ -4,6 +4,7 @@ import { Offering, OfferingService } from '../../core/offering.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 import { ServiceCardComponent } from '../../shared/service-card/service-card.component';
 
+const PAGE_SIZE = 6;
 const SORT_OPTIONS = ['relevancia', 'precio-asc', 'precio-desc'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
 type LoadStatus = 'loading' | 'ready' | 'error';
@@ -26,10 +27,11 @@ export class ServicesComponent {
   readonly status = signal<LoadStatus>('loading');
   readonly offerings = signal<Offering[]>([]);
 
-  // Los filtros viven en la URL (?q=&categoria=&orden=) para poder compartir o recargar la búsqueda
+  // Los filtros viven en la URL (?q=&categoria=&orden=&pagina=) para poder compartir o recargar la búsqueda
   readonly query = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
   readonly category = signal(this.route.snapshot.queryParamMap.get('categoria') ?? '');
   readonly sort = signal<SortOption>(this.parseSort(this.route.snapshot.queryParamMap.get('orden')));
+  readonly page = signal<number>(this.parsePage(this.route.snapshot.queryParamMap.get('pagina')));
 
   readonly categories = computed(() => {
     const counts = new Map<string, number>();
@@ -49,6 +51,28 @@ export class ServicesComponent {
     return list;
   });
 
+  //Paginacion
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)));
+
+  readonly currentPage = computed(() => Math.min(Math.max(1, this.page()), this.totalPages()));
+
+  readonly paginatedOfferings = computed(() => {
+    const start = (this.currentPage() - 1) * PAGE_SIZE;
+    return this.filtered().slice(start, start + PAGE_SIZE);
+  });
+
+  readonly pageNumbers = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, i) => i + 1)
+  );
+
+  readonly range = computed(() => {
+    const total = this.filtered().length;
+    if (total === 0) return { from: 0, to: 0 };
+    const from = (this.currentPage() - 1) * PAGE_SIZE + 1;
+    const to = Math.min(this.currentPage() * PAGE_SIZE, total);
+    return { from, to };
+  });
+
   readonly hasFilters = computed(() => !!this.query().trim() || !!this.category() || this.sort() !== 'relevancia');
 
   constructor() { this.load(); }
@@ -64,19 +88,32 @@ export class ServicesComponent {
     });
   }
 
-  setQuery(value: string): void { this.query.set(value); this.syncUrl(); }
-  setCategory(value: string): void { this.category.set(value); this.syncUrl(); }
-  setSort(value: string): void { this.sort.set(this.parseSort(value)); this.syncUrl(); }
+  setPage(p: number): void {
+    if (p < 1 || p > this.totalPages() || p === this.currentPage()) return;
+    this.page.set(p);
+    this.syncUrl();
+    window.scrollTo({ top: 320, behavior: 'smooth' });
+  }
+
+  setQuery(value: string): void { this.query.set(value); this.page.set(1); this.syncUrl(); }
+  setCategory(value: string): void { this.category.set(value); this.page.set(1); this.syncUrl(); }
+  setSort(value: string): void { this.sort.set(this.parseSort(value)); this.page.set(1); this.syncUrl(); }
 
   clearFilters(): void {
     this.query.set('');
     this.category.set('');
     this.sort.set('relevancia');
+    this.page.set(1);
     this.syncUrl();
   }
 
   private parseSort(value: string | null): SortOption {
     return SORT_OPTIONS.includes(value as SortOption) ? value as SortOption : 'relevancia';
+  }
+
+  private parsePage(value: string | null): number {
+    const parsed = parseInt(value ?? '1', 10);
+    return isNaN(parsed) || parsed < 1 ? 1 : parsed;
   }
 
   private syncUrl(): void {
@@ -86,7 +123,8 @@ export class ServicesComponent {
       queryParams: {
         q: this.query().trim() || null,
         categoria: this.category() || null,
-        orden: this.sort() === 'relevancia' ? null : this.sort()
+        orden: this.sort() === 'relevancia' ? null : this.sort(),
+        pagina: this.currentPage() > 1 ? this.currentPage() : null
       }
     });
   }
