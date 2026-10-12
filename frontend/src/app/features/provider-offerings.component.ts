@@ -2,7 +2,9 @@ import { Component, ElementRef, OnInit, inject, viewChild } from '@angular/core'
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { OfferingService, Offering, OfferingInput } from '../core/offering.service';
+import { AlertService } from '../shared/alert.service';
 
 /** El backend rechaza precios en cero o negativos; el formulario aplica la misma regla */
 function positivePrice(control: AbstractControl): ValidationErrors | null {
@@ -15,6 +17,34 @@ function positivePrice(control: AbstractControl): ValidationErrors | null {
 function notBlank(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
   return typeof value === 'string' && value.trim() === '' ? { required: true } : null;
+}
+
+const plural = (n: number, singular: string, pluralForm: string) => `${n} ${n === 1 ? singular : pluralForm}`;
+
+/** Texto del diálogo: qué se borra y la regla de los horarios reservados */
+function deleteMessage(freeSlots: number): string {
+  const slotsText = freeSlots > 0
+    ? `También se borrarán sus ${plural(freeSlots, 'horario libre', 'horarios libres')}. `
+    : '';
+  return `${slotsText}Dejará de aparecer en el catálogo y esta acción no se puede deshacer. ` +
+    'Recuerda: no se puede eliminar una mentoría con horarios reservados.';
+}
+
+/** Traduce la respuesta del backend a un mensaje para el proveedor */
+function deleteErrorMessage(err: HttpErrorResponse): { title: string; message: string } {
+  switch (err.status) {
+    case 422:
+      return {
+        title: 'No se puede eliminar esta mentoría',
+        message: err.error?.detail || 'Tiene horarios reservados por clientes.'
+      };
+    case 403:
+      return { title: 'Acción no permitida', message: 'Esta mentoría pertenece a otro proveedor.' };
+    case 404:
+      return { title: 'La mentoría ya no existe', message: 'Actualizamos tu lista.' };
+    default:
+      return { title: 'No fue posible eliminar la mentoría', message: 'Intenta de nuevo en unos segundos.' };
+  }
 }
 
 @Component({
@@ -92,6 +122,7 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
         <!-- Lista de mentorías extraída de la Base de Datos -->
         <div class="card list-card">
           <h2>Mis Mentorías Activas</h2>
+          <p class="muted small hint">Solo puedes eliminar mentorías sin horarios reservados.</p>
 
           <div class="offerings-list">
             @for (offering of myOfferings; track offering.id) {
@@ -105,7 +136,10 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
                   <button type="button" class="btn btn-outline btn-sm" (click)="startEdit(offering)"
                           [disabled]="offering.id === editingId">Editar</button>
                   <a class="btn btn-outline btn-sm" [routerLink]="['/provider/offerings', offering.id, 'horarios']">Horarios</a>
-                  <button class="btn btn-danger btn-sm" (click)="deleteOffering(offering.id)">Eliminar</button>
+                  <button type="button" class="btn btn-danger btn-sm" (click)="deleteOffering(offering)"
+                          [disabled]="deletingId === offering.id">
+                    {{ deletingId === offering.id ? 'Eliminando...' : 'Eliminar' }}
+                  </button>
                 </div>
               </div>
             } @empty {
@@ -138,6 +172,8 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
     .btn-outline { background: transparent; border: 1px solid #000; color: #000; text-align: center; text-decoration: none; }
     .btn-outline:disabled { opacity: .5; cursor: not-allowed; }
     .btn-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .btn-danger:disabled { opacity: .6; cursor: not-allowed; }
+    .hint { margin: 4px 0 0; }
     .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
     .alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
     .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
@@ -155,6 +191,7 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
 export class ProviderOfferingsComponent implements OnInit {
   offeringForm: FormGroup;
   offeringService = inject(OfferingService);
+  private readonly alerts = inject(AlertService);
   private readonly formCard = viewChild<ElementRef<HTMLElement>>('formCard');
   private readonly priceFormat = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
@@ -164,6 +201,8 @@ export class ProviderOfferingsComponent implements OnInit {
   myOfferings: Offering[] = [];
   /** Id de la mentoría que se está editando; null = el formulario crea una nueva */
   editingId: string | null = null;
+  /** Id de la mentoría que se está eliminando, para deshabilitar su botón mientras responde el backend */
+  deletingId: string | null = null;
 
   constructor(private fb: FormBuilder) {
     this.offeringForm = this.fb.group({
@@ -236,21 +275,52 @@ export class ProviderOfferingsComponent implements OnInit {
     }
   }
 
-  deleteOffering(id: string) {
-    if(confirm('¿Estás seguro de eliminar esta mentoría?')) {
-      this.offeringService.deleteProviderOffering(id).subscribe({
-        next: () => {
-          this.errorMessage = '';
-          this.successMessage = 'Mentoría eliminada correctamente.';
-          if (id === this.editingId) this.cancelEdit();
-          this.loadOfferings();
-        },
-        error: (err) => {
-          this.successMessage = '';
-          this.errorMessage = err?.error?.detail || 'No fue posible eliminar la mentoría.';
-        }
-      });
+  /**
+   * HU-19: antes de eliminar se revisan los horarios. Si alguno está reservado se explica por qué no se puede;
+   * si no, se pide confirmación indicando cuántos horarios libres se borrarán con la mentoría.
+   */
+  async deleteOffering(offering: Offering) {
+    if (this.deletingId) return;
+    this.clearMessages();
+
+    const slots = await firstValueFrom(this.offeringService.getProviderSlots(offering.id)).catch(() => null);
+    const reserved = slots?.filter(s => s.reserved).length ?? 0;
+    const free = slots ? slots.length - reserved : 0;
+
+    if (reserved > 0) {
+      this.alerts.error(
+        'No se puede eliminar esta mentoría',
+        `"${offering.title}" tiene ${plural(reserved, 'horario reservado', 'horarios reservados')} por clientes. ` +
+        'Una mentoría con horarios reservados no se puede eliminar.'
+      );
+      return;
     }
+
+    const confirmed = await this.alerts.confirm({
+      title: `¿Eliminar "${offering.title}"?`,
+      message: deleteMessage(free),
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!confirmed) return;
+
+    this.deletingId = offering.id;
+    this.offeringService.deleteProviderOffering(offering.id).subscribe({
+      next: () => {
+        this.deletingId = null;
+        this.myOfferings = this.myOfferings.filter(o => o.id !== offering.id);
+        if (offering.id === this.editingId) this.cancelEdit();
+        this.alerts.success('Mentoría eliminada', `"${offering.title}" ya no aparece en el catálogo.`);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.deletingId = null;
+        const { title, message } = deleteErrorMessage(err);
+        this.alerts.error(title, message);
+        // Si ya no existe o no es nuestra, la lista local está desactualizada
+        if (err.status === 403 || err.status === 404) this.loadOfferings();
+      }
+    });
   }
 
   private create(data: OfferingInput) {
