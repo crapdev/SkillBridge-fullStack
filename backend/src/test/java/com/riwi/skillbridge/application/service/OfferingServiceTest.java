@@ -45,7 +45,7 @@ class OfferingServiceTest {
             assertEquals(cachedOfferings, result);
             assertEquals(2, result.size());
             verify(cache).getActiveOfferings();
-            verify(repository, never()).findAllActive();
+            verify(repository, never()).findVisible();
             verify(cache, never()).putActiveOfferings(any());
         }
 
@@ -60,7 +60,7 @@ class OfferingServiceTest {
             );
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(repositoryOfferings);
+            when(repository.findVisible()).thenReturn(repositoryOfferings);
 
             // Act
             List<Offering> result = service.listActive();
@@ -69,7 +69,7 @@ class OfferingServiceTest {
             assertEquals(repositoryOfferings, result);
             assertEquals(3, result.size());
             verify(cache).getActiveOfferings();
-            verify(repository).findAllActive();
+            verify(repository).findVisible();
             verify(cache).putActiveOfferings(repositoryOfferings);
         }
 
@@ -80,7 +80,7 @@ class OfferingServiceTest {
             List<Offering> emptyList = List.of();
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(emptyList);
+            when(repository.findVisible()).thenReturn(emptyList);
 
             // Act
             List<Offering> result = service.listActive();
@@ -88,7 +88,7 @@ class OfferingServiceTest {
             // Assert
             assertTrue(result.isEmpty());
             verify(cache).getActiveOfferings();
-            verify(repository).findAllActive();
+            verify(repository).findVisible();
             verify(cache).putActiveOfferings(emptyList);
         }
 
@@ -100,7 +100,7 @@ class OfferingServiceTest {
             List<Offering> offerings = List.of(offering);
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(offerings);
+            when(repository.findVisible()).thenReturn(offerings);
 
             // Act
             service.listActive();
@@ -142,7 +142,7 @@ class OfferingServiceTest {
             List<Offering> offerings = List.of(offering);
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(offerings);
+            when(repository.findVisible()).thenReturn(offerings);
 
             // Act
             List<Offering> result = service.listActive();
@@ -178,7 +178,7 @@ class OfferingServiceTest {
 
             // Assert
             verify(cache, times(3)).getActiveOfferings();
-            verify(repository, never()).findAllActive();
+            verify(repository, never()).findVisible();
         }
 
         @Test
@@ -190,13 +190,13 @@ class OfferingServiceTest {
             );
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(offerings);
+            when(repository.findVisible()).thenReturn(offerings);
 
             // Act
             service.listActive();
 
             // Assert
-            verify(repository, times(1)).findAllActive();
+            verify(repository, times(1)).findVisible();
             verify(cache, times(1)).putActiveOfferings(offerings);
         }
 
@@ -210,7 +210,7 @@ class OfferingServiceTest {
             );
 
             when(cache.getActiveOfferings()).thenReturn(Optional.empty());
-            when(repository.findAllActive()).thenReturn(repositoryData);
+            when(repository.findVisible()).thenReturn(repositoryData);
 
             // Act
             service.listActive();

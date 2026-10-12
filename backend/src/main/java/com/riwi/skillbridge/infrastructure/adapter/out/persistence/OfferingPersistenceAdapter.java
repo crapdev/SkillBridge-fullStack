@@ -6,6 +6,7 @@ import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.Offeri
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaOfferingRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,14 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     @Override
     public List<Offering> findAllActive() {
         return repository.findByActiveTrueOrderByTitleAsc()
+            .stream()
+            .map(this::toDomain)
+            .toList();
+    }
+
+    @Override
+    public List<Offering> findVisible() {
+        return repository.findVisibleOfferings(Instant.now())
             .stream()
             .map(this::toDomain)
             .toList();

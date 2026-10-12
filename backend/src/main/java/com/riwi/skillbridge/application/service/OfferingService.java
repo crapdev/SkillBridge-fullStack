@@ -21,7 +21,7 @@ public class OfferingService implements ListOfferingsUseCase {
     @Override
     public List<Offering> listActive() {
         return cache.getActiveOfferings().orElseGet(() -> {
-            List<Offering> offerings = repository.findAllActive();
+            List<Offering> offerings = repository.findVisible();
             cache.putActiveOfferings(offerings);
             return offerings;
         });

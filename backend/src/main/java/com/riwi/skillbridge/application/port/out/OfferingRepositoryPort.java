@@ -9,6 +9,7 @@ public interface OfferingRepositoryPort {
     Offering save(Offering offering);
     Optional<Offering> findById(UUID id);
     List<Offering> findAllActive();
+    List<Offering> findVisible();
     List<Offering> findByProviderId(UUID providerId);
     void deleteById(UUID id);
 }
