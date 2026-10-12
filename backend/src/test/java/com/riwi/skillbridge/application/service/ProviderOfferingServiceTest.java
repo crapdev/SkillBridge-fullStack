@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.OfferingDraft;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
@@ -9,6 +10,8 @@ import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.OfferingLevel;
+import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,10 +20,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -174,7 +179,9 @@ class ProviderOfferingServiceTest {
     void createOffering_ShouldEvictPublicCatalogCache() {
         when(offerings.save(any(Offering.class))).thenAnswer(i -> i.getArgument(0));
 
-        Offering created = service.createOffering("Kubernetes", "Despliegues", "CLOUD", new BigDecimal("90000"), EMAIL);
+        Offering created = service.createOffering(new OfferingDraft("Kubernetes", "Despliegues", "CLOUD",
+            new BigDecimal("90000"), List.of(new SyllabusTopic("Pods", "Despliegues"), new SyllabusTopic("Helm", "Charts")),
+            60, OfferingLevel.AVANZADO, Set.of(DayOfWeek.MONDAY)), EMAIL);
 
         assertEquals(providerId, created.providerId());
         assertTrue(created.active());

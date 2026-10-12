@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.OfferingDraft;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
@@ -8,6 +9,8 @@ import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.OfferingLevel;
+import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.DayOfWeek;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,14 +59,20 @@ class ProviderOfferingUpdateServiceTest {
         lenient().when(offerings.update(any(Offering.class))).thenAnswer(i -> i.getArgument(0));
     }
 
+    // Datos básicos a probar + una ficha válida (HU-20), para que solo falle lo que cada prueba busca
+    private static OfferingDraft draft(String title, String description, String category, BigDecimal price) {
+        return new OfferingDraft(title, description, category, price,
+            List.of(new SyllabusTopic("JPA", "Entidades"), new SyllabusTopic("Seguridad", "JWT")),
+            60, OfferingLevel.INTERMEDIO, java.util.Set.of(DayOfWeek.MONDAY));
+    }
+
     // ==========================================
     // EDICIÓN EXITOSA
     // ==========================================
 
     @Test
     void update_ShouldSaveNewDetails_KeepingOwnerAndStatus() {
-        Offering updated = service.updateOffering(offeringId, "  Spring Boot avanzado ", " Seguridad y JPA ",
-            " CLOUD ", new BigDecimal("120000"), OWNER);
+        Offering updated = service.updateOffering(offeringId, draft("  Spring Boot avanzado ", " Seguridad y JPA ", " CLOUD ", new BigDecimal("120000")), OWNER);
 
         ArgumentCaptor<Offering> sent = ArgumentCaptor.forClass(Offering.class);
         verify(offerings).update(sent.capture());
@@ -77,7 +88,7 @@ class ProviderOfferingUpdateServiceTest {
 
     @Test
     void update_ShouldEvictPublicCatalogCache() {
-        service.updateOffering(offeringId, "Java", "Mentoría", "BACKEND", new BigDecimal("90000"), OWNER);
+        service.updateOffering(offeringId, draft("Java", "Mentoría", "BACKEND", new BigDecimal("90000")), OWNER);
 
         // Sin esto el catálogo seguiría mostrando el precio viejo hasta que expire la caché
         verify(cache).evictActiveOfferings();
@@ -90,7 +101,7 @@ class ProviderOfferingUpdateServiceTest {
     @Test
     void update_ShouldThrowUnauthorized_WhenOfferingBelongsToAnotherProvider() {
         assertThrows(UnauthorizedActionException.class,
-            () -> service.updateOffering(offeringId, "Java", "Mentoría", "BACKEND", BigDecimal.TEN, OTHER));
+            () -> service.updateOffering(offeringId, draft("Java", "Mentoría", "BACKEND", BigDecimal.TEN), OTHER));
 
         verify(offerings, never()).update(any());
         verify(cache, never()).evictActiveOfferings();
@@ -102,7 +113,7 @@ class ProviderOfferingUpdateServiceTest {
         when(offerings.findById(missing)).thenReturn(Optional.empty());
 
         assertThrows(DomainNotFoundException.class,
-            () -> service.updateOffering(missing, "Java", "Mentoría", "BACKEND", BigDecimal.TEN, OWNER));
+            () -> service.updateOffering(missing, draft("Java", "Mentoría", "BACKEND", BigDecimal.TEN), OWNER));
         verify(offerings, never()).update(any());
     }
 
@@ -122,25 +133,25 @@ class ProviderOfferingUpdateServiceTest {
     @ValueSource(strings = {"0", "-1", "-50000"})
     void update_ShouldRejectPriceNotGreaterThanZero(String price) {
         assertThrows(BusinessRuleException.class,
-            () -> service.updateOffering(offeringId, "Java", "Mentoría", "BACKEND", new BigDecimal(price), OWNER));
+            () -> service.updateOffering(offeringId, draft("Java", "Mentoría", "BACKEND", new BigDecimal(price)), OWNER));
         verify(offerings, never()).update(any());
     }
 
     @Test
     void update_ShouldRejectMissingPrice() {
         assertThrows(BusinessRuleException.class,
-            () -> service.updateOffering(offeringId, "Java", "Mentoría", "BACKEND", null, OWNER));
+            () -> service.updateOffering(offeringId, draft("Java", "Mentoría", "BACKEND", null), OWNER));
         verify(offerings, never()).update(any());
     }
 
     @Test
     void update_ShouldRejectBlankFields() {
         assertThrows(BusinessRuleException.class,
-            () -> service.updateOffering(offeringId, "   ", "Mentoría", "BACKEND", BigDecimal.TEN, OWNER));
+            () -> service.updateOffering(offeringId, draft("   ", "Mentoría", "BACKEND", BigDecimal.TEN), OWNER));
         assertThrows(BusinessRuleException.class,
-            () -> service.updateOffering(offeringId, "Java", "", "BACKEND", BigDecimal.TEN, OWNER));
+            () -> service.updateOffering(offeringId, draft("Java", "", "BACKEND", BigDecimal.TEN), OWNER));
         assertThrows(BusinessRuleException.class,
-            () -> service.updateOffering(offeringId, "Java", "Mentoría", null, BigDecimal.TEN, OWNER));
+            () -> service.updateOffering(offeringId, draft("Java", "Mentoría", null, BigDecimal.TEN), OWNER));
         verify(offerings, never()).update(any());
     }
 }
