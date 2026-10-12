@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { Offering, OfferingService } from '../../core/offering.service';
 import { RevealDirective } from '../../shared/reveal.directive';
@@ -42,16 +42,22 @@ export class ServiceDetailComponent {
   readonly state = toSignal(
     this.route.paramMap.pipe(
       map(params => params.get('id') ?? ''),
-      switchMap(id => this.offerings.list().pipe(
-        map((list): DetailState => {
-          const offering = list.find(o => o.id === id && o.active);
-          if (!offering) return { status: 'not-found' };
-          const related = list.filter(o => o.id !== id && o.active).slice(0, 3);
-          return { status: 'ready', offering, related };
-        }),
-        catchError(() => of<DetailState>({ status: 'error' })),
-        startWith<DetailState>({ status: 'loading' })
-      ))
+      switchMap(id =>
+        forkJoin({
+          offering: this.offerings.getById(id),
+          relatedList: this.offerings.list().pipe(catchError(() => of([] as Offering[])))
+        }).pipe(
+          map(({ offering, relatedList }): DetailState => {
+            const related = relatedList.filter(o => o.id !== id && o.active).slice(0, 3);
+            return { status: 'ready', offering, related };
+          }),
+          catchError((err: any) => {
+            if (err?.status === 404) return of<DetailState>({ status: 'not-found' });
+            return of<DetailState>({ status: 'error' });
+          }),
+          startWith<DetailState>({ status: 'loading' })
+        )
+      )
     ),
     { initialValue: { status: 'loading' } as DetailState }
   );

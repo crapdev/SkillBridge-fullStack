@@ -3,6 +3,11 @@ package com.riwi.skillbridge.application.service;
 import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -271,6 +276,58 @@ class OfferingServiceTest {
 
             // Assert
             assertEquals(longTitle, result.get(0).title());
+        }
+    }
+
+    @Nested
+    @DisplayName("List Visible Offerings Paginated Functionality")
+    class ListVisibleOfferingsTests {
+
+        @Test
+        @DisplayName("Should delegate paginated query to repository")
+        void shouldDelegatePaginatedQueryToRepository() {
+            Pageable pageable = PageRequest.of(0, 9);
+            Offering offering = new Offering(UUID.randomUUID(), UUID.randomUUID(), "Java", "Desc", "BACKEND", BigDecimal.TEN, true);
+            Page<Offering> expectedPage = new PageImpl<>(List.of(offering), pageable, 1);
+
+            when(repository.findVisible(pageable)).thenReturn(expectedPage);
+
+            Page<Offering> result = service.listVisible(pageable);
+
+            assertEquals(expectedPage, result);
+            assertEquals(1, result.getTotalElements());
+            verify(repository).findVisible(pageable);
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Visible Offering By Id Functionality")
+    class GetVisibleOfferingByIdTests {
+
+        @Test
+        @DisplayName("Should return offering when found and visible")
+        void shouldReturnOfferingWhenFoundAndVisible() {
+            UUID id = UUID.randomUUID();
+            Offering offering = new Offering(id, UUID.randomUUID(), "Java", "Desc", "BACKEND", BigDecimal.TEN, true);
+
+            when(repository.findVisibleById(id)).thenReturn(Optional.of(offering));
+
+            Offering result = service.getVisibleById(id);
+
+            assertEquals(offering, result);
+            verify(repository).findVisibleById(id);
+        }
+
+        @Test
+        @DisplayName("Should throw DomainNotFoundException when not found or not visible")
+        void shouldThrowDomainNotFoundExceptionWhenNotVisible() {
+            UUID id = UUID.randomUUID();
+
+            when(repository.findVisibleById(id)).thenReturn(Optional.empty());
+
+            DomainNotFoundException ex = assertThrows(DomainNotFoundException.class, () -> service.getVisibleById(id));
+            assertEquals("Mentoría no encontrada", ex.getMessage());
+            verify(repository).findVisibleById(id);
         }
     }
 }

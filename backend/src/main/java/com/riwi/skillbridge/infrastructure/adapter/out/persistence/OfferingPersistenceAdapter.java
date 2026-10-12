@@ -4,6 +4,8 @@ import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.OfferingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaOfferingRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -48,6 +50,18 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
             .stream()
             .map(this::toDomain)
             .toList();
+    }
+
+    @Override
+    public Page<Offering> findVisible(Pageable pageable) {
+        return repository.findVisibleOfferings(Instant.now(), pageable)
+            .map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Offering> findVisibleById(UUID id) {
+        return repository.findVisibleOfferingById(id, Instant.now())
+            .map(this::toDomain);
     }
 
     @Override
