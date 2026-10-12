@@ -63,6 +63,7 @@ class ProviderOfferingServiceTest {
         assertEquals(offeringId, slot.offeringId());
         assertEquals(tomorrow, slot.scheduledAt());
         assertFalse(slot.reserved());
+        verify(cache).evictActiveOfferings();
     }
 
     @Test
@@ -122,6 +123,7 @@ class ProviderOfferingServiceTest {
         service.deleteAvailabilitySlot(offeringId, slotId, EMAIL);
 
         verify(slots).deleteById(slotId);
+        verify(cache).evictActiveOfferings();
     }
 
     @Test

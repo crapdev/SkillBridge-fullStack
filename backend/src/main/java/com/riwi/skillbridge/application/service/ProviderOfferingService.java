@@ -87,7 +87,9 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
 
         AvailabilitySlot slot = new AvailabilitySlot(UUID.randomUUID(), offeringId, scheduledAt, false);
-        return slotRepositoryPort.save(slot);
+        AvailabilitySlot saved = slotRepositoryPort.save(slot);
+        offeringCache.evictActiveOfferings();
+        return saved;
     }
 
     // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED AND IN THE FUTURE)
@@ -118,6 +120,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             throw new BusinessRuleException("No puedes eliminar un horario que ya fue reservado");
         }
         slotRepositoryPort.deleteById(slotId);
+        offeringCache.evictActiveOfferings();
     }
 
     public Offering getOwnedOffering(UUID offeringId, String providerEmail) {
