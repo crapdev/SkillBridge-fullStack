@@ -1,8 +1,12 @@
 <div class="wrap">
   <ol class="adm-crumbs" aria-label="Ruta">
     <li><a routerLink="/admin">Administración</a></li>
-    <li><a [routerLink]="['/admin', backLabel.path]">{{ backLabel.many }}</a></li>
-    <li aria-current="page">{{ editing ? 'Editar' : 'Nuevo' }}</li>
+    @if (backLabel) {
+      <li><a [routerLink]="['/admin', backLabel.path]">{{ backLabel.many }}</a></li>
+      <li aria-current="page">{{ editing ? 'Editar' : 'Nuevo' }}</li>
+    } @else {
+      <li aria-current="page">{{ editing ? 'Editar usuario' : 'Nuevo usuario' }}</li>
+    }
   </ol>
   <div class="adm-page-head head">
     <div>
@@ -65,18 +69,20 @@
           }
         </div>
 
-        <div class="field">
-          <label for="f-role">Rol <span class="req" aria-hidden="true">*</span></label>
-          <select id="f-role" formControlName="role">
-            @for (r of roles; track r) { <option [value]="r">{{ labels[r].title }}</option> }
-          </select>
-          @if (roleChanged()) {
-            <p class="adm-notice adm-notice--warn">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
-              La cuenta pasará al listado de {{ labels[form.controls.role.value].many }}.
-            </p>
-          }
-        </div>
+        @if (showRoleSelector()) {
+          <div class="field">
+            <label for="f-role">Rol <span class="req" aria-hidden="true">*</span></label>
+            <select id="f-role" formControlName="role">
+              @for (r of roles; track r) { <option [value]="r">{{ labels[r].title }}</option> }
+            </select>
+            @if (roleChanged()) {
+              <p class="adm-notice adm-notice--warn">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+                La cuenta pasará al listado de {{ labels[form.controls.role.value].many }}.
+              </p>
+            }
+          </div>
+        }
 
         @if (!editing) {
           <div class="field">
