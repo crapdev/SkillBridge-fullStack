@@ -44,6 +44,10 @@ import { OfferingService, Offering } from '../core/offering.service';
 
             <div class="form-group">
               <label for="price">Precio (COP)</label>
+               <p class="field-note">
+                Ten en cuenta que SkillBridge cobra una comisión del <strong>10%</strong>
+                por cada mentoría realizada.
+               </p>
               <input type="number" id="price" formControlName="price" placeholder="Ej. 85000">
             </div>
 
@@ -92,6 +96,8 @@ import { OfferingService, Offering } from '../core/offering.service';
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .field-note { font-size: 0.85rem; line-height: 1.4; color: #667085; margin: 0 0 8px 0; }
+    .field-note strong { color: #13213c; }
     .w-100 { width: 100%; }
     .btn { padding: 10px 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: 600; }
     .btn-primary { background: #000; color: #fff; }

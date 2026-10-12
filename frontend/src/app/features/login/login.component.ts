@@ -18,6 +18,7 @@ export class LoginComponent {
   error = '';
   loading = false;
   showPassword = false;
+  showTerms = false;
   readonly year = new Date().getFullYear();
 
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {

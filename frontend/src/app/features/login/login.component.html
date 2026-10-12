@@ -143,6 +143,12 @@
           </div>
 
           @if (error) { <p class="alert" role="alert">{{ error }}</p> }
+          @if (mode === 'register') {
+          <p class="terms-note">
+            Al registrarte, aceptas nuestros
+            <button type="button" class="terms-link" (click)="showTerms = true">términos y condiciones</button>.
+          </p>
+          }
 
           <button type="submit" class="submit" [disabled]="loading">
             @if (loading) { <span class="spinner" aria-hidden="true"></span> Procesando… }
@@ -165,4 +171,98 @@
     <span>© {{ year }} SkillBridge</span>
     <span>Proyecto integrador · Riwi</span>
   </footer>
+  @if (showTerms) {
+  <div class="modal-backdrop" (click)="showTerms = false">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="terms-title"
+         (click)="$event.stopPropagation()">
+      <h2 id="terms-title">Términos y condiciones</h2>
+      <div class="modal-body">
+        <p>Términos y condiciones de SkillBridge <br>
+
+          Última actualización: 12 de octubre de 2026 <br>
+
+          <br>
+          Índice <br>
+          1. Disposiciones generales <br>
+          2. Condiciones para clientes <br>
+          3. Condiciones para proveedores <br>
+          4. Privacidad y datos personales <br>
+          5. Contacto y ley aplicable <br>
+          <br>
+          1. Disposiciones generales <br>
+          <br>
+          1.1 Quiénes somos. SkillBridge es una plataforma que conecta a personas que quieren aprender (“clientes”) con profesionales que ofrecen mentorías y servicios técnicos (“proveedores”). La opera el Equipo SkillBridge. Contacto: skillbridge@gmail.com. <br>
+
+          1.2 Naturaleza del proyecto. SkillBridge es un proyecto académico (proyecto integrador de Riwi) sin fines comerciales por ahora. Se desarrolla con fines de práctica y aplicación de conocimientos. <br>
+
+          1.3 Aceptación. Al registrarte o usar la plataforma aceptas estos términos y nuestra Política de Privacidad (/privacidad). Si no estás de acuerdo, no uses el servicio. <br>
+
+          1.4 Cuentas. Debes ser mayor de 18 años y dar información veraz. Eres responsable de la confidencialidad de tu contraseña y de lo que ocurra en tu cuenta. Las contraseñas se almacenan cifradas. <br>
+
+          1.5 Rol de SkillBridge. SkillBridge facilita el contacto, la reserva y el pago entre clientes y proveedores. Los servicios los presta cada proveedor de forma independiente. SkillBridge no garantiza resultados específicos.<br>
+
+          1.6 Conducta. No está permitido suplantar identidades, dar información falsa, publicar contenido ilegal u ofensivo, acosar a otros usuarios, intentar vulnerar la seguridad de la plataforma ni usarla para fines distintos a los previstos.<br>
+
+          1.7 Sesiones. Las sesiones se realizan únicamente de forma virtual, por videollamada. No se graban. Queda prohibido grabar, total o parcialmente, sin el consentimiento de todos los participantes.<br>
+
+          1.8 Recomendaciones con IA. SkillBridge usa un servicio de inteligencia artificial de terceros para generar recomendaciones. A este servicio solo se envían tus intereses, no tus datos personales. Las recomendaciones son orientativas y pueden contener errores, así que decide con tu propio criterio. <br>
+
+          1.9 Propiedad intelectual. La marca, el diseño y el software de SkillBridge pertenecen al Equipo SkillBridge. El material que un proveedor comparte en sus sesiones sigue siendo de su autor. <br>
+
+          1.10 Limitación de responsabilidad. En la medida permitida por la ley, SkillBridge no responde por la calidad, el contenido o los resultados de los servicios de los proveedores, ni por interrupciones técnicas fuera de su control. <br>
+
+          1.11 Suspensión de cuentas. Un administrador puede suspender o cerrar una cuenta por incumplimiento de estos términos, fraude, quejas reiteradas o información falsa. <br>
+
+          1.12 Cambios. Podemos actualizar estos términos. Los cambios importantes se avisarán en la plataforma o por correo. Si sigues usando el servicio después del aviso, se entiende que los aceptas. <br>
+
+          <br>
+          2. Condiciones para clientes<br>
+          <br>
+          2.1 Reservas y pago. Una reserva se confirma cuando se completa el pago. El pago puede hacerse en cualquier momento, pero siempre antes de la fecha de la sesión solicitada. Si no se paga a tiempo, la reserva no se confirma. <br>
+
+          2.2 Medio de pago. Los pagos se procesan a través de Stripe. SkillBridge no almacena los datos de tu tarjeta. <br>
+
+          2.3 Cancelación con reembolso. Puedes cancelar con más de 24 horas de anticipación al inicio de la sesión y recibir un reembolso. Para hacerlo debes enviar un correo a skillbridge@gmail.com con los datos de tu reserva. <br>
+
+          2.4 Cancelación sin reembolso. Si cancelas con menos de 24 horas de anticipación, no hay reembolso. <br>
+
+          2.5 Inasistencia. Si no te presentas a la sesión, se cobra la sesión completa y no hay reembolso. <br>
+
+          2.6 Reprogramación. Una sesión solo se reprograma si lo solicitas por correo a skillbridge@gmail.com y el equipo de SkillBridge lo gestiona. <br>
+
+          2.7 Plazo de reembolsos. Los reembolsos se hacen al medio de pago original en un plazo de 5 a 10 días hábiles, según tu banco. <br>
+
+          2.8 Cancelación o inasistencia del proveedor. Si el proveedor cancela o no se presenta, recibes el reembolso total. <br>
+
+          <br>
+          3. Condiciones para proveedores <br>
+          <br>
+          3.1 Aprobación. Para ofrecer servicios debes registrarte como proveedor. Un administrador revisa tu perfil y tu experiencia antes de aprobar la cuenta. Hasta entonces, la cuenta queda pendiente y no podrás iniciar sesión. <br>
+
+          3.2 Cumplimiento de sesiones. Debes atender puntualmente las sesiones que se reserven contigo. Eres responsable de la calidad y del contenido de tus servicios. <br>
+
+          3.3 Comisión. SkillBridge cobra una comisión del 10% sobre el precio que tú fijas para cada sesión. Las comisiones de Stripe por el procesamiento del pago se descuentan aparte.<br>
+
+          3.4 Pagos al proveedor. Recibes el pago semanal de las sesiones acumuladas. descontadas la comisión de SkillBridge y el 50% de comisiones de Stripe.<br>
+
+          3.5 Cancelación o inasistencia. Si cancelas o no te presentas, el cliente recibe el reembolso total. Si esto se repite, tu cuenta puede ser suspendida.<br>
+
+          3.6 Veracidad. La información de tu perfil, tu experiencia y tus credenciales debe ser verdadera. La información falsa puede causar la suspensión o el cierre de tu cuenta.<br>
+
+          <br>
+          4. Privacidad y datos personales <br>
+          <br>
+          El tratamiento de tus datos se rige por la Política de Privacidad y por la Ley 1581 de 2012. Puedes solicitar la eliminación de tu cuenta y de tus datos escribiendo a skillbridge@gmail.com. Los datos se eliminan sin demora tras la solicitud, salvo los que deban conservarse por obligación legal. La plataforma solo usa almacenamiento para mantener tu sesión iniciada y no usa cookies de analítica ni de publicidad. <br>
+
+          <br>
+          5. Contacto y ley aplicable <br>
+          <br>
+          Para cancelaciones, reprogramaciones, reembolsos, eliminación de datos o cualquier consulta, escribe a skillbridge@gmail.com.<br>
+
+          Estos términos se rigen por las leyes de Colombia, incluida la Ley 1480 de 2011 (Estatuto del Consumidor). Las controversias se resolverán ante los jueces de Barranquilla, sin perjuicio de los derechos que la ley te reconoce como consumidor.</p> <br>
+      </div>
+      <button type="button" class="submit" (click)="showTerms = false">Cerrar</button>
+    </div>
+  </div>
+  }
 </div>
