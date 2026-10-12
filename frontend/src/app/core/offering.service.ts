@@ -43,8 +43,9 @@ export class OfferingService {
   }
 
   // Catálogo público compatible con vistas existentes
-  list(): Observable<Offering[]> {
-    return this.http.get<any>(`${apiBase()}/offerings`).pipe(
+  list(size: number = 1000): Observable<Offering[]> {
+    const params = new HttpParams().set('size', size);
+    return this.http.get<any>(`${apiBase()}/offerings`, { params }).pipe(
       map(res => (Array.isArray(res) ? res : (res?.content ?? [])) as Offering[])
     );
   }

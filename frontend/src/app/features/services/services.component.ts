@@ -75,7 +75,20 @@ export class ServicesComponent {
 
   readonly hasFilters = computed(() => !!this.query().trim() || !!this.category() || this.sort() !== 'relevancia');
 
-  constructor() { this.load(); }
+  constructor() {
+    this.route.queryParamMap.subscribe(params => {
+      const q = params.get('q') ?? '';
+      const cat = params.get('categoria') ?? '';
+      const sort = this.parseSort(params.get('orden'));
+      const page = this.parsePage(params.get('pagina'));
+
+      if (this.query() !== q) this.query.set(q);
+      if (this.category() !== cat) this.category.set(cat);
+      if (this.sort() !== sort) this.sort.set(sort);
+      if (this.page() !== page) this.page.set(page);
+    });
+    this.load();
+  }
 
   load(): void {
     this.status.set('loading');
