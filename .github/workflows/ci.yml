@@ -3,9 +3,14 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'fix/**']   # al subir commits a estas ramas
+    branches: [main, develop]   # al subir commits a estas ramas
   pull_request:
     branches: [main, develop]                            # PRs cuyo destino es main o develop
+  workflow_dispatch:                                     # ejecución manual en cualquier rama (pestaña Actions)
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true   # cancela ejecuciones viejas del mismo PR/rama al subir un commit nuevo
 
 permissions:
   contents: read   # solo lectura del repositorio (seguridad)
