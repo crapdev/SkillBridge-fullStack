@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, of, catchError, map } from 'rxjs';
 import { AvailabilitySlot, Offering, OfferingService } from '../../core/offering.service';
 import { AlertService } from '../../shared/alert.service';
+import { dayLabel, formatDays, formatDuration, formatTimeRange, weekDayOf } from '../../shared/offering-format';
 
 type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -10,7 +11,6 @@ const PRESET_TIMES = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:
   '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
 
 const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const pad = (n: number) => String(n).padStart(2, '0');
 /** Fecha local en formato yyyy-mm-dd, el que usa <input type="date"> */
@@ -46,6 +46,19 @@ export class ProviderSlotsComponent implements OnInit {
     return [...all].sort();
   });
 
+  // ---- HU-20: días en que se ofrece la mentoría y duración de cada sesión ----
+  readonly workingDays = computed(() => this.offering()?.workingDays ?? []);
+  readonly duration = computed(() => this.offering()?.durationMinutes ?? 60);
+  readonly daysText = computed(() => formatDays(this.workingDays()));
+  readonly durationText = computed(() => formatDuration(this.duration()));
+  /** El día elegido está entre los que ofrece la mentoría (mientras carga no se bloquea nada) */
+  readonly dayAllowed = computed(() => !this.offering() || this.offersOn(this.date()));
+  /** Plural para el aviso: "los sábados", "los lunes" */
+  readonly selectedDayName = computed(() => {
+    const name = dayLabel(weekDayOf(this.dateOf(this.date()))).toLowerCase();
+    return name.endsWith('s') ? name : `${name}s`;
+  });
+
   readonly freeCount = computed(() => this.slots().filter(s => !s.reserved).length);
   readonly reservedCount = computed(() => this.slots().filter(s => s.reserved).length);
 
@@ -78,6 +91,8 @@ export class ProviderSlotsComponent implements OnInit {
         }
         this.offering.set(offering);
         this.slots.set(slots);
+        // Si el día propuesto no se ofrece, se salta al siguiente que sí
+        if (!this.offersOn(this.date())) this.date.set(this.nextAllowedDate(this.date()));
         this.status.set('ready');
       },
       error: () => this.status.set('error')
@@ -93,7 +108,7 @@ export class ProviderSlotsComponent implements OnInit {
   }
 
   toggleTime(time: string): void {
-    if (this.isPast(time) || this.isPublished(time)) return;
+    if (!this.dayAllowed() || this.isPast(time) || this.isPublished(time)) return;
     this.selectedTimes.update(times => {
       const copy = new Set(times);
       copy.has(time) ? copy.delete(time) : copy.add(time);
@@ -103,7 +118,7 @@ export class ProviderSlotsComponent implements OnInit {
 
   addCustomTime(): void {
     const time = this.customTime();
-    if (!time || this.isPast(time) || this.isPublished(time)) return;
+    if (!time || !this.dayAllowed() || this.isPast(time) || this.isPublished(time)) return;
     this.selectedTimes.update(times => new Set(times).add(time));
     this.customTime.set('');
   }
@@ -119,7 +134,7 @@ export class ProviderSlotsComponent implements OnInit {
 
   publish(): void {
     const times = [...this.selectedTimes()].sort();
-    if (!times.length || this.publishing()) return;
+    if (!times.length || this.publishing() || !this.dayAllowed()) return;
     this.publishing.set(true);
 
     // Cada horario se publica por separado: si uno falla (p. ej. duplicado), los demás siguen
@@ -158,10 +173,32 @@ export class ProviderSlotsComponent implements OnInit {
   }
 
   isDeleting(slot: AvailabilitySlot): boolean { return this.deletingIds().has(slot.id); }
-  time(slot: AvailabilitySlot): string { return timeFormat.format(new Date(slot.scheduledAt)); }
+  /** "9:00 a. m. – 10:00 a. m.": hora de inicio y de finalización según la duración de la mentoría */
+  time(slot: AvailabilitySlot): string { return formatTimeRange(slot.scheduledAt, this.duration()); }
+
+  /** Lleva el selector al siguiente día que ofrece la mentoría */
+  goToNextAllowedDay(): void { this.setDate(this.nextAllowedDate(this.date())); }
 
   private stopDeleting(id: string): void {
     this.deletingIds.update(ids => { const copy = new Set(ids); copy.delete(id); return copy; });
+  }
+
+  private offersOn(date: string): boolean {
+    return this.workingDays().includes(weekDayOf(this.dateOf(date)));
+  }
+
+  private nextAllowedDate(from: string): string {
+    const d = this.dateOf(from);
+    for (let i = 0; i < 7; i++) {
+      d.setDate(d.getDate() + 1);
+      if (this.workingDays().includes(weekDayOf(d))) return toDateInput(d);
+    }
+    return from;
+  }
+
+  /** "yyyy-mm-dd" como fecha local (con new Date("yyyy-mm-dd") sería UTC y podría caer el día anterior) */
+  private dateOf(date: string): Date {
+    return new Date(`${date}T00:00`);
   }
 
   /** Combina el día elegido y una hora "HH:mm" en un instante de la zona horaria del navegador */

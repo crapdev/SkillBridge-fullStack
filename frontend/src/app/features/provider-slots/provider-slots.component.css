@@ -159,3 +159,8 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px
 @media (max-width: 860px) {
   .grid { grid-template-columns: 1fr; }
 }
+
+/* HU-20: días de la mentoría y aviso cuando el día elegido no se ofrece */
+.ps-hero__profile { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: -6px 0 16px; font-size: .92rem; color: #cbd5e1; }
+.day-warning { display: grid; gap: 6px; margin: -4px 0 14px; padding: 10px 12px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: .88rem; }
+.day-warning .link { justify-self: start; padding: 0; border: 0; background: none; color: #92400e; font-weight: 700; text-decoration: underline; cursor: pointer; }
