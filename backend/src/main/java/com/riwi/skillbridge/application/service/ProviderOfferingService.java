@@ -14,12 +14,21 @@ import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class ProviderOfferingService implements ListAvailableSlotsUseCase {
+
+    /** Los proveedores publican horarios en la hora de Colombia: con ella se decide el día de la semana. */
+    static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Bogota");
+    private static final Locale SPANISH = Locale.forLanguageTag("es-CO");
 
     private final OfferingRepositoryPort offeringRepositoryPort;
     private final AvailabilitySlotRepositoryPort slotRepositoryPort;
@@ -88,7 +97,14 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         if (scheduledAt.isBefore(Instant.now())) {
             throw new BusinessRuleException("El horario disponible debe ser en una fecha futura");
         }
-        getOwnedOffering(offeringId, providerEmail);
+        Offering offering = getOwnedOffering(offeringId, providerEmail);
+
+        // HU-20: el horario debe caer en uno de los días que el proveedor ofrece (en la hora de Colombia)
+        DayOfWeek day = scheduledAt.atZone(BUSINESS_ZONE).getDayOfWeek();
+        if (!offering.offersOn(day)) {
+            throw new BusinessRuleException("Esta mentoría solo se ofrece los días " + daysText(offering.workingDays())
+                + ". El " + dayName(day) + " no está entre ellos");
+        }
 
         if (slotRepositoryPort.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
             throw new BusinessRuleException("Ya registraste este horario para esta mentoría");
@@ -190,6 +206,17 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
             draft.level(),
             draft.workingDays()
         );
+    }
+
+    // "lunes, miércoles y viernes"
+    private static String daysText(Set<DayOfWeek> days) {
+        List<String> names = days.stream().map(ProviderOfferingService::dayName).toList();
+        if (names.size() == 1) return names.get(0);
+        return String.join(", ", names.subList(0, names.size() - 1)) + " y " + names.get(names.size() - 1);
+    }
+
+    private static String dayName(DayOfWeek day) {
+        return day.getDisplayName(TextStyle.FULL, SPANISH);
     }
 
     private static boolean isBlank(String value) {
