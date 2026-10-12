@@ -62,7 +62,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {AuthController.class, BookingController.class, OfferingController.class, AiController.class})
 @Import({SecurityConfiguration.class, JwtAuthenticationFilter.class, RestAuthenticationEntryPoint.class,
         RestAccessDeniedHandler.class,
-        JwtService.class, AuthService.class})
+        JwtService.class, AuthService.class, AuthCookies.class})
 @TestPropertySource(properties = {
         "app.jwt.secret=" + AuthSecurityIntegrationTest.SECRET,
         "app.jwt.expiration=3600000",
@@ -227,6 +227,59 @@ class AuthSecurityIntegrationTest {
         void publicRoute_withInvalidToken_isStillAccessible() throws Exception {
             mvc.perform(get("/api/offerings").header("Authorization", "Bearer token-corrupto"))
                     .andExpect(status().isOk());
+        }
+    }
+
+    // HU-29: la sesión viaja en una cookie HttpOnly que el JavaScript de la página no puede leer
+    @Nested
+    class SessionCookie {
+
+        @Test
+        void login_setsHttpOnlySessionCookie() throws Exception {
+            String cookie = login(EMAIL, PASSWORD)
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getHeader("Set-Cookie");
+
+            assertThat(cookie).startsWith(AuthCookies.NAME + "=")
+                    .contains("HttpOnly", "Secure", "SameSite=Strict", "Path=/api", "Max-Age=3600");
+            String token = cookie.substring(AuthCookies.NAME.length() + 1, cookie.indexOf(';'));
+            assertThat(jwtService.extractUsername(token)).isEqualTo(EMAIL);
+        }
+
+        @Test
+        void login_returnsTheSessionUserWithoutSecrets() throws Exception {
+            login(EMAIL, PASSWORD)
+                    .andExpect(jsonPath("$.user.email").value(EMAIL))
+                    .andExpect(jsonPath("$.user.name").value("Daniel"))
+                    .andExpect(jsonPath("$.user.role").value("CUSTOMER"))
+                    .andExpect(jsonPath("$.user.passwordHash").doesNotExist());
+        }
+
+        @Test
+        void failedLogin_doesNotSetCookie() throws Exception {
+            assertThat(login(EMAIL, "wrong_password").andReturn().getResponse().getHeader("Set-Cookie")).isNull();
+        }
+
+        @Test
+        void me_returnsTheSessionUser() throws Exception {
+            mvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + jwtService.generate(EMAIL, "CUSTOMER")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email").value(EMAIL))
+                    .andExpect(jsonPath("$.role").value("CUSTOMER"));
+        }
+
+        @Test
+        void me_withoutSession_returns401() throws Exception {
+            assertUnauthorizedProblem(mvc.perform(get("/api/auth/me")));
+        }
+
+        @Test
+        void logout_clearsTheCookieEvenWithoutSession() throws Exception {
+            String cookie = mvc.perform(post("/api/auth/logout"))
+                    .andExpect(status().isNoContent())
+                    .andReturn().getResponse().getHeader("Set-Cookie");
+
+            assertThat(cookie).startsWith(AuthCookies.NAME + "=;").contains("Max-Age=0", "Path=/api", "HttpOnly");
         }
     }
 

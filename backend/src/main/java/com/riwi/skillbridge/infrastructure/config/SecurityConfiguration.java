@@ -36,6 +36,8 @@ public class SecurityConfiguration {
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        // Va antes que /api/auth/** (gana la primera regla que coincide): /me necesita sesión
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers("/error", "/api/auth/**", "/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/offerings/**").permitAll()
                         .requestMatchers("/actuator/prometheus").permitAll()
