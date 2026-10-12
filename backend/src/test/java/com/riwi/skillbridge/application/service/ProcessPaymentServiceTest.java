@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.out.BookingEventPublisherPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort.PaymentOutcome;
@@ -29,7 +30,8 @@ class ProcessPaymentServiceTest {
     private final BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
     private final PaymentGatewayPort gateway = mock(PaymentGatewayPort.class);
     private final UserAccountPort users = mock(UserAccountPort.class);
-    private final ProcessPaymentService service = new ProcessPaymentService(payments, bookings, gateway, users);
+    private final BookingEventPublisherPort publisher = mock(BookingEventPublisherPort.class);
+    private final ProcessPaymentService service = new ProcessPaymentService(payments, bookings, gateway, users, publisher);
 
     private final UUID bookingId = UUID.randomUUID();
     private final Payment pending = new Payment(UUID.randomUUID(), bookingId, new BigDecimal("85000"), "COP",
@@ -65,13 +67,70 @@ class ProcessPaymentServiceTest {
     @Test
     void failedPaymentLeavesBookingPending() {
         when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(pending));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CREATED)));
 
         service.markPaymentFailed("pi_123");
 
         ArgumentCaptor<Payment> payment = ArgumentCaptor.forClass(Payment.class);
         verify(payments).save(payment.capture());
         assertEquals(PaymentStatus.FAILED, payment.getValue().status());
-        verifyNoInteractions(bookings);
+        verify(bookings, never()).save(any());
+    }
+
+    // HU-11: eventos para las notificaciones
+
+    @Test
+    void successfulPaymentPublishesBookingPaidWithTheConfirmedBooking() {
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(pending));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CREATED)));
+
+        service.confirmPaymentSuccess("pi_123");
+
+        ArgumentCaptor<Booking> published = ArgumentCaptor.forClass(Booking.class);
+        verify(publisher).bookingPaid(published.capture());
+        assertEquals(BookingStatus.CONFIRMED, published.getValue().status());
+    }
+
+    @Test
+    void repeatedWebhookDoesNotPublishBookingPaidAgain() {
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(pending));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CONFIRMED)));
+
+        service.confirmPaymentSuccess("pi_123");
+
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void paymentForACancelledBookingDoesNotPublish() {
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(pending));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CANCELLED)));
+
+        service.confirmPaymentSuccess("pi_123");
+
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void failedPaymentPublishesPaymentFailed() {
+        Booking pendingBooking = booking(BookingStatus.CREATED);
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(pending));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(pendingBooking));
+
+        service.markPaymentFailed("pi_123");
+
+        verify(publisher).paymentFailed(pendingBooking);
+    }
+
+    @Test
+    void paymentAlreadyFailedDoesNotPublishAgain() {
+        Payment failed = new Payment(pending.id(), bookingId, pending.amount(), "COP", "pi_123",
+            PaymentStatus.FAILED, pending.createdAt());
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(failed));
+
+        service.markPaymentFailed("pi_123");
+
+        verifyNoInteractions(publisher);
     }
 
     private Booking booking(BookingStatus status) {

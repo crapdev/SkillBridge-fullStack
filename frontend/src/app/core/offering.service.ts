@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { map, Observable } from 'rxjs';
 import { apiBase } from './api';
 
 export interface Offering {
@@ -11,7 +12,6 @@ export interface Offering {
   active: boolean;
 }
 
-/** Campos que el proveedor llena al crear o editar una mentoría */
 export interface OfferingInput {
   title: string;
   description: string;
@@ -27,12 +27,48 @@ export interface AvailabilitySlot {
   reserved: boolean;
 }
 
+export interface PageMetadata {
+  size: number;
+  number: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface PagedOfferings {
+  content: Offering[];
+  page: PageMetadata;
+}
+
+/** Campos que el proveedor llena al crear o editar una mentoría */
+export interface OfferingInput {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OfferingService {
   constructor(private http: HttpClient) {}
-  
-  // Catálogo público para los estudiantes
-  list() { return this.http.get<Offering[]>(`${apiBase()}/offerings`); }
+
+  // Catálogo público paginado
+  listPaged(page: number = 0, size: number = 9): Observable<PagedOfferings> {
+    const params = new HttpParams().set('page', page).set('size', size);
+    return this.http.get<PagedOfferings>(`${apiBase()}/offerings`, { params });
+  }
+
+  // Catálogo público compatible con vistas existentes
+  list(size: number = 1000): Observable<Offering[]> {
+    const params = new HttpParams().set('size', size);
+    return this.http.get<any>(`${apiBase()}/offerings`, { params }).pipe(
+      map(res => (Array.isArray(res) ? res : (res?.content ?? [])) as Offering[])
+    );
+  }
+
+  // Detalle de mentoría pública por ID (Criterio 7)
+  getById(id: string): Observable<Offering> {
+    return this.http.get<Offering>(`${apiBase()}/offerings/${id}`);
+  }
 
   // Horarios libres y futuros de una mentoría: los que el cliente puede reservar
   availableSlots(offeringId: string) {
