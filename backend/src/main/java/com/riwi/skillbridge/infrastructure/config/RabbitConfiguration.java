@@ -11,6 +11,9 @@ public class RabbitConfiguration {
     public static final String BOOKING_EXCHANGE = "booking.events";
     public static final String BOOKING_CREATED_QUEUE = "booking.created.queue";
     public static final String BOOKING_CREATED_KEY = "booking.created";
+    public static final String BOOKING_CANCELLED_KEY = "booking.cancelled";
+    public static final String BOOKING_PAID_KEY = "booking.paid";
+    public static final String PAYMENT_FAILED_KEY = "booking.payment-failed";
     public static final String DLX = "booking.dlx";
     public static final String DLQ = "booking.created.dlq";
     public static final String DLQ_KEY = "booking.created.failed";
