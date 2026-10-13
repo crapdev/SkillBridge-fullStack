@@ -37,7 +37,9 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
             toEmbeddables(offering.syllabus()),
             offering.durationMinutes(),
             offering.level(),
-            offering.workingDays()
+            offering.workingDays(),
+            offering.reviewStatus(),
+            offering.rejectionReason()
         );
         OfferingEntity saved = repository.save(entity);
         return toDomain(saved);
@@ -51,6 +53,7 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
         entity.updateDetails(offering.title(), offering.description(), offering.category(), offering.price());
         entity.updateProfile(toEmbeddables(offering.syllabus()), offering.durationMinutes(), offering.level(),
             offering.workingDays());
+        entity.updateReview(offering.reviewStatus(), offering.rejectionReason());
         return toDomain(repository.save(entity));
     }
 
@@ -106,7 +109,9 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
                 .toList(),
             e.getDurationMinutes(),
             e.getLevel(),
-            e.getWorkingDays()
+            e.getWorkingDays(),
+            e.getReviewStatus(),
+            e.getRejectionReason()
         );
     }
 

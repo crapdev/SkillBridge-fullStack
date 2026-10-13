@@ -11,6 +11,7 @@ import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.OfferingReviewStatus;
 import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import org.springframework.stereotype.Service;
 
@@ -51,7 +52,9 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
     public Offering createOffering(OfferingDraft draft, String providerEmail) {
         UUID providerId = getProviderId(providerEmail);
         validateDraft(draft);
-        Offering offering = toOffering(UUID.randomUUID(), providerId, true, draft);
+        // HU-21: toda mentoría nueva queda en revisión y no es visible hasta que un administrador la apruebe
+        Offering offering = toOffering(UUID.randomUUID(), providerId, true, draft,
+            OfferingReviewStatus.PENDING_REVIEW, null);
         Offering saved = offeringRepositoryPort.save(offering);
         // El catálogo público está en caché: sin invalidarlo, la mentoría nueva no aparece hasta que expire
         offeringCache.evictActiveOfferings();
@@ -72,8 +75,11 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         Offering existing = getOwnedOffering(offeringId, providerEmail);
         validateDraft(draft);
 
-        // Dueño, id y estado se conservan: el proveedor no puede cambiarlos desde el formulario
-        Offering changes = toOffering(existing.id(), existing.providerId(), existing.active(), draft);
+        // Dueño, id y estado se conservan: el proveedor no puede cambiarlos desde el formulario.
+        // HU-21: corregir una mentoría rechazada la reenvía a revisión; una aprobada sigue aprobada
+        Offering review = existing.resubmitted();
+        Offering changes = toOffering(existing.id(), existing.providerId(), existing.active(), draft,
+            review.reviewStatus(), review.rejectionReason());
         Offering updated = offeringRepositoryPort.update(changes);
         // El catálogo público está en caché: sin invalidarlo seguiría mostrando los datos viejos
         offeringCache.evictActiveOfferings();
@@ -190,7 +196,8 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
     }
 
     // Textos sin espacios sobrantes al inicio y al final
-    private static Offering toOffering(UUID id, UUID providerId, boolean active, OfferingDraft draft) {
+    private static Offering toOffering(UUID id, UUID providerId, boolean active, OfferingDraft draft,
+                                       OfferingReviewStatus reviewStatus, String rejectionReason) {
         return new Offering(
             id,
             providerId,
@@ -204,7 +211,9 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
                 .toList(),
             draft.durationMinutes(),
             draft.level(),
-            draft.workingDays()
+            draft.workingDays(),
+            reviewStatus,
+            rejectionReason
         );
     }
 
