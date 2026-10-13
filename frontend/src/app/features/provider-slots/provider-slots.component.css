@@ -7,7 +7,8 @@
 }
 
 .ps-hero {
-  padding: 40px 0 72px;
+  border-radius: 16px;
+  padding: 32px clamp(18px, 4cqi, 32px) 72px;
   color: #fff;
   background:
     radial-gradient(60% 60% at 85% 0%, rgba(56, 189, 248, 0.22), transparent 70%),
@@ -159,7 +160,7 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px
 @keyframes pop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
-@media (max-width: 860px) {
+@container (max-width: 860px) {
   .grid { grid-template-columns: 1fr; }
 }
 
@@ -171,3 +172,11 @@ input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px
 /* Inicio y fin de cada sesión: la hora de fin depende de la duración de la mentoría */
 .time__start { font-size: 0.95rem; line-height: 1.1; }
 .time__end { font-size: 0.7rem; font-weight: 500; opacity: 0.75; }
+
+/* Repetir las horas marcadas en los días de la mentoría durante varias semanas */
+.repeat { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.repeat__option { padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: #475467; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.repeat__option:hover { border-color: #93c5fd; }
+.repeat__option.active { border-color: var(--primary); background: #eff6ff; color: #1d4ed8; }
+.repeat__option:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.repeat__summary { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; font-size: 0.86rem; }

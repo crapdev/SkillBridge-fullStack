@@ -48,10 +48,10 @@
           <!-- PUBLICAR -->
           <div class="card">
             <h2>Publicar horarios</h2>
-            <p class="hint">Elige un día de la mentoría ({{ daysText().toLowerCase() }}) y marca las horas de inicio que quieras abrir.</p>
+            <p class="hint">Marca las horas de inicio una vez y repítelas en tus días ({{ daysText().toLowerCase() }}) durante las semanas que elijas.</p>
 
             <label class="field">
-              <span>Día</span>
+              <span>{{ repeatWeeks() ? 'Desde el día' : 'Día' }}</span>
               <input type="date" [min]="today" [value]="date()" (change)="setDate($any($event.target).value)">
             </label>
 
@@ -93,10 +93,31 @@
               <button type="button" class="btn btn--ghost" (click)="addCustomTime()" [disabled]="!customTime() || !dayAllowed()">Agregar otra hora</button>
             </div>
 
+            <!-- Repetir: las mismas horas en cada día que ofrece la mentoría, sin publicarlas día por día -->
+            <span class="field__label" id="repeat-label">Repetir</span>
+            <div class="repeat" role="radiogroup" aria-labelledby="repeat-label">
+              @for (option of repeatOptions; track option.weeks) {
+                <button type="button" class="repeat__option" role="radio" [class.active]="repeatWeeks() === option.weeks"
+                        [attr.aria-checked]="repeatWeeks() === option.weeks" (click)="setRepeat(option.weeks)">
+                  {{ option.label }}
+                </button>
+              }
+            </div>
+            @if (repeatWeeks() && selectedTimes().size) {
+              <p class="repeat__summary" aria-live="polite">
+                Las horas marcadas se publicarán en {{ targetDates().length }} {{ targetDates().length === 1 ? 'día' : 'días' }}
+                de la mentoría ({{ daysText().toLowerCase() }}) {{ repeatRange() }}. Las que ya estén publicadas
+                o se crucen con otra de tus sesiones se omiten.
+              </p>
+            }
+            @if (plannedCount() > maxBatch) {
+              <p class="day-warning" role="alert">Son {{ plannedCount() }} horarios: publica como máximo {{ maxBatch }} a la vez (elige menos semanas u horas).</p>
+            }
+
             <button type="button" class="btn btn--block" (click)="publish()"
-                    [disabled]="!selectedTimes().size || publishing() || !dayAllowed()">
+                    [disabled]="!plannedCount() || plannedCount() > maxBatch || publishing() || !dayAllowed()">
               @if (publishing()) { Publicando… }
-              @else if (selectedTimes().size) { Publicar {{ selectedTimes().size }} {{ selectedTimes().size === 1 ? 'horario' : 'horarios' }} }
+              @else if (plannedCount()) { Publicar {{ plannedCount() }} {{ plannedCount() === 1 ? 'horario' : 'horarios' }} }
               @else { Selecciona al menos una hora }
             </button>
           </div>

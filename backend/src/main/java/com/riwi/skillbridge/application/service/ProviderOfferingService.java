@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -127,6 +128,44 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         return saved;
     }
 
+    /** Horario que no se publicó en un lote y por qué */
+    public record SkippedSlot(Instant scheduledAt, String reason) {}
+
+    /** Resultado de publicar varios horarios: los creados y los omitidos */
+    public record SlotBatchResult(List<AvailabilitySlot> created, List<SkippedSlot> skipped) {}
+
+    /** Un horario ya ocupado del proveedor: de su inicio a su fin y de qué mentoría es */
+    private record BusySlot(Offering offering, Instant start, Instant end) {}
+
+    // PUBLISH SEVERAL SLOTS AT ONCE (THE SAME HOURS REPEATED ON THE DAYS THE OFFERING IS GIVEN)
+    /**
+     * Mismas reglas que {@link #addAvailabilitySlot}, pero un horario que no se puede publicar (pasado, día no
+     * ofrecido, ya publicado o cruzado con otra sesión) se omite con su motivo en vez de cancelar todo el lote.
+     * Los horarios ocupados se cargan una sola vez y los nuevos se suman, así también se detectan cruces entre ellos.
+     */
+    public SlotBatchResult addAvailabilitySlots(UUID offeringId, List<Instant> starts, String providerEmail) {
+        Offering offering = getOwnedOffering(offeringId, providerEmail);
+        Duration duration = Duration.ofMinutes(offering.durationMinutes());
+        List<BusySlot> busy = busySlots(offering.providerId());
+        Instant now = Instant.now();
+
+        List<AvailabilitySlot> created = new ArrayList<>();
+        List<SkippedSlot> skipped = new ArrayList<>();
+        for (Instant start : starts.stream().distinct().sorted().toList()) {
+            String reason = skipReason(offering, start, now, busy);
+            if (reason != null) {
+                skipped.add(new SkippedSlot(start, reason));
+                continue;
+            }
+            created.add(slotRepositoryPort.save(new AvailabilitySlot(UUID.randomUUID(), offeringId, start, false)));
+            busy.add(new BusySlot(offering, start, start.plus(duration)));
+        }
+        if (!created.isEmpty()) {
+            offeringCache.evictActiveOfferings();
+        }
+        return new SlotBatchResult(created, skipped);
+    }
+
     // SHOW AVAILABLE SLOTS TO CUSTOMERS (ONLY NOT RESERVED AND IN THE FUTURE)
     @Override
     public List<AvailabilitySlot> listAvailableSlots(UUID offeringId) {
@@ -221,6 +260,42 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
                 }
             }
         }
+    }
+
+    /** Por qué no se puede publicar un horario del lote (null = se puede) */
+    private static String skipReason(Offering offering, Instant start, Instant now, List<BusySlot> busy) {
+        if (!start.isAfter(now)) {
+            return "La fecha ya pasó";
+        }
+        DayOfWeek day = start.atZone(BUSINESS_ZONE).getDayOfWeek();
+        if (!offering.offersOn(day)) {
+            return "La mentoría no se ofrece los " + dayName(day);
+        }
+        Instant end = start.plus(Duration.ofMinutes(offering.durationMinutes()));
+        for (BusySlot other : busy) {
+            if (other.offering().id().equals(offering.id()) && other.start().equals(start)) {
+                return "Ya estaba publicado";
+            }
+            if (start.isBefore(other.end()) && other.start().isBefore(end)) {
+                String which = other.offering().id().equals(offering.id())
+                    ? "otra sesión de esta mentoría"
+                    : "una sesión de «" + other.offering().title() + "»";
+                return "Se cruza con " + which + " de " + HOUR.format(other.start()) + " a " + HOUR.format(other.end());
+            }
+        }
+        return null;
+    }
+
+    /** Todos los horarios del proveedor, de cualquiera de sus mentorías, con el intervalo que ocupan */
+    private List<BusySlot> busySlots(UUID providerId) {
+        List<BusySlot> busy = new ArrayList<>();
+        for (Offering own : offeringRepositoryPort.findByProviderId(providerId)) {
+            Duration ownDuration = Duration.ofMinutes(own.durationMinutes());
+            for (AvailabilitySlot slot : slotRepositoryPort.findByOfferingId(own.id())) {
+                busy.add(new BusySlot(own, slot.scheduledAt(), slot.scheduledAt().plus(ownDuration)));
+            }
+        }
+        return busy;
     }
 
     // Textos sin espacios sobrantes al inicio y al final

@@ -42,6 +42,12 @@ export interface AvailabilitySlot {
   reserved: boolean;
 }
 
+/** Resultado de publicar horarios en lote: los creados y los omitidos con su motivo */
+export interface SlotBatchResult {
+  created: AvailabilitySlot[];
+  skipped: { scheduledAt: string; reason: string }[];
+}
+
 export interface PageMetadata {
   size: number;
   number: number;
@@ -119,6 +125,11 @@ export class OfferingService {
 
   addProviderSlot(offeringId: string, scheduledAt: string) {
     return this.http.post<AvailabilitySlot>(`${apiBase()}/provider/offerings/${offeringId}/slots`, { scheduledAt });
+  }
+
+  /** Varios horarios de una vez: los que no se pueden publicar vuelven en "skipped" con su motivo */
+  addProviderSlots(offeringId: string, scheduledAt: string[]) {
+    return this.http.post<SlotBatchResult>(`${apiBase()}/provider/offerings/${offeringId}/slots/batch`, { scheduledAt });
   }
 
   deleteProviderSlot(offeringId: string, slotId: string) {

@@ -25,7 +25,24 @@ const PERIODS = [
 const toMinutes = (time: string) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
 const toTime = (minutes: number) => `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
+/**
+ * Las horas marcadas se pueden repetir en todos los días que ofrece la mentoría durante varias semanas,
+ * así el proveedor no tiene que publicarlas día por día. 0 = solo el día elegido.
+ */
+export const REPEAT_OPTIONS = [
+  { weeks: 0, label: 'Solo este día' },
+  { weeks: 1, label: '1 semana' },
+  { weeks: 2, label: '2 semanas' },
+  { weeks: 4, label: '4 semanas' },
+  { weeks: 8, label: '8 semanas' }
+];
+/** Mismo límite que el backend por petición */
+export const MAX_BATCH = 500;
+/** Motivos de horarios omitidos que se muestran; el resto se resume en "y N más" */
+const MAX_SKIPPED_SHOWN = 4;
+
 const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+const shortDayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const pad = (n: number) => String(n).padStart(2, '0');
 /** Fecha local en formato yyyy-mm-dd, el que usa <input type="date"> */
@@ -54,6 +71,34 @@ export class ProviderSlotsComponent implements OnInit {
   readonly date = signal(toDateInput(new Date(Date.now() + 86_400_000)));
   readonly selectedTimes = signal(new Set<string>());
   readonly customTime = signal('');
+
+  // ---- Repetir las horas en los días que ofrece la mentoría ----
+  readonly repeatOptions = REPEAT_OPTIONS;
+  readonly maxBatch = MAX_BATCH;
+  readonly repeatWeeks = signal(4);
+
+  /** Días en que se publicarán las horas marcadas: el elegido o, al repetir, cada día ofrecido de esas semanas */
+  readonly targetDates = computed(() => {
+    const weeks = this.repeatWeeks();
+    if (!weeks) return [this.date()];
+    const dates: string[] = [];
+    const d = this.dateOf(this.date());
+    for (let i = 0; i < weeks * 7; i++) {
+      if (this.workingDays().includes(weekDayOf(d))) dates.push(toDateInput(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  });
+
+  /** Cuántos horarios se enviarán (los que ya pasaron no cuentan) */
+  readonly plannedCount = computed(() => this.plannedInstants().length);
+
+  /** "del 14 de oct. al 8 de nov." para el resumen de la repetición */
+  readonly repeatRange = computed(() => {
+    const dates = this.targetDates();
+    const format = (date: string) => shortDayFormat.format(this.dateOf(date));
+    return dates.length > 1 ? `del ${format(dates[0])} al ${format(dates[dates.length - 1])}` : '';
+  });
 
   /**
    * Horas de inicio que se proponen según la duración de la mentoría, más las personalizadas que agregó el
@@ -194,30 +239,53 @@ export class ProviderSlotsComponent implements OnInit {
 
   // ---- Publicar y borrar ----
 
+  setRepeat(weeks: number): void { this.repeatWeeks.set(weeks); }
+
+  /**
+   * Todas las horas marcadas en todos los días de destino van en una sola petición. El backend valida cada una
+   * (cruces con cualquier mentoría del proveedor, duplicados…) y omite las que no se pueden publicar sin cancelar
+   * el resto, así repetir varias semanas no falla por un solo día ocupado.
+   */
   publish(): void {
-    const times = [...this.selectedTimes()].sort();
-    if (!times.length || this.publishing() || !this.dayAllowed()) return;
+    const instants = this.plannedInstants();
+    if (!instants.length || instants.length > MAX_BATCH || this.publishing() || !this.dayAllowed()) return;
     this.publishing.set(true);
 
-    // Cada horario se publica por separado: si uno falla (p. ej. duplicado), los demás siguen
-    forkJoin(times.map(time =>
-      this.offerings.addProviderSlot(this.offeringId, this.toInstant(time).toISOString()).pipe(
-        map(slot => ({ slot, error: null as string | null })),
-        catchError(e => of({ slot: null, error: `${time}: ${e?.error?.detail || 'no se pudo publicar'}` }))
-      )
-    )).subscribe(results => {
-      const created = results.flatMap(r => r.slot ? [r.slot] : []);
-      const errors = results.flatMap(r => r.error ? [r.error] : []);
-      this.slots.update(list => [...list, ...created]);
-      this.selectedTimes.set(new Set());
-      this.publishing.set(false);
+    this.offerings.addProviderSlots(this.offeringId, instants).subscribe({
+      next: ({ created, skipped }) => {
+        this.slots.update(list => [...list, ...created]);
+        this.selectedTimes.set(new Set());
+        this.publishing.set(false);
 
-      if (created.length) {
-        this.alerts.success(created.length === 1 ? 'Horario publicado' : `${created.length} horarios publicados`,
-          'Los clientes ya pueden reservarlos.');
+        if (created.length) {
+          this.alerts.success(created.length === 1 ? 'Horario publicado' : `${created.length} horarios publicados`,
+            'Los clientes ya pueden reservarlos.');
+        }
+        if (skipped.length) {
+          const shown = skipped.slice(0, MAX_SKIPPED_SHOWN)
+            .map(s => `${shortDayFormat.format(new Date(s.scheduledAt))} ${toTime(new Date(s.scheduledAt).getHours() * 60 + new Date(s.scheduledAt).getMinutes())}: ${s.reason}`);
+          const more = skipped.length - shown.length;
+          const title = skipped.length === 1 ? '1 horario no se publicó' : `${skipped.length} horarios no se publicaron`;
+          const detail = shown.join(' · ') + (more > 0 ? ` · y ${more} más` : '');
+          // Si al menos uno salió bien, lo omitido es un aviso; si no salió ninguno, es un error
+          created.length ? this.alerts.info(title, detail) : this.alerts.error(title, detail);
+        }
+      },
+      error: e => {
+        this.publishing.set(false);
+        this.alerts.error('No se pudieron publicar los horarios', e?.error?.detail || 'Inténtalo de nuevo.');
       }
-      if (errors.length) this.alerts.error('Algunos horarios no se publicaron', errors.join(' · '));
     });
+  }
+
+  /** Inicio de cada horario a publicar (día de destino × hora marcada), sin los que ya pasaron */
+  private plannedInstants(): string[] {
+    const times = [...this.selectedTimes()].sort();
+    const now = Date.now();
+    return this.targetDates()
+      .flatMap(date => times.map(time => this.instantOn(date, time)))
+      .filter(instant => instant.getTime() > now)
+      .map(instant => instant.toISOString());
   }
 
   remove(slot: AvailabilitySlot): void {
@@ -265,6 +333,10 @@ export class ProviderSlotsComponent implements OnInit {
 
   /** Combina el día elegido y una hora "HH:mm" en un instante de la zona horaria del navegador */
   private toInstant(time: string): Date {
-    return new Date(`${this.date()}T${time}`);
+    return this.instantOn(this.date(), time);
+  }
+
+  private instantOn(date: string, time: string): Date {
+    return new Date(`${date}T${time}`);
   }
 }

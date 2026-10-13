@@ -3,6 +3,7 @@ package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 import com.riwi.skillbridge.application.port.in.OfferingDraft;
 import com.riwi.skillbridge.application.service.ProviderOfferingService;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
+import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.domain.model.OfferingLevel;
 import com.riwi.skillbridge.domain.model.SyllabusTopic;
@@ -223,5 +224,43 @@ class OfferingProfileControllerTest {
                         .content("{\"scheduledAt\":\"2099-01-03T14:00:00Z\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value("Esta mentoría solo se ofrece los días lunes y miércoles. El sábado no está entre ellos"));
+    }
+
+    // ==========================================
+    // HORARIOS EN LOTE
+    // ==========================================
+
+    @Test
+    @WithMockUser(username = EMAIL, roles = "PROVIDER")
+    void addSlots_ShouldReturnCreatedAndSkipped() throws Exception {
+        Instant monday = Instant.parse("2099-01-05T14:00:00Z");
+        Instant tuesday = Instant.parse("2099-01-06T14:00:00Z");
+        when(service.addAvailabilitySlots(ID, List.of(monday, tuesday), EMAIL)).thenReturn(
+                new ProviderOfferingService.SlotBatchResult(
+                        List.of(new AvailabilitySlot(UUID.randomUUID(), ID, monday, false)),
+                        List.of(new ProviderOfferingService.SkippedSlot(tuesday, "Ya estaba publicado"))));
+
+        mockMvc.perform(post(URL + "/" + ID + "/slots/batch").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"scheduledAt\":[\"2099-01-05T14:00:00Z\",\"2099-01-06T14:00:00Z\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created.length()").value(1))
+                .andExpect(jsonPath("$.skipped[0].reason").value("Ya estaba publicado"));
+    }
+
+    @Test
+    @WithMockUser(username = EMAIL, roles = "PROVIDER")
+    void addSlots_ShouldReturn400_WhenListIsEmpty() throws Exception {
+        mockMvc.perform(post(URL + "/" + ID + "/slots/batch").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"scheduledAt\":[]}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
+    }
+
+    @Test
+    @WithMockUser(username = EMAIL, roles = "CUSTOMER")
+    void addSlots_ShouldReturn403_ForCustomers() throws Exception {
+        mockMvc.perform(post(URL + "/" + ID + "/slots/batch").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"scheduledAt\":[\"2099-01-05T14:00:00Z\"]}"))
+                .andExpect(status().isForbidden());
     }
 }
