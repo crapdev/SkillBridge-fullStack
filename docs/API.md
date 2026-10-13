@@ -6,7 +6,11 @@ Base path: `/api`
 |---|---|---|---|
 | POST | `/auth/register` | Public | Register CUSTOMER and return JWT |
 | POST | `/auth/login` | Public | Login and return JWT |
-| GET | `/offerings` | Public | Active catalog; Redis-backed |
+| GET | `/offerings` | Public | Active catalog (paged); each item includes the offering profile (HU-20) |
+| GET | `/offerings/{id}` | Public | Offering detail with syllabus, duration, level and working days |
+| POST | `/provider/offerings` | PROVIDER | Create offering with its full profile (HU-20) |
+| PUT | `/provider/offerings/{id}` | PROVIDER | Edit own offering and its profile (HU-19 / HU-20) |
+| POST | `/provider/offerings/{id}/slots` | PROVIDER | Publish a slot; only on the offering working days (HU-20) |
 | POST | `/bookings` | Bearer JWT | Persist booking and publish event |
 | POST | `/ai/recommendations` | Bearer JWT | Generate catalog-grounded recommendation |
 
@@ -40,16 +44,48 @@ Permite a un cliente autenticado cancelar una reserva propia.
 - `404 Not Found`: La reserva con el ID indicado no existe.
 - `422 Unprocessable Entity`: Violación de regla de negocio (ej: ya cancelada, completada, o fuera del margen de 24 horas).
 
+## Mentorías del proveedor (contrato HU-20)
+
+Requieren Bearer JWT con rol `PROVIDER`. Detalle completo, reglas y ejemplos en
+[`HU-20-ficha-completa-de-la-mentoria.md`](HU-20-ficha-completa-de-la-mentoria.md).
+
+`POST /api/provider/offerings` y `PUT /api/provider/offerings/{id}` reciben el mismo cuerpo:
+
+```json
+{
+  "title": "Kubernetes desde cero",
+  "description": "Primeros pasos con pods y despliegues",
+  "category": "CLOUD",
+  "price": 90000,
+  "syllabus": [
+    { "title": "Pods", "description": "Qué son y cómo se crean" },
+    { "title": "Deployments", "description": "Réplicas y actualizaciones" }
+  ],
+  "durationMinutes": 90,
+  "level": "INTERMEDIO",
+  "workingDays": ["MONDAY", "WEDNESDAY"]
+}
+```
+
+| Campo | Regla |
+|---|---|
+| `syllabus` | 2 a 12 temas; cada uno con `title` (máx. 120) y `description` (máx. 300) |
+| `durationMinutes` | 30 a 240 |
+| `level` | `BASICO`, `INTERMEDIO` o `AVANZADO` |
+| `workingDays` | Al menos un día: `MONDAY` … `SUNDAY` |
+
+**Respuestas:** `201`/`200` con la mentoría completa · `400` si falla una regla (p. ej. `"syllabus: El temario debe tener al menos 2 temas"`) · `403` si la mentoría es de otro proveedor · `404` si no existe.
+
+`POST /api/provider/offerings/{id}/slots` responde `422` si la fecha (en hora de Colombia) cae en un día que la mentoría no ofrece.
+
+Crear, editar o eliminar una mentoría y publicar o borrar horarios invalidan la caché del catálogo público (`OfferingCachePort`).
+
 ## Suggested next endpoints
 
 ```text
-POST   /api/provider/offerings
-PUT    /api/provider/offerings/{id}
 PATCH  /api/provider/offerings/{id}/status
 GET    /api/admin/metrics/business
 ```
-
-The provider write endpoints should invalidate the public offerings cache through `OfferingCachePort`.
 
 ## Admin Users Endpoints
 

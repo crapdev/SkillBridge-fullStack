@@ -5,7 +5,9 @@ import com.riwi.skillbridge.domain.exception.AiProviderException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,6 +67,27 @@ public class GlobalExceptionHandler {
                 .findFirst().orElse("Solicitud inválida");
         ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         p.setTitle("Validation error");
+        return p;
+    }
+
+    // JSON mal formado o un valor que no existe (p. ej. nivel "EXPERTO" o día "LUNES"): 400 con el campo y los valores válidos
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ProblemDetail unreadable(HttpMessageNotReadableException ex) {
+        String detail = "El cuerpo de la solicitud no tiene un formato válido";
+        if (ex.getCause() instanceof InvalidFormatException invalid && invalid.getTargetType() != null) {
+            String field = invalid.getPath().stream()
+                    .map(ref -> ref.getFieldName() != null ? ref.getFieldName() : "[" + ref.getIndex() + "]")
+                    .reduce((a, b) -> b.startsWith("[") ? a + b : a + "." + b)
+                    .orElse("valor");
+            detail = field + ": valor no permitido '" + invalid.getValue() + "'";
+            if (invalid.getTargetType().isEnum()) {
+                detail += ". Usa uno de: " + java.util.Arrays.stream(invalid.getTargetType().getEnumConstants())
+                        .map(String::valueOf)
+                        .collect(java.util.stream.Collectors.joining(", "));
+            }
+        }
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        p.setTitle("Bad request");
         return p;
     }
 

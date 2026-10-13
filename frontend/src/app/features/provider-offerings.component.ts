@@ -1,10 +1,14 @@
 import { Component, ElementRef, OnInit, inject, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { OfferingService, Offering, OfferingInput } from '../core/offering.service';
+import { OfferingService, Offering, OfferingInput, OfferingLevel, SyllabusTopic, WeekDay } from '../core/offering.service';
 import { AlertService } from '../shared/alert.service';
+import {
+  DURATION_OPTIONS, LEVELS, MAX_TOPICS, MIN_TOPICS, PLATFORM_COMMISSION, WEEK_DAYS,
+  formatDays, formatDuration, formatPrice, levelLabel, platformFee, providerEarnings, sortDays
+} from '../shared/offering-format';
 
 /** El backend rechaza precios en cero o negativos; el formulario aplica la misma regla */
 function positivePrice(control: AbstractControl): ValidationErrors | null {
@@ -18,6 +22,19 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
   const value = control.value;
   return typeof value === 'string' && value.trim() === '' ? { required: true } : null;
 }
+
+/** El temario necesita al menos 2 temas (HU-20); el backend responde 400 con menos */
+function minTopics(control: AbstractControl): ValidationErrors | null {
+  return (control as FormArray).length >= MIN_TOPICS ? null : { minTopics: true };
+}
+
+/** Al menos un día de la semana */
+function someDay(control: AbstractControl): ValidationErrors | null {
+  return Array.isArray(control.value) && control.value.length > 0 ? null : { required: true };
+}
+
+const WEEKDAYS: WeekDay[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+const ALL_DAYS: WeekDay[] = WEEK_DAYS.map(d => d.value);
 
 const plural = (n: number, singular: string, pluralForm: string) => `${n} ${n === 1 ? singular : pluralForm}`;
 
@@ -51,156 +68,28 @@ function deleteErrorMessage(err: HttpErrorResponse): { title: string; message: s
   selector: 'app-provider-offerings',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <section class="container section">
-      <div class="dashboard-header">
-        <h1>Panel de Mentorías</h1>
-        <p class="muted">Crea nuevos servicios y gestiona tu catálogo actual.</p>
-      </div>
-
-      <div class="dashboard-grid">
-        <!-- Formulario para crear o editar una mentoría -->
-        <div #formCard class="card form-card" [class.editing]="isEditing">
-          <div class="form-heading">
-            <h2>{{ isEditing ? 'Editar Mentoría' : 'Nueva Mentoría' }}</h2>
-            @if (isEditing) {
-              <span class="badge badge-editing">Editando</span>
-            }
-          </div>
-          @if (isEditing) {
-            <p class="muted small">Los cambios se verán en el catálogo apenas guardes.</p>
-          }
-
-          @if (successMessage) {
-            <div class="alert alert-success" role="status">{{ successMessage }}</div>
-          }
-          @if (errorMessage) {
-            <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
-          }
-
-          <form [formGroup]="offeringForm" (ngSubmit)="onSubmit()" novalidate>
-            <div class="form-group">
-              <label for="title">Título</label>
-              <input type="text" id="title" formControlName="title" maxlength="160" placeholder="Ej. Mentoría Java Backend">
-              @if (showError('title')) { <small class="field-error">El título es obligatorio.</small> }
-            </div>
-
-            <div class="form-group">
-              <label for="category">Categoría</label>
-              <select id="category" formControlName="category">
-                <option value="">Selecciona una categoría</option>
-                <option value="BACKEND">Backend</option>
-                <option value="FRONTEND">Frontend</option>
-                <option value="CLOUD">Cloud / DevOps</option>
-              </select>
-              @if (showError('category')) { <small class="field-error">Selecciona una categoría.</small> }
-            </div>
-
-            <div class="form-group">
-              <label for="price">Precio (COP)</label>
-               <p class="field-note">
-                Ten en cuenta que SkillBridge cobra una comisión del <strong>10%</strong>
-                por cada mentoría realizada.
-               </p>
-              <input type="number" id="price" formControlName="price" placeholder="Ej. 85000">
-              <input type="number" id="price" formControlName="price" min="1" step="1000" placeholder="Ej. 85000">
-              @if (showError('price')) { <small class="field-error">El precio es obligatorio y debe ser mayor a cero.</small> }
-            </div>
-
-            <div class="form-group">
-              <label for="description">Descripción</label>
-              <textarea id="description" formControlName="description" rows="3" maxlength="1200" placeholder="¿Qué aprenderá el estudiante?"></textarea>
-              @if (showError('description')) { <small class="field-error">La descripción es obligatoria.</small> }
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100" [disabled]="offeringForm.invalid || isSubmitting">
-              {{ submitLabel }}
-            </button>
-            @if (isEditing) {
-              <button type="button" class="btn btn-outline w-100 mt-8" (click)="cancelEdit()" [disabled]="isSubmitting">
-                Cancelar edición
-              </button>
-            }
-          </form>
-        </div>
-
-        <!-- Lista de mentorías extraída de la Base de Datos -->
-        <div class="card list-card">
-          <h2>Mis Mentorías Activas</h2>
-          <p class="muted small hint">Solo puedes eliminar mentorías sin horarios reservados.</p>
-
-          <div class="offerings-list">
-            @for (offering of myOfferings; track offering.id) {
-              <div class="offering-item" [class.selected]="offering.id === editingId">
-                <div class="offering-info">
-                  <h3>{{ offering.title }}</h3>
-                  <span class="badge">{{ offering.category }}</span>
-                  <p class="price">{{ formatPrice(offering.price) }}</p>
-                </div>
-                <div class="offering-actions">
-                  <button type="button" class="btn btn-outline btn-sm" (click)="startEdit(offering)"
-                          [disabled]="offering.id === editingId">Editar</button>
-                  <a class="btn btn-outline btn-sm" [routerLink]="['/provider/offerings', offering.id, 'horarios']">Horarios</a>
-                  <button type="button" class="btn btn-danger btn-sm" (click)="deleteOffering(offering)"
-                          [disabled]="deletingId === offering.id">
-                    {{ deletingId === offering.id ? 'Eliminando...' : 'Eliminar' }}
-                  </button>
-                </div>
-              </div>
-            } @empty {
-              <p class="muted">No tienes mentorías publicadas aún. ¡Crea la primera!</p>
-            }
-          </div>
-        </div>
-      </div>
-    </section>
-  `,
-  styles: [`
-    .section { padding: 40px 20px; }
-    .dashboard-header { margin-bottom: 30px; }
-    .dashboard-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; align-items: start; }
-    @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
-    .card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e7ebf0; }
-    .form-card.editing { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
-    .form-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .small { font-size: 0.85rem; margin: 4px 0 16px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
-    .field-note { font-size: 0.85rem; line-height: 1.4; color: #667085; margin: 0 0 8px 0; }
-    .field-note strong { color: #13213c; }
-    .form-group input.ng-invalid.ng-touched, .form-group select.ng-invalid.ng-touched, .form-group textarea.ng-invalid.ng-touched { border-color: #dc2626; }
-    .field-error { display: block; margin-top: 6px; color: #b91c1c; font-size: 0.8rem; }
-    .w-100 { width: 100%; }
-    .mt-8 { margin-top: 8px; }
-    .btn { padding: 10px 16px; border-radius: 6px; cursor: pointer; border: none; font-weight: 600; }
-    .btn-primary { background: #000; color: #fff; }
-    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-    .btn-outline { background: transparent; border: 1px solid #000; color: #000; text-align: center; text-decoration: none; }
-    .btn-outline:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    .btn-danger:disabled { opacity: .6; cursor: not-allowed; }
-    .hint { margin: 4px 0 0; }
-    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
-    .alert { padding: 12px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; }
-    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .offerings-list { display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
-    .offering-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border: 1px solid #e7ebf0; border-radius: 8px; }
-    .offering-item.selected { border-color: #2563eb; background: #f5f8ff; }
-    .offering-info h3 { margin: 0 0 8px 0; font-size: 1.1rem; }
-    .badge { background: #f3f6fb; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
-    .badge-editing { background: #e8efff; color: #1d4ed8; }
-    .price { font-weight: bold; margin-top: 8px; color: #2563eb; }
-    .offering-actions { display: flex; flex-direction: column; gap: 8px; }
-  `]
+  templateUrl: './provider-offerings.component.html',
+  styleUrls: ['./provider-offerings.component.css']
 })
 export class ProviderOfferingsComponent implements OnInit {
   offeringForm: FormGroup;
   offeringService = inject(OfferingService);
   private readonly alerts = inject(AlertService);
   private readonly formCard = viewChild<ElementRef<HTMLElement>>('formCard');
-  private readonly priceFormat = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+
+  // Opciones y textos de la ficha (HU-20)
+  readonly levels = LEVELS;
+  readonly weekDays = WEEK_DAYS;
+  readonly durationOptions = DURATION_OPTIONS;
+  readonly minTopics = MIN_TOPICS;
+  readonly maxTopics = MAX_TOPICS;
+  readonly weekdays = WEEKDAYS;
+  readonly allDays = ALL_DAYS;
+  readonly commissionPercent = Math.round(PLATFORM_COMMISSION * 100);
+  readonly formatPrice = formatPrice;
+  readonly formatDuration = formatDuration;
+  readonly formatDays = formatDays;
+  readonly levelLabel = levelLabel;
 
   isSubmitting = false;
   successMessage = '';
@@ -216,7 +105,62 @@ export class ProviderOfferingsComponent implements OnInit {
       title: ['', [Validators.required, notBlank, Validators.maxLength(160)]],
       category: ['', Validators.required],
       price: [null as number | null, [Validators.required, positivePrice]],
-      description: ['', [Validators.required, notBlank, Validators.maxLength(1200)]]
+      description: ['', [Validators.required, notBlank, Validators.maxLength(1200)]],
+      // ---- Ficha de la mentoría (HU-20) ----
+      level: ['BASICO' as OfferingLevel, Validators.required],
+      durationMinutes: [60, Validators.required],
+      workingDays: [[...WEEKDAYS], someDay],
+      syllabus: this.fb.array([this.topicGroup(), this.topicGroup()], minTopics)
+    });
+  }
+
+  get syllabus(): FormArray { return this.offeringForm.get('syllabus') as FormArray; }
+
+  /** Lo que recibe el proveedor por sesión después de la comisión; null mientras el precio no sea válido */
+  earnings(): { price: number; net: number; fee: number } | null {
+    const price = Number(this.offeringForm.get('price')?.value);
+    if (!Number.isFinite(price) || price <= 0) return null;
+    return { price, net: providerEarnings(price), fee: platformFee(price) };
+  }
+
+  // ---- Temario dinámico ----
+
+  addTopic(topic?: SyllabusTopic) {
+    if (this.syllabus.length >= MAX_TOPICS) return;
+    this.syllabus.push(this.topicGroup(topic));
+  }
+
+  removeTopic(index: number) {
+    if (this.syllabus.length <= MIN_TOPICS) return;
+    this.syllabus.removeAt(index);
+  }
+
+  topicHasError(index: number): boolean {
+    const group = this.syllabus.at(index);
+    return group.invalid && group.touched;
+  }
+
+  // ---- Días de la semana ----
+
+  hasDay(day: WeekDay): boolean {
+    return (this.offeringForm.get('workingDays')?.value as WeekDay[]).includes(day);
+  }
+
+  toggleDay(day: WeekDay) {
+    const days = this.offeringForm.get('workingDays')?.value as WeekDay[];
+    this.setDays(days.includes(day) ? days.filter(d => d !== day) : [...days, day]);
+  }
+
+  setDays(days: WeekDay[]) {
+    const control = this.offeringForm.get('workingDays')!;
+    control.setValue(sortDays(days));
+    control.markAsTouched();
+  }
+
+  private topicGroup(topic?: SyllabusTopic): FormGroup {
+    return this.fb.group({
+      title: [topic?.title ?? '', [Validators.required, notBlank, Validators.maxLength(120)]],
+      description: [topic?.description ?? '', [Validators.required, notBlank, Validators.maxLength(300)]]
     });
   }
 
@@ -243,20 +187,11 @@ export class ProviderOfferingsComponent implements OnInit {
     return !!control && control.invalid && (control.touched || control.dirty);
   }
 
-  formatPrice(price: number): string {
-    return this.priceFormat.format(price);
-  }
-
   /** Carga la mentoría en el formulario para editarla */
   startEdit(offering: Offering) {
     this.editingId = offering.id;
     this.clearMessages();
-    this.offeringForm.reset({
-      title: offering.title,
-      category: offering.category,
-      price: offering.price,
-      description: offering.description
-    });
+    this.fillForm(offering);
     this.formCard()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -338,10 +273,11 @@ export class ProviderOfferingsComponent implements OnInit {
         this.isSubmitting = false;
         this.loadOfferings(); // Recarga la lista automáticamente
       },
-      error: (err) => {
-        this.errorMessage = 'Ocurrió un error al publicar la mentoría.';
+      error: (err: HttpErrorResponse) => {
+        this.errorMessage = err.status === 400 && err.error?.detail
+          ? `Revisa los datos: ${err.error.detail}`
+          : 'Ocurrió un error al publicar la mentoría.';
         this.isSubmitting = false;
-        console.error(err);
       }
     });
   }
@@ -378,19 +314,48 @@ export class ProviderOfferingsComponent implements OnInit {
     }
   }
 
-  /** Valores limpios: sin espacios sobrantes y con el precio como número */
+  /** Valores limpios: sin espacios sobrantes, precio y duración como número y días en orden */
   private formValue(): OfferingInput {
-    const { title, description, category, price } = this.offeringForm.value;
+    const { title, description, category, price, level, durationMinutes, workingDays, syllabus } = this.offeringForm.value;
     return {
       title: String(title).trim(),
       description: String(description).trim(),
       category,
-      price: Number(price)
+      price: Number(price),
+      syllabus: (syllabus as SyllabusTopic[]).map(t => ({ title: t.title.trim(), description: t.description.trim() })),
+      durationMinutes: Number(durationMinutes),
+      level,
+      workingDays: sortDays(workingDays)
     };
   }
 
+  /** Llena el formulario con la mentoría a editar; el temario siempre muestra al menos 2 filas */
+  private fillForm(offering: Offering) {
+    const topics = offering.syllabus ?? [];
+    this.syllabus.clear();
+    topics.slice(0, MAX_TOPICS).forEach(t => this.syllabus.push(this.topicGroup(t)));
+    while (this.syllabus.length < MIN_TOPICS) this.syllabus.push(this.topicGroup());
+
+    this.offeringForm.reset({
+      title: offering.title,
+      category: offering.category,
+      price: offering.price,
+      description: offering.description,
+      level: offering.level ?? 'BASICO',
+      durationMinutes: offering.durationMinutes ?? 60,
+      workingDays: sortDays(offering.workingDays ?? ALL_DAYS),
+      syllabus: this.syllabus.value
+    });
+  }
+
   private resetForm() {
-    this.offeringForm.reset({ title: '', category: '', price: null, description: '' });
+    this.syllabus.clear();
+    this.syllabus.push(this.topicGroup());
+    this.syllabus.push(this.topicGroup());
+    this.offeringForm.reset({
+      title: '', category: '', price: null, description: '',
+      level: 'BASICO', durationMinutes: 60, workingDays: [...WEEKDAYS]
+    });
   }
 
   private clearMessages() {
