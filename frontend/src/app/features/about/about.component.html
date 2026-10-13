@@ -1,65 +1,246 @@
-<!-- HERO -->
+<!-- HERO CON STATS RIBBON -->
 <section class="about-hero">
   <div class="about-hero__glow" aria-hidden="true"></div>
+  <div class="about-hero__glow-secondary" aria-hidden="true"></div>
   <div class="container about-hero__inner">
-    <p class="pill enter" style="--i: 0">
+    <div class="pill enter" style="--i: 0">
       <span class="pill__dot" aria-hidden="true"></span>
-      Sobre nosotros
-    </p>
+      <span>Sobre nosotros · Proyecto Integrador Riwi</span>
+    </div>
+
     <h1 class="enter" style="--i: 1">
-      Conectamos talento técnico
-      <span class="highlight">con quienes quieren crecer.</span>
+      El puente entre el conocimiento experto
+      <span class="highlight">y quienes quieren crecer sin rodeos.</span>
     </h1>
+
     <p class="about-hero__lead enter" style="--i: 2">
-      SkillBridge AI es una plataforma de mentorías y servicios profesionales donde puedes descubrir
-      especialistas, reservar una sesión y recibir recomendaciones con inteligencia artificial.
+      En SkillBridge AI transformamos días de búsqueda solitaria en minutos de aprendizaje 1:1 en vivo.
+      Conectamos desarrolladores júnior con mentores sénior verificados mediante recomendaciones de IA,
+      agendas automáticas y pagos protegidos.
     </p>
-  </div>
-</section>
 
-<!-- ORIGEN -->
-<section class="about-section">
-  <div class="container story">
-    <div appReveal>
-      <span class="eyebrow">Nuestra historia</span>
-      <h2>Nacimos como un proyecto integrador</h2>
-    </div>
-    <div class="story__text" appReveal [revealDelay]="120">
-      <p>
-        SkillBridge AI surge como proyecto integrador de arquitectura y computación en la nube.
-        Elegimos un dominio cercano, las mentorías técnicas, para que cada tecnología resolviera
-        un problema real y no fuera solo un ejercicio.
-      </p>
-      <p>
-        El resultado es una plataforma construida con las prácticas que usan los equipos profesionales:
-        arquitectura limpia, seguridad, pruebas automáticas y despliegue con contenedores.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- QUÉ HACEMOS -->
-<section class="about-section about-section--alt">
-  <div class="container">
-    <header class="section-head" appReveal>
-      <span class="eyebrow">Qué hacemos</span>
-      <h2>Tres formas de acelerar tu desarrollo</h2>
-    </header>
-    <div class="pillars">
-      @for (pillar of pillars; track pillar.title; let i = $index) {
-        <article class="pillar" appReveal [revealDelay]="i * 100">
-          <span class="pillar__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path [attr.d]="pillar.icon" /></svg>
-          </span>
-          <h3>{{ pillar.title }}</h3>
-          <p>{{ pillar.text }}</p>
-        </article>
+    <!-- Barra de Métricas de Confianza -->
+    <div class="stats-ribbon enter" style="--i: 3">
+      @for (stat of platformStats; track stat.label) {
+      <div class="stat-card">
+        <div class="stat-card__value">{{ stat.value }}</div>
+        <div class="stat-card__label">{{ stat.label }}</div>
+        <div class="stat-card__note">{{ stat.note }}</div>
+      </div>
       }
     </div>
   </div>
 </section>
 
-<!-- CÓMO TRABAJAMOS -->
+<!-- ORIGEN / HISTORIA (EL PROBLEMA Y EL PUENTE) -->
+<section class="about-section">
+  <div class="container">
+    <div class="story-grid">
+      <div class="story-highlight" appReveal>
+        <div class="quote-badge">El Propósito</div>
+        <blockquote>
+          «Menos tiempo buscando, más tiempo aprendiendo.»
+        </blockquote>
+        <p class="quote-caption">
+          El conocimiento existe y la demanda existe. SkillBridge AI nace para derribar la barrera entre ambos.
+        </p>
+        <div class="quote-tag">
+          <span class="tag-dot"></span>
+          <span>Especializado en Backend, Frontend y Cloud</span>
+        </div>
+      </div>
+
+      <div class="story-narrative" appReveal [revealDelay]="120">
+        <span class="eyebrow">Nuestra Historia</span>
+        <h2>De un problema real a una solución de ingeniería</h2>
+        <p>
+          Quien aprende hoy suele enfrentarse a un dilema: los cursos de 40 horas no resuelven bloqueos
+          específicos en Spring Boot, Angular o Cloud, y buscar ayuda en grupos de chat o LinkedIn significa
+          días de mensajes sin respuesta o negociaciones informales.
+        </p>
+        <p>
+          Al mismo tiempo, desarrolladores experimentados quieren compartir su experiencia y generar ingresos
+          adicionales, pero pierden horas coordinando horarios a mano.
+        </p>
+        <p>
+          En <strong>Riwi</strong> decidimos construir una plataforma profesional con arquitectura limpia,
+          seguridad por diseño, pruebas automáticas y una inteligencia artificial que orienta con transparencia
+          sin inventar cursos ni exponer los datos del usuario.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 1. MISIÓN Y VISIÓN -->
+<section class="about-section about-section--alt">
+  <div class="container">
+    <header class="section-head text-center" appReveal>
+      <span class="eyebrow">Dirección Estratégica</span>
+      <h2>Misión y Visión</h2>
+      <p class="section-subhead">
+        La brújula que orienta nuestra arquitectura, nuestras decisiones de producto y nuestro impacto en la comunidad.
+      </p>
+    </header>
+
+    <div class="mv-grid">
+      <!-- Misión -->
+      <article class="mv-card mv-card--mission" appReveal [revealDelay]="60">
+        <div class="mv-card__header">
+          <span class="mv-badge">Nuestra Misión</span>
+          <div class="mv-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+          </div>
+        </div>
+        <h3>{{ mission.title }}</h3>
+        <p class="mv-card__lead">{{ mission.lead }}</p>
+        <p class="mv-card__text">{{ mission.text }}</p>
+      </article>
+
+      <!-- Visión -->
+      <article class="mv-card mv-card--vision" appReveal [revealDelay]="140">
+        <div class="mv-card__header">
+          <span class="mv-badge mv-badge--vision">Nuestra Visión</span>
+          <div class="mv-icon mv-icon--vision" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+          </div>
+        </div>
+        <h3>{{ vision.title }}</h3>
+        <p class="mv-card__lead">{{ vision.lead }}</p>
+        <p class="mv-card__text">{{ vision.text }}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- VALORES FUNDAMENTALES -->
+<section class="about-section">
+  <div class="container">
+    <header class="section-head" appReveal>
+      <span class="eyebrow">Principios Éticos</span>
+      <h2>Nuestros valores fundamentales</h2>
+      <p class="section-subhead">Lo que nos diferencia de un marketplace tradicional o de cursos genéricos.</p>
+    </header>
+
+    <div class="values-grid">
+      @for (val of values; track val.title; let i = $index) {
+      <article class="val-card" appReveal [revealDelay]="i * 80">
+        <div class="val-card__top">
+          <span class="val-card__badge">{{ val.badge }}</span>
+          <div class="val-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path [attr.d]="val.icon" /></svg>
+          </div>
+        </div>
+        <h3>{{ val.title }}</h3>
+        <p>{{ val.text }}</p>
+      </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- 2. CÓMO FUNCIONA: MENTORÍAS, REVISIÓN Y PAGOS -->
+<section class="about-section about-section--alt">
+  <div class="container">
+    <header class="section-head text-center" appReveal>
+      <span class="eyebrow">Operación Transparente</span>
+      <h2>Cómo funciona SkillBridge AI</h2>
+      <p class="section-subhead">
+        Procesos claros, predecibles y protegidos para mentores y aprendices en cada paso.
+      </p>
+    </header>
+
+    <div class="workflow-grid">
+      @for (item of workflows; track item.title; let i = $index) {
+      <article class="workflow-card" appReveal [revealDelay]="i * 110">
+        <div class="workflow-card__header">
+          <span class="workflow-card__step">{{ item.step }}</span>
+          <span class="workflow-card__badge">{{ item.badge }}</span>
+        </div>
+
+        <div class="workflow-card__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path [attr.d]="item.icon" /></svg>
+        </div>
+
+        <h3>{{ item.title }}</h3>
+        <p class="workflow-card__desc">{{ item.description }}</p>
+
+        <ul class="workflow-card__list">
+          @for (detail of item.details; track detail) {
+          <li>
+            <span class="check-icon" aria-hidden="true">✓</span>
+            <span>{{ detail }}</span>
+          </li>
+          }
+        </ul>
+      </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- 3. EQUIPO DE DESARROLLO (8 INTEGRANTES REALES) -->
+<section id="equipo" class="about-section">
+  <div class="container">
+    <header class="section-head" appReveal>
+      <span class="eyebrow">Ingeniería & Liderazgo</span>
+      <h2>Nuestro equipo</h2>
+      <p class="section-subhead">
+        Los desarrolladores, líderes técnicos y especialistas en calidad detrás de la arquitectura y experiencia de SkillBridge AI.
+      </p>
+    </header>
+
+    <div class="team-grid">
+      @for (member of team; track member.name; let i = $index) {
+      <article class="team-card" [class.team-card--lead]="member.isLead" appReveal [revealDelay]="i * 60">
+        <div class="team-card__top">
+          <div class="team-card__avatar" [class.team-card__avatar--lead]="member.isLead">
+            {{ member.initials }}
+          </div>
+          <span class="team-card__badge" [class.team-card__badge--lead]="member.isLead">
+              {{ member.badge }}
+            </span>
+        </div>
+
+        <div class="team-card__body">
+          <h3 class="team-card__name">{{ member.name }}</h3>
+          <p class="team-card__role">{{ member.role }}</p>
+          <p class="team-card__bio">{{ member.bio }}</p>
+        </div>
+
+        <div class="team-card__tags">
+          @for (tag of member.tags; track tag) {
+          <span class="tag-pill">{{ tag }}</span>
+          }
+        </div>
+      </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- PILARES DE QUÉ HACEMOS -->
+<section class="about-section about-section--alt">
+  <div class="container">
+    <header class="section-head" appReveal>
+      <span class="eyebrow">Servicios</span>
+      <h2>Tres formas de acelerar tu desarrollo</h2>
+    </header>
+    <div class="pillars">
+      @for (pillar of pillars; track pillar.title; let i = $index) {
+      <article class="pillar" appReveal [revealDelay]="i * 100">
+          <span class="pillar__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path [attr.d]="pillar.icon" /></svg>
+          </span>
+        <h3>{{ pillar.title }}</h3>
+        <p>{{ pillar.text }}</p>
+      </article>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO TRABAJAMOS (PRINCIPIOS) -->
 <section class="about-section">
   <div class="container">
     <header class="section-head" appReveal>
@@ -68,19 +249,19 @@
     </header>
     <ol class="principles">
       @for (principle of principles; track principle.title; let i = $index) {
-        <li class="principle" appReveal [revealDelay]="i * 90">
-          <span class="principle__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
-          <div>
-            <h3>{{ principle.title }}</h3>
-            <p>{{ principle.text }}</p>
-          </div>
-        </li>
+      <li class="principle" appReveal [revealDelay]="i * 90">
+        <span class="principle__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+        <div>
+          <h3>{{ principle.title }}</h3>
+          <p>{{ principle.text }}</p>
+        </div>
+      </li>
       }
     </ol>
   </div>
 </section>
 
-<!-- STACK -->
+<!-- STACK TECNOLÓGICO -->
 <section class="about-stack">
   <div class="container">
     <header class="section-head section-head--dark" appReveal>
@@ -89,31 +270,182 @@
     </header>
     <div class="stack">
       @for (layer of stack; track layer.group; let i = $index) {
-        <div class="stack__layer" appReveal [revealDelay]="i * 80">
-          <span class="stack__group">{{ layer.group }}</span>
-          <ul class="stack__items">
-            @for (item of layer.items; track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </div>
+      <div class="stack__layer" appReveal [revealDelay]="i * 80">
+        <span class="stack__group">{{ layer.group }}</span>
+        <ul class="stack__items">
+          @for (item of layer.items; track item) {
+          <li>{{ item }}</li>
+          }
+        </ul>
+      </div>
       }
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<section class="about-section">
+<!-- 4. MARCO LEGAL, PRIVACIDAD Y CONFIANZA -->
+<section id="legal" class="about-section">
+  <div class="container">
+    <div class="legal-card" appReveal>
+      <div class="legal-card__info">
+        <span class="eyebrow">Marco Legal y Transparencia</span>
+        <h2>Seguridad, privacidad y cumplimiento legal</h2>
+        <p>
+          SkillBridge AI protege a clientes y mentores operando en concordancia con la <strong>Ley 1581 de 2012</strong>
+          (Protección de Datos Personales / Habeas Data) y la <strong>Ley 1480 de 2011</strong> (Estatuto del Consumidor).
+          Todos los pagos se procesan con cifrado de nivel bancario mediante <strong>Stripe</strong>.
+        </p>
+        <div class="legal-card__buttons">
+          <button type="button" class="btn-legal" (click)="openLegalModal('terms')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
+            Ver Términos y Condiciones
+          </button>
+          <button type="button" class="btn-legal btn-legal--ghost" (click)="openLegalModal('privacy')">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            Ver Política de Privacidad
+          </button>
+        </div>
+      </div>
+
+      <div class="legal-card__aside">
+        <div class="trust-pill">
+          <span class="trust-pill__dot"></span>
+          <span>Garantía de reembolso 24h</span>
+        </div>
+        <div class="trust-pill">
+          <span class="trust-pill__dot"></span>
+          <span>Sin almacenamiento de tarjetas</span>
+        </div>
+        <div class="trust-pill">
+          <span class="trust-pill__dot"></span>
+          <span>IA que respeta tus datos</span>
+        </div>
+        <p class="legal-contact-note">
+          Consultas o reclamos: <a href="mailto:skillbridge@gmail.com">skillbridge@gmail.com</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="about-section about-section--alt">
   <div class="container">
     <div class="cta-box" appReveal>
-      <h2>¿Listo para empezar?</h2>
-      <p>Explora el catálogo y reserva tu primera sesión con un especialista.</p>
+      <h2>¿Listo para acelerar tu crecimiento técnico?</h2>
+      <p>Encuentra al especialista indicado, agenda tu sesión 1:1 y supera tus bloqueos hoy mismo.</p>
       <div class="cta-box__actions">
-        <a routerLink="/servicios" class="cta">Ver servicios <span class="cta__arrow" aria-hidden="true">→</span></a>
+        <a routerLink="/servicios" class="cta">Explorar servicios <span class="cta__arrow" aria-hidden="true">→</span></a>
         @if (!auth.isAuthenticated()) {
-          <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="cta cta--ghost">Crear cuenta</a>
+        <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="cta cta--ghost">Crear cuenta</a>
         }
       </div>
     </div>
   </div>
 </section>
+
+<!-- MODAL LEGAL INTERACTIVO (TÉRMINOS Y PRIVACIDAD) -->
+@if (showLegalModal) {
+<div class="modal-backdrop" (click)="closeLegalModal()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="legal-title" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-tabs" role="tablist">
+        <button
+          type="button"
+          class="modal-tab"
+          [class.modal-tab--active]="activeLegalTab === 'terms'"
+          (click)="activeLegalTab = 'terms'"
+          role="tab"
+          [attr.aria-selected]="activeLegalTab === 'terms'">
+          Términos y condiciones
+        </button>
+        <button
+          type="button"
+          class="modal-tab"
+          [class.modal-tab--active]="activeLegalTab === 'privacy'"
+          (click)="activeLegalTab = 'privacy'"
+          role="tab"
+          [attr.aria-selected]="activeLegalTab === 'privacy'">
+          Política de privacidad
+        </button>
+      </div>
+      <button type="button" class="modal-close" (click)="closeLegalModal()" aria-label="Cerrar ventana">✕</button>
+    </div>
+
+    <div class="modal-body">
+      @if (activeLegalTab === 'terms') {
+      <article class="legal-text">
+        <h2 id="legal-title">Términos y condiciones de SkillBridge AI</h2>
+        <p class="legal-update">Última actualización: 12 de octubre de 2026</p>
+
+        <section class="legal-block">
+          <h3>1. Disposiciones generales</h3>
+          <p><strong>1.1 Quiénes somos:</strong> SkillBridge AI es una plataforma que conecta a personas interesadas en potenciar sus habilidades técnicas (“clientes”) con profesionales experimentados que imparten mentorías y servicios especializados (“proveedores”). Es desarrollada y operada por el Equipo SkillBridge en el marco del proyecto integrador Riwi. Contacto oficial: skillbridge@gmail.com.</p>
+          <p><strong>1.2 Naturaleza del proyecto:</strong> SkillBridge AI es un proyecto académico de Riwi sin fines comerciales activos por ahora. Se fundamenta en la aplicación de estándares profesionales de ingeniería de software.</p>
+          <p><strong>1.3 Aceptación:</strong> Al usar la plataforma, navegar o registrarte, aceptas estos términos y nuestra Política de Privacidad. Si no estás conforme con estos términos, debes abstenerte de utilizar el servicio.</p>
+          <p><strong>1.4 Sesiones virtuales:</strong> Las mentorías se desarrollan 100% en vivo de forma virtual. No se realizan grabaciones sin el consentimiento unánime de todos los participantes.</p>
+          <p><strong>1.5 Recomendaciones con IA:</strong> El servicio emplea inteligencia artificial orientativa que se nutre únicamente del catálogo oficial disponible, sin enviar datos personales a terceros.</p>
+        </section>
+
+        <section class="legal-block">
+          <h3>2. Condiciones para clientes y mentorías</h3>
+          <p><strong>2.1 Confirmación de reservas:</strong> La sesión queda confirmada en el momento en que se completa el pago antes de la fecha y hora seleccionada.</p>
+          <p><strong>2.2 Medios de pago:</strong> Los pagos se gestionan de forma segura a través de Stripe. SkillBridge nunca almacena números de tarjeta ni datos bancarios sensibles.</p>
+          <p><strong>2.3 Política de cancelación y reembolso:</strong> Puedes cancelar con más de 24 horas de anticipación al inicio de la sesión para recibir un reembolso total enviando un correo a skillbridge@gmail.com con los datos de tu reserva.</p>
+          <p><strong>2.4 Inasistencia o cancelación tardía:</strong> Si cancelas con menos de 24 horas de anticipación o no te presentas a la sesión, no habrá lugar a reembolso.</p>
+          <p><strong>2.5 Cancelación por el mentor:</strong> Si el proveedor cancela o no se presenta, recibes el reembolso del 100% en un plazo de 5 a 10 días hábiles según tu banco.</p>
+        </section>
+
+        <section class="legal-block">
+          <h3>3. Condiciones para proveedores y mentores</h3>
+          <p><strong>3.1 Proceso de aprobación:</strong> Toda postulación a mentor pasa por una revisión manual de perfil y experiencia realizada por administradores antes de permitir la publicación de ofertas.</p>
+          <p><strong>3.2 Compromiso de puntualidad y calidad:</strong> El mentor se compromete a impartir la sesión con puntualidad y rigor técnico.</p>
+          <p><strong>3.3 Transparencia de honorarios:</strong> SkillBridge retiene una comisión por servicio del 10% sobre el precio de cada sesión. Las comisiones de Stripe se descuentan aparte y el mentor recibe pagos semanales de las sesiones acumuladas.</p>
+          <p><strong>3.4 Veracidad:</strong> Toda la información de experiencia y perfil debe ser verídica.</p>
+        </section>
+
+        <section class="legal-block">
+          <h3>4. Ley aplicable y jurisdicción</h3>
+          <p>Estos términos se rigen conforme a las leyes de la República de Colombia, incluida la Ley 1480 de 2011 (Estatuto del Consumidor). Las controversias se atenderán preferentemente ante los jueces de Barranquilla.</p>
+        </section>
+      </article>
+      } @else {
+      <article class="legal-text">
+        <h2 id="legal-title">Política de Privacidad y Tratamiento de Datos</h2>
+        <p class="legal-update">En cumplimiento de la Ley 1581 de 2012 (Habeas Data) y Decretos reglamentarios</p>
+
+        <section class="legal-block">
+          <h3>1. Responsable del tratamiento</h3>
+          <p>El responsable del tratamiento de los datos personales es el Equipo de Desarrollo de SkillBridge AI (Riwi). Contacto oficial: skillbridge@gmail.com.</p>
+        </section>
+
+        <section class="legal-block">
+          <h3>2. Datos recolectados y su finalidad</h3>
+          <p>Recolectamos datos de identificación y contacto (nombre, correo electrónico, rol de cuenta) con las siguientes finalidades exclusivas:</p>
+          <ul>
+            <li>Gestionar la creación y autenticación de cuentas mediante credenciales seguras (contraseñas cifradas con BCrypt).</li>
+            <li>Permitir el agendamiento y notificación de mentorías entre clientes y proveedores.</li>
+            <li>Procesar transacciones a través de la pasarela autorizada Stripe.</li>
+            <li>Alimentar el asistente de IA exclusivamente con intereses y objetivos técnicos para sugerir mentorías afines, sin divulgar datos personales.</li>
+          </ul>
+        </section>
+
+        <section class="legal-block">
+          <h3>3. Almacenamiento y Cookies</h3>
+          <p>SkillBridge AI solo utiliza almacenamiento local en el navegador para mantener la sesión autenticada mediante tokens JWT. <strong>No utilizamos cookies de analítica invasiva ni rastreo publicitario de terceros.</strong></p>
+        </section>
+
+        <section class="legal-block">
+          <h3>4. Derechos de los titulares (Derechos ARCO)</h3>
+          <p>Como titular de tus datos personales tienes derecho a conocer, actualizar, rectificar y solicitar la eliminación de tu información en cualquier momento mediante solicitud formal al correo <strong>skillbridge@gmail.com</strong>.</p>
+        </section>
+      </article>
+      }
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="modal-btn" (click)="closeLegalModal()">Cerrar y continuar</button>
+    </div>
+  </div>
+</div>
+}
