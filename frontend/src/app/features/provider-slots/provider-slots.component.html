@@ -63,16 +63,30 @@
             }
 
             <span class="field__label">Horas</span>
-            <div class="times" role="group" aria-label="Horas del día">
-              @for (t of times(); track t) {
-                <button type="button" class="time" [class.selected]="isSelected(t)"
-                        [class.published]="isPublished(t)" [disabled]="!dayAllowed() || isPast(t) || isPublished(t)"
-                        [attr.aria-pressed]="isSelected(t)" (click)="toggleTime(t)"
-                        [title]="isPublished(t) ? 'Ya publicado' : isPast(t) ? 'Esta hora ya pasó' : ''">
-                  {{ t }}
-                </button>
-              }
-            </div>
+            <!-- Un mentor no puede dar dos sesiones a la vez: se bloquean las horas que se cruzarían con otra -->
+            <p class="hint">
+              Cada sesión dura {{ durationText() }}: las opciones van de una sesión en una y las que se cruzarían
+              con otra quedan bloqueadas.
+            </p>
+            <!-- Las opciones dependen de la duración (30 min → 7:00, 7:30…; 90 min → 7:00, 8:30…) -->
+            @for (period of periods(); track period.label) {
+              <div class="period">
+                <span class="period__label">{{ period.label }}</span>
+                <div class="times" role="group" [attr.aria-label]="'Horas de la ' + period.label.toLowerCase()">
+                  @for (t of period.times; track t) {
+                    <button type="button" class="time" [class.selected]="isSelected(t)"
+                            [class.published]="isPublished(t)"
+                            [disabled]="!dayAllowed() || !!blockedReason(t)"
+                            [attr.aria-pressed]="isSelected(t)" (click)="toggleTime(t)"
+                            [attr.aria-label]="t + ' a ' + endOf(t) + (blockedReason(t) ? ', ' + blockedReason(t) : '')"
+                            [title]="blockedReason(t)">
+                      <span class="time__start">{{ t }}</span>
+                      <span class="time__end">hasta {{ endOf(t) }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
 
             <div class="custom">
               <input type="time" aria-label="Otra hora" [value]="customTime()" (input)="customTime.set($any($event.target).value)">

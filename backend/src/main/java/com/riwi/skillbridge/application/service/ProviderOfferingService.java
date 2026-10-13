@@ -16,8 +16,10 @@ import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
@@ -29,6 +31,8 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
 
     /** Los proveedores publican horarios en la hora de Colombia: con ella se decide el día de la semana. */
     static final ZoneId BUSINESS_ZONE = ZoneId.of("America/Bogota");
+    // 24 h: "a. m." usa espacios invisibles (U+202F) que se ven mal en los mensajes de error
+    private static final DateTimeFormatter HOUR = DateTimeFormatter.ofPattern("HH:mm").withZone(BUSINESS_ZONE);
     private static final Locale SPANISH = Locale.forLanguageTag("es-CO");
 
     private final OfferingRepositoryPort offeringRepositoryPort;
@@ -115,6 +119,7 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         if (slotRepositoryPort.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
             throw new BusinessRuleException("Ya registraste este horario para esta mentoría");
         }
+        rejectOverlaps(offering, scheduledAt);
 
         AvailabilitySlot slot = new AvailabilitySlot(UUID.randomUUID(), offeringId, scheduledAt, false);
         AvailabilitySlot saved = slotRepositoryPort.save(slot);
@@ -192,6 +197,29 @@ public class ProviderOfferingService implements ListAvailableSlotsUseCase {
         }
         if (draft.workingDays() == null || draft.workingDays().isEmpty()) {
             throw new BusinessRuleException("Elige al menos un día de la semana");
+        }
+    }
+
+    /**
+     * Un mentor no puede dar dos sesiones a la vez: cada horario ocupa de su inicio a su fin (inicio + duración)
+     * y el nuevo no puede cruzarse con ningún otro del mismo proveedor, sea de esta mentoría o de otra suya.
+     * Los intervalos son [inicio, fin): una sesión puede empezar justo cuando termina la anterior.
+     */
+    private void rejectOverlaps(Offering offering, Instant start) {
+        Instant end = start.plus(Duration.ofMinutes(offering.durationMinutes()));
+        for (Offering own : offeringRepositoryPort.findByProviderId(offering.providerId())) {
+            Duration ownDuration = Duration.ofMinutes(own.durationMinutes());
+            for (AvailabilitySlot other : slotRepositoryPort.findByOfferingId(own.id())) {
+                Instant otherEnd = other.scheduledAt().plus(ownDuration);
+                if (start.isBefore(otherEnd) && other.scheduledAt().isBefore(end)) {
+                    String which = own.id().equals(offering.id())
+                        ? "otra sesión de esta mentoría"
+                        : "una sesión de «" + own.title() + "»";
+                    throw new BusinessRuleException("Este horario se cruza con " + which + " de "
+                        + HOUR.format(other.scheduledAt()) + " a " + HOUR.format(otherEnd)
+                        + ". Cada sesión de esta mentoría dura " + offering.durationMinutes() + " minutos");
+                }
+            }
         }
     }
 

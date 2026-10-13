@@ -7,8 +7,23 @@ import { dayLabel, formatDays, formatDuration, formatTimeRange, weekDayOf } from
 
 type LoadStatus = 'loading' | 'ready' | 'not-found' | 'error';
 
-const PRESET_TIMES = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00',
-  '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+/**
+ * Jornada en la que se proponen horarios: la primera sesión empieza a las 7:00 y la última debe terminar
+ * a más tardar a las 21:00. Las opciones avanzan de a una sesión (30 min → 7:00, 7:30…; 90 min → 7:00, 8:30…),
+ * así las que se proponen encajan una detrás de otra sin cruzarse.
+ */
+const DAY_START = 7 * 60;
+const DAY_END = 21 * 60;
+
+/** Grupos de la cuadrícula para que muchas opciones (sesiones cortas) no sean una lista eterna */
+const PERIODS = [
+  { label: 'Mañana', until: 12 * 60 },
+  { label: 'Tarde', until: 18 * 60 },
+  { label: 'Noche', until: 24 * 60 }
+];
+
+const toMinutes = (time: string) => { const [h, m] = time.split(':').map(Number); return h * 60 + m; };
+const toTime = (minutes: number) => `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
 const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -40,10 +55,28 @@ export class ProviderSlotsComponent implements OnInit {
   readonly selectedTimes = signal(new Set<string>());
   readonly customTime = signal('');
 
-  /** Horas sugeridas más las personalizadas que agregó el proveedor, en orden */
+  /**
+   * Horas de inicio que se proponen según la duración de la mentoría, más las personalizadas que agregó el
+   * proveedor y las ya publicadas ese día (aunque no encajen en la cuadrícula, para que se vean como publicadas).
+   */
   readonly times = computed(() => {
-    const all = new Set([...PRESET_TIMES, ...this.selectedTimes()]);
-    return [...all].sort();
+    const step = this.duration();
+    const suggested: string[] = [];
+    for (let start = DAY_START; start + step <= DAY_END; start += step) suggested.push(toTime(start));
+    const published = this.slots()
+      .filter(s => toDateInput(new Date(s.scheduledAt)) === this.date())
+      .map(s => toTime(new Date(s.scheduledAt).getHours() * 60 + new Date(s.scheduledAt).getMinutes()));
+    return [...new Set([...suggested, ...published, ...this.selectedTimes()])].sort();
+  });
+
+  /** La cuadrícula agrupada en mañana, tarde y noche (sin grupos vacíos) */
+  readonly periods = computed(() => {
+    let from = 0;
+    return PERIODS.map(p => {
+      const times = this.times().filter(t => toMinutes(t) >= from && toMinutes(t) < p.until);
+      from = p.until;
+      return { label: p.label, times };
+    }).filter(p => p.times.length);
   });
 
   // ---- HU-20: días en que se ofrece la mentoría y duración de cada sesión ----
@@ -108,7 +141,12 @@ export class ProviderSlotsComponent implements OnInit {
   }
 
   toggleTime(time: string): void {
-    if (!this.dayAllowed() || this.isPast(time) || this.isPublished(time)) return;
+    // Una hora marcada siempre se puede desmarcar, aunque otra selección la haya dejado "cruzada"
+    if (this.isSelected(time)) {
+      this.selectedTimes.update(times => { const copy = new Set(times); copy.delete(time); return copy; });
+      return;
+    }
+    if (!this.dayAllowed() || this.isPast(time) || this.isPublished(time) || this.overlaps(time)) return;
     this.selectedTimes.update(times => {
       const copy = new Set(times);
       copy.has(time) ? copy.delete(time) : copy.add(time);
@@ -118,12 +156,36 @@ export class ProviderSlotsComponent implements OnInit {
 
   addCustomTime(): void {
     const time = this.customTime();
-    if (!time || !this.dayAllowed() || this.isPast(time) || this.isPublished(time)) return;
+    if (!time || !this.dayAllowed() || this.isPast(time) || this.isPublished(time) || this.overlaps(time)) return;
     this.selectedTimes.update(times => new Set(times).add(time));
     this.customTime.set('');
   }
 
   isSelected(time: string): boolean { return this.selectedTimes().has(time); }
+
+  /** Hora en que termina una sesión que empieza a esa hora: "13:00" con 90 minutos → "14:30" */
+  endOf(time: string): string { return toTime(toMinutes(time) + this.duration()); }
+
+  /** Por qué no se puede elegir una hora (vacío = se puede) */
+  blockedReason(time: string): string {
+    if (this.isPublished(time)) return 'Ya publicado';
+    if (this.isPast(time)) return 'Esta hora ya pasó';
+    if (this.overlaps(time) && !this.isSelected(time)) return `Se cruza con otra sesión (cada una dura ${this.durationText()})`;
+    return '';
+  }
+
+  /**
+   * Cada sesión ocupa de su inicio a su fin (inicio + duración): una hora se bloquea si se cruzaría con un horario
+   * ya publicado o con otra hora marcada. Los intervalos son [inicio, fin): se puede empezar justo al terminar la otra.
+   * Aquí solo se conocen los horarios de esta mentoría; los cruces con otras del proveedor los rechaza el backend.
+   */
+  overlaps(time: string): boolean {
+    const start = this.toInstant(time).getTime();
+    const end = start + this.duration() * 60_000;
+    const crosses = (otherStart: number) => start < otherStart + this.duration() * 60_000 && otherStart < end;
+    return this.slots().some(s => crosses(new Date(s.scheduledAt).getTime()))
+      || [...this.selectedTimes()].some(t => t !== time && crosses(this.toInstant(t).getTime()));
+  }
   isPast(time: string): boolean { return this.toInstant(time).getTime() <= Date.now(); }
   isPublished(time: string): boolean {
     const iso = this.toInstant(time).toISOString();

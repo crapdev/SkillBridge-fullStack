@@ -87,6 +87,68 @@ describe('ProviderSlotsComponent · días de la mentoría', () => {
     req.flush({ id: 's-1', offeringId: 'o-1', scheduledAt: new Date(`${component.date()}T10:00`).toISOString(), reserved: false });
   });
 
+  // La mentoría dura 90 minutos: una sesión a las 13:00 ocupa hasta las 14:30
+  it('al marcar una hora bloquea las que se cruzarían con ella', () => {
+    component.setDate(next(3));   // miércoles
+    component.toggleTime('13:00');
+
+    expect(component.overlaps('14:00')).toBeTrue();
+    component.toggleTime('14:00');
+    expect(component.selectedTimes().has('14:00')).toBeFalse();
+    // 15:00 empieza después de las 14:30: no se cruza
+    component.toggleTime('15:00');
+    expect([...component.selectedTimes()].sort()).toEqual(['13:00', '15:00']);
+  });
+
+  it('una hora marcada siempre se puede desmarcar', () => {
+    component.setDate(next(3));
+    component.toggleTime('13:00');
+    component.toggleTime('13:00');
+
+    expect(component.selectedTimes().size).toBe(0);
+    expect(component.overlaps('14:00')).toBeFalse();
+  });
+
+  it('bloquea las horas que se cruzarían con un horario ya publicado', () => {
+    component.setDate(next(3));
+    // Publicado a las 13:30 (fuera de la cuadrícula de 90 min): igual aparece, como publicado
+    component.slots.set([{ id: 's', offeringId: 'o-1', scheduledAt: new Date(`${component.date()}T13:30`).toISOString(), reserved: false }]);
+    fixture.detectChanges();
+
+    expect(component.times()).toContain('13:30');
+    expect(component.overlaps('13:00')).toBeTrue();   // 13:00–14:30 se cruza con 13:30–15:00
+    expect(component.overlaps('14:30')).toBeTrue();   // 14:30 empieza antes de que termine (15:00)
+    expect(component.overlaps('11:30')).toBeFalse();  // 11:30–13:00 termina antes de que empiece
+    const button = [...fixture.nativeElement.querySelectorAll('.time')]
+      .find((b: Element) => b.querySelector('.time__start')?.textContent?.trim() === '13:00') as HTMLButtonElement;
+    expect(button.disabled).toBeTrue();
+    expect(button.title).toContain('Se cruza con otra sesión');
+  });
+
+  // ---- La cuadrícula se adapta a la duración de la mentoría ----
+
+  it('con sesiones de 90 minutos propone horas que encajan una detrás de otra y terminan antes de las 21:00', () => {
+    expect(component.times()).toEqual(['07:00', '08:30', '10:00', '11:30', '13:00', '14:30', '16:00', '17:30', '19:00']);
+    expect(component.endOf('13:00')).toBe('14:30');
+  });
+
+  it('con sesiones de 30 minutos propone cada media hora, agrupadas en mañana, tarde y noche', () => {
+    component.offering.set({ ...offering, durationMinutes: 30 });
+
+    expect(component.times().length).toBe(28);   // 07:00 … 20:30
+    expect(component.times()).toContain('13:30');
+    expect(component.periods().map(p => p.label)).toEqual(['Mañana', 'Tarde', 'Noche']);
+    expect(component.periods()[0].times.at(-1)).toBe('11:30');
+  });
+
+  it('cada botón muestra el rango de la sesión', () => {
+    const first = fixture.nativeElement.querySelector('.time') as HTMLElement;
+    expect(first.querySelector('.time__start')?.textContent?.trim()).toBe('07:00');
+    expect(first.querySelector('.time__end')?.textContent?.trim()).toBe('hasta 08:30');
+    // Los lectores de pantalla leen el rango completo
+    expect(first.getAttribute('aria-label')).toBe('07:00 a 08:30');
+  });
+
   it('muestra la duración y los días de la mentoría', () => {
     const text = (fixture.nativeElement.textContent ?? '').replace(/\s+/g, ' ');
     expect(text).toContain('Lunes y miércoles');
