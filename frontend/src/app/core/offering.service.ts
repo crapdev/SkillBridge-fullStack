@@ -12,6 +12,21 @@ export interface Offering {
   active: boolean;
 }
 
+export interface OfferingInput {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+}
+
+/** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
+export interface AvailabilitySlot {
+  id: string;
+  offeringId: string;
+  scheduledAt: string;
+  reserved: boolean;
+}
+
 export interface PageMetadata {
   size: number;
   number: number;
@@ -24,18 +39,18 @@ export interface PagedOfferings {
   page: PageMetadata;
 }
 
-/** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
-export interface AvailabilitySlot {
-  id: string;
-  offeringId: string;
-  scheduledAt: string;
-  reserved: boolean;
+/** Campos que el proveedor llena al crear o editar una mentoría */
+export interface OfferingInput {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class OfferingService {
   constructor(private http: HttpClient) {}
-  
+
   // Catálogo público paginado
   listPaged(page: number = 0, size: number = 9): Observable<PagedOfferings> {
     const params = new HttpParams().set('page', page).set('size', size);
@@ -66,8 +81,13 @@ export class OfferingService {
     return this.http.get<Offering[]>(`${apiBase()}/provider/offerings`);
   }
 
-  createProviderOffering(data: any) {
+  createProviderOffering(data: OfferingInput) {
     return this.http.post<Offering>(`${apiBase()}/provider/offerings`, data);
+  }
+
+  // HU-19: solo el dueño puede editarla; el backend responde 403 si es de otro proveedor
+  updateProviderOffering(id: string, data: OfferingInput) {
+    return this.http.put<Offering>(`${apiBase()}/provider/offerings/${id}`, data);
   }
 
   deleteProviderOffering(id: string) {

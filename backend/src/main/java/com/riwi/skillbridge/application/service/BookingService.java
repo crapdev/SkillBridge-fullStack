@@ -96,7 +96,9 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
         // 4. Ejecutar la lógica de dominio (retorna nueva reserva con estado actualizado)
         Booking cancelledBooking = booking.cancel(Instant.now());
 
-        // 5. Persistir la modificación y retornar
-        return bookingRepository.save(cancelledBooking);
+        // 5. Persistir la modificación, avisar (cliente y proveedor reciben la notificación) y retornar
+        Booking saved = bookingRepository.save(cancelledBooking);
+        eventPublisher.bookingCancelled(saved);
+        return saved;
     }
 }

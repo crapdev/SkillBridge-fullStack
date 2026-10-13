@@ -22,6 +22,9 @@ export const ADMIN_ROUTES: Routes = [
     providers: [provideHttpClient(withInterceptors([adminMockInterceptor]), withRequestsMadeViaParent()), AdminUsersService],
     children: [
       { path: '', component: DashboardComponent, title: 'Dashboard · SkillBridge Admin' },
+      { path: 'usuarios/nuevo', component: UserFormComponent, title: 'Nuevo usuario · SkillBridge Admin' },
+      { path: 'usuarios/:id/editar', component: UserFormComponent, title: 'Editar usuario · SkillBridge Admin' },
+      { path: 'nuevo', redirectTo: 'usuarios/nuevo' },
       ...usersRoutes('proveedores', 'PROVIDER', 'Proveedores'),
       ...usersRoutes('clientes', 'CUSTOMER', 'Clientes'),
       { path: '**', redirectTo: '' }
