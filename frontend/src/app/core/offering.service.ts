@@ -27,7 +27,12 @@ export interface Offering {
   durationMinutes: number;
   level: OfferingLevel;
   workingDays: WeekDay[];
+  // ---- Revisión del administrador (HU-21): solo las aprobadas llegan al catálogo ----
+  reviewStatus?: OfferingReviewStatus;
+  rejectionReason?: string | null;
 }
+
+export type OfferingReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
 
 /** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
 export interface AvailabilitySlot {

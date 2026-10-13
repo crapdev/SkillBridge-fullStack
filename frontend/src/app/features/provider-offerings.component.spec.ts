@@ -41,8 +41,14 @@ describe('ProviderOfferingsComponent', () => {
     alerts = TestBed.inject(AlertService);
 
     fixture.detectChanges();
-    http.expectOne('/api/provider/offerings').flush([java, angular]);
+    flushList([java, angular]);
   });
+
+  // La lista también pide los horarios de cada mentoría (HU-21: aviso "sin horarios")
+  function flushList(offerings: Offering[], freeSlots: Record<string, unknown[]> = {}) {
+    http.expectOne('/api/provider/offerings').flush(offerings);
+    offerings.forEach(o => http.expectOne(`/api/provider/offerings/${o.id}/slots`).flush(freeSlots[o.id] ?? [slot(false)]));
+  }
 
   afterEach(() => http.verify());
 
@@ -108,7 +114,7 @@ describe('ProviderOfferingsComponent', () => {
 
     expect(component.errorMessage).toBe('No puedes editar una mentoría que pertenece a otro proveedor.');
     expect(component.isEditing).toBeFalse();
-    http.expectOne('/api/provider/offerings').flush([angular]);
+    flushList([angular]);
   });
 
   it('cancelar la edición vuelve al modo crear', () => {
