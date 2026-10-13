@@ -104,4 +104,29 @@ class VisibleOfferingsPersistenceTest {
 
         assertThat(isVisible()).isTrue();
     }
+
+    // HU-21: el criterio de visibilidad incluye que un administrador haya aprobado la mentoría
+    @ParameterizedTest
+    @ValueSource(strings = {"PENDING_REVIEW", "REJECTED"})
+    void offeringNotApprovedByAdminIsHidden(String reviewStatus) {
+        jdbc.update("UPDATE offerings SET review_status = ? WHERE id = ?", reviewStatus, offeringId);
+
+        assertThat(isVisible()).isFalse();
+    }
+
+    @Test
+    void offeringBecomesVisibleOnceApproved() {
+        jdbc.update("UPDATE offerings SET review_status = 'PENDING_REVIEW' WHERE id = ?", offeringId);
+        jdbc.update("UPDATE offerings SET review_status = 'APPROVED' WHERE id = ?", offeringId);
+
+        assertThat(isVisible()).isTrue();
+    }
+
+    @Test
+    void pendingQueueListsOnlyPendingOfferings() {
+        jdbc.update("UPDATE offerings SET review_status = 'PENDING_REVIEW' WHERE id = ?", offeringId);
+
+        assertThat(adapter.findByReviewStatus(com.riwi.skillbridge.domain.model.OfferingReviewStatus.PENDING_REVIEW))
+                .extracting(Offering::id).containsExactly(offeringId);
+    }
 }

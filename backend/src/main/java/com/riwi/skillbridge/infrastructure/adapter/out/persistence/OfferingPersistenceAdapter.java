@@ -3,6 +3,7 @@ package com.riwi.skillbridge.infrastructure.adapter.out.persistence;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.OfferingReviewStatus;
 import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.OfferingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.SyllabusTopicEmbeddable;
@@ -85,6 +86,14 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     @Override
     public List<Offering> findByProviderId(UUID providerId) {
         return repository.findByProviderId(providerId)
+            .stream()
+            .map(this::toDomain)
+            .toList();
+    }
+
+    @Override
+    public List<Offering> findByReviewStatus(OfferingReviewStatus reviewStatus) {
+        return repository.findByReviewStatusOrderByCreatedAtAsc(reviewStatus)
             .stream()
             .map(this::toDomain)
             .toList();
