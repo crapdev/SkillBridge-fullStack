@@ -23,7 +23,7 @@
   box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 12px 32px rgba(16, 24, 40, .08);
 }
 
-.auth-switch { margin: 0 0 20px; text-align: right; font-size: .88rem; color: var(--muted); }
+.auth-switch { margin: 18px 0 0; text-align: center; font-size: .88rem; color: var(--muted); }
 .link { border: 0; background: none; padding: 0; color: var(--primary); font-weight: 600; cursor: pointer; }
 .link:hover { text-decoration: underline; }
 
@@ -91,7 +91,7 @@ h1 { margin: 10px 0 8px; font-size: 1.75rem; font-weight: 800; letter-spacing: -
 @media (max-width: 560px) {
   .auth-top { padding: 16px; }
   .auth-card { padding: 24px 20px; }
-  .auth-switch { text-align: left; }
+  .auth-switch { text-align: center; }
   .auth-footer { margin: 0 16px; flex-direction: column; align-items: center; }
 }
 
