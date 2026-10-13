@@ -33,3 +33,5 @@ backend/.env
 frontend/.env
 .claude/
 gi
+
+env

@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -51,9 +52,13 @@ class ProviderOfferingControllerTest {
     private static final String EMAIL = "proveedor@email.com";
     private static final UUID ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final String URL = "/api/provider/offerings/" + ID;
+    // Ficha válida (HU-20) que se agrega a cada cuerpo para que solo falle lo que cada prueba busca
+    private static final String PROFILE = """
+            "syllabus":[{"title":"JPA","description":"Entidades"},{"title":"Seguridad","description":"JWT"}],
+            "durationMinutes":60,"level":"INTERMEDIO","workingDays":["MONDAY","WEDNESDAY"]""";
     private static final String VALID_BODY = """
-            {"title":"Spring Boot avanzado","description":"Seguridad y JPA","category":"BACKEND","price":120000}
-            """;
+            {"title":"Spring Boot avanzado","description":"Seguridad y JPA","category":"BACKEND","price":120000,%s}
+            """.formatted(PROFILE);
 
     @Autowired
     private MockMvc mockMvc;
@@ -73,8 +78,8 @@ class ProviderOfferingControllerTest {
     void put_ShouldReturnUpdatedOffering_WhenOwnerSendsValidData() throws Exception {
         Offering updated = new Offering(ID, UUID.randomUUID(), "Spring Boot avanzado", "Seguridad y JPA",
                 "BACKEND", new BigDecimal("120000"), true);
-        when(service.updateOffering(eq(ID), eq("Spring Boot avanzado"), eq("Seguridad y JPA"), eq("BACKEND"),
-                any(BigDecimal.class), eq(EMAIL))).thenReturn(updated);
+        when(service.updateOffering(eq(ID), argThat(d -> d.title().equals("Spring Boot avanzado")
+                && d.syllabus().size() == 2), eq(EMAIL))).thenReturn(updated);
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
                 .andExpect(status().isOk())
@@ -86,7 +91,7 @@ class ProviderOfferingControllerTest {
     @Test
     @WithMockUser(username = EMAIL, roles = "PROVIDER")
     void put_ShouldReturn403_WhenOfferingBelongsToAnotherProvider() throws Exception {
-        when(service.updateOffering(eq(ID), any(), any(), any(), any(), eq(EMAIL)))
+        when(service.updateOffering(eq(ID), any(), eq(EMAIL)))
                 .thenThrow(new UnauthorizedActionException("No tienes permisos para modificar una mentoría de otro proveedor"));
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
@@ -97,7 +102,7 @@ class ProviderOfferingControllerTest {
     @Test
     @WithMockUser(username = EMAIL, roles = "PROVIDER")
     void put_ShouldReturn404_WhenOfferingDoesNotExist() throws Exception {
-        when(service.updateOffering(eq(ID), any(), any(), any(), any(), eq(EMAIL)))
+        when(service.updateOffering(eq(ID), any(), eq(EMAIL)))
                 .thenThrow(new DomainNotFoundException("Mentoría no encontrada"));
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
@@ -108,8 +113,8 @@ class ProviderOfferingControllerTest {
     @WithMockUser(username = EMAIL, roles = "PROVIDER")
     void put_ShouldReturn400_WhenPriceIsZero() throws Exception {
         String body = """
-                {"title":"Java","description":"Mentoría","category":"BACKEND","price":0}
-                """;
+                {"title":"Java","description":"Mentoría","category":"BACKEND","price":0,%s}
+                """.formatted(PROFILE);
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -121,8 +126,8 @@ class ProviderOfferingControllerTest {
     @WithMockUser(username = EMAIL, roles = "PROVIDER")
     void put_ShouldReturn400_WhenRequiredFieldIsBlank() throws Exception {
         String body = """
-                {"title":"   ","description":"Mentoría","category":"BACKEND","price":50000}
-                """;
+                {"title":"   ","description":"Mentoría","category":"BACKEND","price":50000,%s}
+                """.formatted(PROFILE);
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -134,8 +139,8 @@ class ProviderOfferingControllerTest {
     @WithMockUser(username = EMAIL, roles = "PROVIDER")
     void put_ShouldReturn400_WhenPriceIsMissing() throws Exception {
         String body = """
-                {"title":"Java","description":"Mentoría","category":"BACKEND"}
-                """;
+                {"title":"Java","description":"Mentoría","category":"BACKEND",%s}
+                """.formatted(PROFILE);
 
         mockMvc.perform(put(URL).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());

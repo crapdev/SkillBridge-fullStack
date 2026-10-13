@@ -16,6 +16,8 @@ public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUI
     List<OfferingEntity> findByActiveTrueOrderByTitleAsc();
     List<OfferingEntity> findByProviderId(UUID providerId);
 
+    // Mentoría visible (HU-17): activa, con al menos un horario futuro libre y de un proveedor con cuenta ACTIVE
+    // (aprobado; no pendiente, rechazado ni desactivado por el admin). Las tres consultas usan el mismo criterio.
     @Query("""
         SELECT DISTINCT o FROM OfferingEntity o
         WHERE o.active = true
@@ -24,6 +26,11 @@ public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUI
             WHERE s.offeringId = o.id
               AND s.reserved = false
               AND s.scheduledAt > :now
+          )
+          AND EXISTS (
+            SELECT 1 FROM UserEntity u
+            WHERE u.id = o.providerId
+              AND u.status = com.riwi.skillbridge.domain.model.AccountStatus.ACTIVE
           )
         ORDER BY o.title ASC
     """)
@@ -38,6 +45,11 @@ public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUI
               AND s.reserved = false
               AND s.scheduledAt > :now
           )
+          AND EXISTS (
+            SELECT 1 FROM UserEntity u
+            WHERE u.id = o.providerId
+              AND u.status = com.riwi.skillbridge.domain.model.AccountStatus.ACTIVE
+          )
     """, countQuery = """
         SELECT COUNT(DISTINCT o) FROM OfferingEntity o
         WHERE o.active = true
@@ -46,6 +58,11 @@ public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUI
             WHERE s.offeringId = o.id
               AND s.reserved = false
               AND s.scheduledAt > :now
+          )
+          AND EXISTS (
+            SELECT 1 FROM UserEntity u
+            WHERE u.id = o.providerId
+              AND u.status = com.riwi.skillbridge.domain.model.AccountStatus.ACTIVE
           )
     """)
     Page<OfferingEntity> findVisibleOfferings(@Param("now") Instant now, Pageable pageable);
@@ -59,6 +76,11 @@ public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUI
             WHERE s.offeringId = o.id
               AND s.reserved = false
               AND s.scheduledAt > :now
+          )
+          AND EXISTS (
+            SELECT 1 FROM UserEntity u
+            WHERE u.id = o.providerId
+              AND u.status = com.riwi.skillbridge.domain.model.AccountStatus.ACTIVE
           )
     """)
     Optional<OfferingEntity> findVisibleOfferingById(@Param("id") UUID id, @Param("now") Instant now);

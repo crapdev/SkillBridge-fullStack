@@ -3,6 +3,18 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { apiBase } from './api';
 
+/** Nivel de la mentoría (HU-20) */
+export type OfferingLevel = 'BASICO' | 'INTERMEDIO' | 'AVANZADO';
+
+/** Días de la semana tal como los maneja el backend (java.time.DayOfWeek) */
+export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+
+/** Un tema del temario definido por el proveedor */
+export interface SyllabusTopic {
+  title: string;
+  description: string;
+}
+
 export interface Offering {
   id: string;
   title: string;
@@ -10,13 +22,11 @@ export interface Offering {
   category: string;
   price: number;
   active: boolean;
-}
-
-export interface OfferingInput {
-  title: string;
-  description: string;
-  category: string;
-  price: number;
+  // ---- Ficha de la mentoría (HU-20) ----
+  syllabus: SyllabusTopic[];
+  durationMinutes: number;
+  level: OfferingLevel;
+  workingDays: WeekDay[];
 }
 
 /** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
@@ -39,12 +49,16 @@ export interface PagedOfferings {
   page: PageMetadata;
 }
 
-/** Campos que el proveedor llena al crear o editar una mentoría */
+/** Campos que el proveedor llena al crear o editar una mentoría (datos básicos + ficha HU-20) */
 export interface OfferingInput {
   title: string;
   description: string;
   category: string;
   price: number;
+  syllabus: SyllabusTopic[];
+  durationMinutes: number;
+  level: OfferingLevel;
+  workingDays: WeekDay[];
 }
 
 @Injectable({ providedIn: 'root' })
