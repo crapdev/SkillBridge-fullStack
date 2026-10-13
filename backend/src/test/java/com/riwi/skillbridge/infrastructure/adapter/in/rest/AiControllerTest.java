@@ -21,6 +21,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -108,6 +110,37 @@ class AiControllerTest {
 
         mockMvc.perform(post("/api/ai/recommendations").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void shouldAcceptLongConversationAndPassOnlyLastMessages() throws Exception {
+        when(useCase.recommend(anyString(), anyList())).thenReturn("Respuesta");
+        // 60 mensajes: el front envía toda la conversación guardada, sin recortar
+        String history = IntStream.rangeClosed(1, 60)
+                .mapToObj(i -> "{\"role\":\"user\",\"content\":\"mensaje %d\"}".formatted(i))
+                .collect(Collectors.joining(","));
+
+        mockMvc.perform(post("/api/ai/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"goal\":\"Hola\",\"history\":[" + history + "]}"))
+                .andExpect(status().isOk());
+
+        List<ChatMessage> expected = IntStream.rangeClosed(51, 60)
+                .mapToObj(i -> ChatMessage.user("mensaje " + i)).toList();
+        verify(useCase).recommend(eq("Hola"), eq(expected));
+    }
+
+    @Test
+    @WithMockUser(roles = "CUSTOMER")
+    void shouldShortenLongAssistantMessageInsteadOfRejecting() throws Exception {
+        when(useCase.recommend(anyString(), anyList())).thenReturn("Respuesta");
+        String longAnswer = "a".repeat(5000);
+
+        mockMvc.perform(post("/api/ai/recommendations").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"goal\":\"Hola\",\"history\":[{\"role\":\"assistant\",\"content\":\"" + longAnswer + "\"}]}"))
+                .andExpect(status().isOk());
+
+        verify(useCase).recommend(eq("Hola"), eq(List.of(ChatMessage.assistant("a".repeat(4000)))));
     }
 
     @Test

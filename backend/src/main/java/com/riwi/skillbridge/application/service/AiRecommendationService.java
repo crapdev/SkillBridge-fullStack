@@ -17,9 +17,6 @@ import java.util.stream.Collectors;
 @Service
 public class AiRecommendationService implements GenerateRecommendationUseCase {
 
-    /** Mensajes anteriores que se envían al modelo; los más antiguos se descartan */
-    static final int MAX_HISTORY_MESSAGES = 10;
-
     // Enlace markdown al detalle de una mentoría: [Título](/services/<id>)
     private static final Pattern OFFERING_LINK = Pattern.compile("\\[([^\\]]+)]\\(/services/([^)\\s]+)\\)");
 

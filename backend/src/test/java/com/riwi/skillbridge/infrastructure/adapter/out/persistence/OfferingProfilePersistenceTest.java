@@ -55,6 +55,9 @@ class OfferingProfilePersistenceTest {
     }
 
     private static final UUID JAVA_SEED = UUID.fromString("11111111-1111-1111-1111-111111111111");
+    private static final List<UUID> SEED_IDS = List.of(JAVA_SEED,
+            UUID.fromString("22222222-2222-2222-2222-222222222222"),
+            UUID.fromString("33333333-3333-3333-3333-333333333333"));
 
     @Autowired OfferingPersistenceAdapter adapter;
     @Autowired JdbcTemplate jdbc;
@@ -85,9 +88,10 @@ class OfferingProfilePersistenceTest {
 
     @Test
     void migration_ShouldGiveExistingOfferingsValidDefaults() {
-        List<Offering> all = adapter.findAllActive();
+        // Las mentorías que existían antes de V8 son las tres semilla de V1
+        List<Offering> all = SEED_IDS.stream().map(id -> adapter.findById(id).orElseThrow()).toList();
 
-        assertThat(all).isNotEmpty().allSatisfy(o -> {
+        assertThat(all).hasSize(3).allSatisfy(o -> {
             assertThat(o.syllabus()).hasSizeGreaterThanOrEqualTo(2);
             assertThat(o.durationMinutes()).isEqualTo(60);
             assertThat(o.workingDays()).containsExactlyElementsOf(EnumSet.allOf(DayOfWeek.class));
