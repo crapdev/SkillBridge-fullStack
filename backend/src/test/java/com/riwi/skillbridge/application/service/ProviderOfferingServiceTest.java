@@ -6,6 +6,7 @@ import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
+import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,7 +86,7 @@ class ProviderOfferingServiceTest {
     void addSlot_ShouldThrow_WhenOfferingBelongsToAnotherProvider() {
         when(users.findIdByEmail("otro@email.com")).thenReturn(Optional.of(UUID.randomUUID()));
 
-        assertThrows(BusinessRuleException.class,
+        assertThrows(UnauthorizedActionException.class,
             () -> service.addAvailabilitySlot(offeringId, tomorrow, "otro@email.com"));
         verify(slots, never()).save(any());
     }
