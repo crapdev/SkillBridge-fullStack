@@ -5,10 +5,10 @@ import { AvailabilitySlot, Offering, OfferingService } from '../core/offering.se
 import { apiBase } from '../core/api';
 import { CurrencyPipe } from '@angular/common';
 import { SERVICE_CONTENT, categoryKey } from './service-detail/service-content';
+import { formatDuration, formatTime, formatTimeRange, endOf, levelLabel } from '../shared/offering-format';
 
 const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
-const fullFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
-const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' });
+const fullDayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
 const pad = (n: number) => String(n).padStart(2, '0');
 // Solo la primera letra en mayúscula ("Sáb, 10 de oct"); text-transform: capitalize afectaría cada palabra
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -37,6 +37,7 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
             <div class="offering__body">
               <span class="offering__category">{{ o.category }}</span>
               <h2>{{ o.title }}</h2>
+              <span class="offering__profile">{{ durationText() }} · Nivel {{ levelText().toLowerCase() }}</span>
               <a [routerLink]="['/services', o.id]">Ver detalle</a>
             </div>
             <strong class="offering__price">{{ o.price | currency:'COP':'symbol-narrow':'1.0-0' }}<small>/ sesión</small></strong>
@@ -59,7 +60,7 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
                   <button type="button" class="day" [class.active]="day.key === selectedDay()"
                           [attr.aria-pressed]="day.key === selectedDay()" (click)="selectDay(day.key)">
                     {{ day.label }}
-                    <span>{{ day.slots.length }} {{ day.slots.length === 1 ? 'hora' : 'horas' }}</span>
+                    <span>{{ day.slots.length }} {{ day.slots.length === 1 ? 'horario' : 'horarios' }}</span>
                   </button>
                 }
               </div>
@@ -102,13 +103,14 @@ const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYe
     .offering__category{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#64748b}
     .offering h2{margin:2px 0;font-size:1.1rem}
     .offering a{font-size:.85rem;font-weight:600;color:#2563eb}
+    .offering__profile{display:block;margin-bottom:2px;font-size:.82rem;color:#64748b}
     .offering__price{font-size:1.15rem;white-space:nowrap}.offering__price small{margin-left:4px;font-weight:500;color:#64748b}
     @media (max-width:560px){.offering{grid-template-columns:auto 1fr}.offering__price{grid-column:1/-1}}
     .days{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
     .day{flex-shrink:0;display:grid;gap:2px;padding:10px 14px;border:1px solid #cfd8e6;border-radius:10px;background:#fff;cursor:pointer;font-weight:600;text-align:left}
     .day span{font-size:.75rem;font-weight:500;color:#667085}
     .day.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}
-    .times{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:10px}
+    .times{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:10px}
     .time{height:40px;border:1px solid #cfd8e6;border-radius:9px;background:#fff;cursor:pointer;font-weight:600}
     .time:hover,.day:hover{border-color:#93c5fd}
     .time.active{background:#2563eb;border-color:#2563eb;color:#fff}
@@ -131,6 +133,10 @@ export class BookingComponent implements OnInit {
   readonly selectedTitle = computed(() => this.offering()?.title ?? '');
   readonly category = computed(() => categoryKey(this.offering()?.category ?? ''));
   readonly icon = computed(() => SERVICE_CONTENT[this.category()].icon);
+  // HU-20: cada horario muestra inicio y fin según la duración de la mentoría
+  readonly duration = computed(() => this.offering()?.durationMinutes ?? 60);
+  readonly durationText = computed(() => formatDuration(this.duration()));
+  readonly levelText = computed(() => levelLabel(this.offering()?.level));
   readonly slots = signal<AvailabilitySlot[]>([]);
   readonly slotsLoading = signal(false);
   readonly selectedDay = signal('');
@@ -192,8 +198,13 @@ export class BookingComponent implements OnInit {
     this.selectedSlot.set(null);
   }
 
-  time(slot: AvailabilitySlot): string { return timeFormat.format(new Date(slot.scheduledAt)); }
-  fullDate(slot: AvailabilitySlot): string { return fullFormat.format(new Date(slot.scheduledAt)); }
+  /** "9:00 a. m. – 10:00 a. m." */
+  time(slot: AvailabilitySlot): string { return formatTimeRange(slot.scheduledAt, this.duration()); }
+  /** "lunes, 13 de octubre de 9:00 a. m. a 10:00 a. m." */
+  fullDate(slot: AvailabilitySlot): string {
+    const end = endOf(slot.scheduledAt, this.duration());
+    return `${fullDayFormat.format(new Date(slot.scheduledAt))} de ${formatTime(slot.scheduledAt)} a ${formatTime(end)}`;
+  }
 
   book(): void {
     const slot = this.selectedSlot();

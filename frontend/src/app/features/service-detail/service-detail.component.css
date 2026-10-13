@@ -487,3 +487,10 @@
   .step p { margin: 0; max-width: none; }
   .price-card { padding: 22px; }
 }
+
+/* HU-20: próximos horarios con hora de inicio y de finalización */
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.slot { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--line, #e4e8f0); border-radius: 12px; background: #fff; }
+.slot__day { font-weight: 700; color: var(--ink, #0f1b3d); }
+.slot__range { font-size: .92rem; color: var(--muted, #475467); font-variant-numeric: tabular-nums; }
+.detail-note { margin: 16px 0 0; color: var(--muted, #475467); }
