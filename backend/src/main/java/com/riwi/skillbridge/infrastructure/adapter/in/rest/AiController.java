@@ -14,6 +14,6 @@ public class AiController {
 
     @PostMapping("/recommendations")
     public Map<String, String> recommend(@Valid @RequestBody AiRecommendationRequest request) {
-        return Map.of("recommendation", useCase.recommend(request.goal()));
+        return Map.of("recommendation", useCase.recommend(request.goal(), request.historyAsDomain()));
     }
 }

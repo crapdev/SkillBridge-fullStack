@@ -60,7 +60,12 @@ export class AuthService {
     this.payload.set(AuthService.decode(token));
   }
 
-  private clear(): void { localStorage.removeItem(this.key); this.payload.set(null); }
+  private clear(): void {
+    localStorage.removeItem(this.key);
+    localStorage.removeItem('skillbridge_ai_chat_history');
+    localStorage.removeItem('skillbridge_ai_last_recommendation');
+    this.payload.set(null);
+  }
 
   private readValidPayload(): JwtPayload | null {
     const token = localStorage.getItem(this.key);

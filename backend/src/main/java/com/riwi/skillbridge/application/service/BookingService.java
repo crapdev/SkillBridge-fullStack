@@ -12,7 +12,6 @@ import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
-import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 
 import java.time.Instant;
 import java.util.List;

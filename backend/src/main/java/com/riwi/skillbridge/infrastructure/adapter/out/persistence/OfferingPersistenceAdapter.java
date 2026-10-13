@@ -55,14 +55,6 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     }
 
     @Override
-    public List<Offering> findAllActive() {
-        return repository.findByActiveTrueOrderByTitleAsc()
-            .stream()
-            .map(this::toDomain)
-            .toList();
-    }
-
-    @Override
     public List<Offering> findVisible() {
         return repository.findVisibleOfferings(Instant.now())
             .stream()
