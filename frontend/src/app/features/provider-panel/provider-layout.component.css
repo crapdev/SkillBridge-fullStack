@@ -1,0 +1,7 @@
+/* El diseño viene de admin-layout.component.css; aquí solo lo propio del panel del proveedor */
+.side__badge { color: #a7f3d0; border-color: rgba(52, 211, 153, .5); background: rgba(52, 211, 153, .1); }
+
+/* Mentorías y horarios usan .container (92vw) y cortes por ancho de ventana, pensados sin menú lateral:
+   aquí ocupan el ancho del área de contenido y sus cortes a una columna se miden sobre ella (@container) */
+.content { container-type: inline-size; }
+:host ::ng-deep .content .container { width: 100%; }

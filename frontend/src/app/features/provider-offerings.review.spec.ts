@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { ProviderOfferingsComponent } from './provider-offerings.component';
 import { Offering } from '../core/offering.service';
 import { REVIEW_ESTIMATE } from '../shared/offering-review';
@@ -89,5 +89,33 @@ describe('ProviderOfferingsComponent · revisión de mentorías', () => {
     http.expectOne('/api/provider/offerings/r').flush({ ...rejected, reviewStatus: 'PENDING_REVIEW', rejectionReason: null });
 
     expect(component.successMessage).toContain('enviados de nuevo a revisión');
+  });
+});
+
+/** SCRUM-186 (HU-22): el dashboard enlaza a /provider/offerings?editar=<id> */
+describe('ProviderOfferingsComponent · enlace de edición desde el dashboard', () => {
+  const offering: Offering = {
+    id: 'r', title: 'Rechazada', description: 'Spring Boot', category: 'BACKEND', price: 85000, active: true,
+    syllabus: [{ title: 'JPA', description: 'Entidades' }], durationMinutes: 60, level: 'INTERMEDIO', workingDays: ['MONDAY'],
+    reviewStatus: 'REJECTED', rejectionReason: 'Falta temario'
+  };
+
+  it('abre la mentoría indicada en el formulario de edición', async () => {
+    await TestBed.configureTestingModule({
+      imports: [ProviderOfferingsComponent],
+      providers: [
+        provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: convertToParamMap({ editar: 'r' }) } } }
+      ]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ProviderOfferingsComponent);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/provider/offerings').flush([offering]);
+    http.expectOne('/api/provider/offerings/r/slots').flush([]);
+
+    expect(fixture.componentInstance.editingId).toBe('r');
+    http.verify();
   });
 });

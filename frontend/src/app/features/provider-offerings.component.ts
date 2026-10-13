@@ -1,7 +1,7 @@
 import { Component, ElementRef, OnInit, inject, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { OfferingService, Offering, OfferingInput, OfferingLevel, SyllabusTopic, WeekDay } from '../core/offering.service';
 import { AlertService } from '../shared/alert.service';
@@ -76,6 +76,8 @@ export class ProviderOfferingsComponent implements OnInit {
   offeringForm: FormGroup;
   offeringService = inject(OfferingService);
   private readonly alerts = inject(AlertService);
+  /** HU-22: el dashboard enlaza a /provider/offerings?editar=<id> para abrir esa mentoría en el formulario */
+  private editFromLink = inject(ActivatedRoute).snapshot.queryParamMap.get('editar');
   private readonly formCard = viewChild<ElementRef<HTMLElement>>('formCard');
 
   // Opciones y textos de la ficha (HU-20)
@@ -188,6 +190,12 @@ export class ProviderOfferingsComponent implements OnInit {
       next: (data) => {
         this.myOfferings = data;
         this.loadFreeSlots(data);
+        // Solo la primera carga: las recargas posteriores no deben volver a abrir el formulario
+        if (this.editFromLink) {
+          const fromLink = data.find(o => o.id === this.editFromLink);
+          this.editFromLink = null;
+          if (fromLink) this.startEdit(fromLink);
+        }
       },
       error: (err) => console.error('Error cargando mentorías', err)
     });

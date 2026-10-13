@@ -1,0 +1,156 @@
+<ol class="adm-crumbs" aria-label="Ruta">
+  <li>Panel del mentor</li>
+  <li aria-current="page">Dashboard</li>
+</ol>
+<div class="adm-page-head">
+  <div>
+    <h1>Tu panel de mentorías</h1>
+    <p>Tus mentorías, horarios y reservas de un vistazo.</p>
+  </div>
+  <a class="adm-btn adm-btn--primary" routerLink="/provider/offerings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    Nueva mentoría
+  </a>
+</div>
+
+@if (statsError()) {
+  <p class="adm-notice adm-notice--error" role="alert">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+    No fue posible cargar tus indicadores.
+    <button type="button" class="link" (click)="load()">Reintentar</button>
+  </p>
+}
+
+<!-- AVISOS: solo los que piden una acción del mentor -->
+@if (stats(); as s) {
+  <div class="alerts">
+    @if (s.offerings.approvedWithoutFreeSlots > 0) {
+      <p class="adm-notice adm-notice--warn" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span><strong>{{ plural(s.offerings.approvedWithoutFreeSlots, 'mentoría aprobada no tiene', 'mentorías aprobadas no tienen') }} horarios libres:</strong>
+          los clientes no las ven hasta que publiques al menos uno. <a routerLink="/provider/offerings">Revisar mis mentorías →</a></span>
+      </p>
+    }
+    @if (s.offerings.rejected > 0) {
+      <p class="adm-notice adm-notice--error" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+        <span><strong>{{ plural(s.offerings.rejected, 'mentoría fue rechazada', 'mentorías fueron rechazadas') }}.</strong>
+          Corrígelas según el motivo del administrador y se enviarán de nuevo a revisión.</span>
+      </p>
+    }
+    @if (s.offerings.pendingReview > 0) {
+      <p class="adm-notice adm-notice--info" role="note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>{{ plural(s.offerings.pendingReview, 'mentoría está', 'mentorías están') }} en revisión: un administrador
+          las revisará en {{ reviewEstimate }}.</span>
+      </p>
+    }
+  </div>
+}
+
+<!-- INDICADORES -->
+<section class="adm-kpis" aria-label="Indicadores">
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Mentorías</span>
+    <span class="adm-kpi__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/></svg>
+    </span>
+    @if (stats(); as s) {
+      <span class="adm-kpi__value">{{ s.offerings.total }}</span>
+      <span class="adm-kpi__hint">{{ s.offerings.approved }} aprobadas · {{ s.offerings.pendingReview }} en revisión · {{ s.offerings.rejected }} rechazadas</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:60%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Horarios libres</span>
+    <span class="adm-kpi__icon adm-kpi__icon--ok" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+    </span>
+    @if (stats(); as s) {
+      <span class="adm-kpi__value">{{ s.slots.upcomingFree }}</span>
+      <span class="adm-kpi__hint">Próximos, listos para reservar</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:60%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Horarios reservados</span>
+    <span class="adm-kpi__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 15l2 2 4-4"/></svg>
+    </span>
+    @if (stats(); as s) {
+      <span class="adm-kpi__value">{{ s.slots.upcomingReserved }}</span>
+      <span class="adm-kpi__hint">Próximas sesiones tomadas por clientes</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:60%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Reservas próximas</span>
+    <span class="adm-kpi__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+    </span>
+    @if (stats(); as s) {
+      <span class="adm-kpi__value">{{ s.bookings.upcoming }}</span>
+      <span class="adm-kpi__hint">{{ s.bookings.pendingPayment }} por pagar · {{ s.bookings.confirmed }} confirmadas · {{ s.bookings.completed }} completadas en total</span>
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:60%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
+</section>
+
+<!-- MIS MENTORÍAS: acceso a editar y a gestionar horarios -->
+<section class="adm-card list" aria-labelledby="mine-title">
+  <header class="list__head">
+    <div>
+      <h2 id="mine-title">Mis mentorías</h2>
+      <p>Primero las que necesitan tu atención.</p>
+    </div>
+    @if (hasMore()) {
+      <a class="list__all" routerLink="/provider/offerings">Ver todas <span aria-hidden="true">→</span></a>
+    }
+  </header>
+
+  @if (offeringsError()) {
+    <p class="adm-notice adm-notice--error list__state" role="alert">No fue posible cargar tus mentorías.</p>
+  } @else if (offerings() === null) {
+    <ul class="list__rows" aria-busy="true">
+      @for (i of [1, 2, 3]; track i) { <li><span class="adm-skeleton" style="width:55%"></span></li> }
+    </ul>
+  } @else if (!preview().length) {
+    <div class="list__state">
+      <p>Aún no tienes mentorías. Crea la primera: un administrador la revisará en {{ reviewEstimate }}.</p>
+      <a class="adm-btn adm-btn--primary" routerLink="/provider/offerings">Crear mi primera mentoría</a>
+    </div>
+  } @else {
+    <ul class="list__rows">
+      @for (o of preview(); track o.id) {
+        <li>
+          <span class="grow">
+            <strong>{{ o.title }}</strong>
+            <small>{{ o.category }} · {{ price(o) }}</small>
+          </span>
+          <span [class]="'adm-chip adm-chip--plain ' + chip(o)">{{ status(o).label }}</span>
+          <span class="list__actions">
+            <a class="adm-btn adm-btn--ghost" routerLink="/provider/offerings" [queryParams]="{ editar: o.id }">
+              {{ status(o).tone === 'danger' ? 'Corregir' : 'Editar' }}
+            </a>
+            <a class="adm-btn adm-btn--outline" [routerLink]="['/provider/offerings', o.id, 'horarios']">Horarios</a>
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</section>

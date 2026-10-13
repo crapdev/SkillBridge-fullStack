@@ -13,7 +13,7 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
   standalone: true,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent, SiteFooterComponent, NotificationBellComponent],
   template: `
-    <!-- El login y el panel de administración tienen su propio encabezado -->
+    <!-- El login y los paneles de administración y del proveedor tienen su propio encabezado -->
     @if (!hideHeader()) {
     <header class="nav">
       <div class="container nav-inner">
@@ -49,7 +49,7 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
             @if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (auth.hasRole('PROVIDER')) {
-              <a routerLink="/provider/offerings" routerLinkActive="active">Panel de mentorías</a>
+              <a routerLink="/provider" routerLinkActive="active">Panel de mentorías</a>
             } @else if (auth.hasRole('ADMIN')) {
               <a routerLink="/admin">Administración</a>
             } @else if (!auth.isAuthenticated()) {
@@ -113,6 +113,6 @@ export class AppComponent {
   closeMenu(): void { this.menuOpen.set(false); }
 
   private static hasOwnLayout(url: string): boolean {
-    return url.startsWith('/login') || url.startsWith('/admin');
+    return url.startsWith('/login') || url.startsWith('/admin') || url.startsWith('/provider');
   }
 }

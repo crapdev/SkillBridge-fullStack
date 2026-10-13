@@ -1,7 +1,7 @@
 .section { padding: 40px 20px; }
 .dashboard-header { margin-bottom: 30px; }
 .dashboard-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 30px; align-items: start; }
-@media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+@container (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
 .card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e7ebf0; }
 .form-card.editing { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
 .form-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -13,7 +13,7 @@
 .form-section legend { display: flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 12px; font-size: 1rem; font-weight: 700; }
 .form-section .small { margin-top: -6px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+@container (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
 
 .form-group { margin-bottom: 16px; }
 .form-group label, .label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
@@ -25,9 +25,9 @@
 
 /* Nivel: control segmentado */
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
-.segmented__option { margin: 0 !important; padding: 9px 6px; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #475467; }
+.segmented__option { position: relative; margin: 0 !important; padding: 9px 6px; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #475467; }
 .segmented__option + .segmented__option { border-left: 1px solid #d1d5db; }
-.segmented__option input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented__option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
 .segmented__option.active { background: #eff6ff; color: #1d4ed8; }
 .segmented__option:focus-within { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .4); }
 
