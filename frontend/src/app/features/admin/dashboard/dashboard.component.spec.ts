@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { DashboardComponent } from './dashboard.component';
 import { AdminUsersService } from '../data/admin-users.service';
+import { AdminOfferingsService } from '../data/admin-offerings.service';
 import { ToastService } from '../shared/toast.service';
 
 describe('DashboardComponent (HU-23 Task 1)', () => {
@@ -39,6 +40,8 @@ describe('DashboardComponent (HU-23 Task 1)', () => {
       providers: [
         provideRouter([]),
         { provide: AdminUsersService, useValue: mockUsersService },
+        // HU-21: el dashboard también muestra las mentorías por revisar
+        { provide: AdminOfferingsService, useValue: jasmine.createSpyObj('AdminOfferingsService', { pending: of([]) }) },
         { provide: ToastService, useValue: mockToastService }
       ]
     });
