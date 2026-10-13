@@ -52,6 +52,26 @@ describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
     expect(localStorage.getItem('skillbridge_token')).toBeNull();
   });
 
+  it('logout borra la recomendación de IA guardada para que el siguiente usuario no la vea', () => {
+    localStorage.setItem('skillbridge_ai_last_recommendation', '{"goal":"privado","answer":"…"}');
+    auth.login('sofia@test.com', 'secreto').subscribe();
+    http.expectOne('/api/auth/login').flush({ email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' });
+
+    auth.logout();
+    http.expectOne('/api/auth/logout').flush(null);
+
+    expect(localStorage.getItem('skillbridge_ai_last_recommendation')).toBeNull();
+  });
+
+  it('al arrancar con la sesión expirada también borra los datos del usuario anterior', () => {
+    localStorage.setItem('skillbridge_ai_last_recommendation', '{"goal":"privado","answer":"…"}');
+
+    auth.restore().subscribe();
+    http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(localStorage.getItem('skillbridge_ai_last_recommendation')).toBeNull();
+  });
+
   it('logout limpia la sesión al instante y le pide al backend borrar la cookie', () => {
     auth.login('sofia@test.com', 'secreto').subscribe();
     http.expectOne('/api/auth/login').flush({ email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' });

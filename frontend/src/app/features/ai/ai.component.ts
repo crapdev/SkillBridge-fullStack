@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { apiBase } from '../../core/api';
+import { AI_RECOMMENDATION_KEY } from '../../core/user-storage';
 
 interface StoredAiState {
   goal: string;
@@ -18,7 +19,8 @@ interface StoredAiState {
   styleUrls: ['./ai.css']
 })
 export class AiComponent implements OnInit {
-  private readonly STORAGE_KEY = 'skillbridge_ai_last_recommendation';
+  // Registrada en core/user-storage: se borra al cerrar sesión para que otro usuario no la vea
+  private readonly STORAGE_KEY = AI_RECOMMENDATION_KEY;
   readonly maxLength = 500;
 
   readonly suggestions = [

@@ -57,6 +57,8 @@ services:
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-at-least-32-characters}
+      # En local se sirve por http://localhost: la cookie de sesión no puede exigir HTTPS (en producción queda en true)
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-sk-placeholder}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
       DEEPSEEK_MAX_TOKENS: ${DEEPSEEK_MAX_TOKENS:-2500}

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 import { apiBase } from './api';
+import { clearUserStorage } from './user-storage';
 
 export type Role = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
 
@@ -33,8 +34,8 @@ export class AuthService {
     try { localStorage.removeItem(LEGACY_TOKEN_KEY); } catch { /* sin storage */ }
     return this.http.get<SessionUser>(`${apiBase()}/auth/me`).pipe(
       tap(user => this.user.set(user)),
-      // 401 (sin cookie o expirada) o backend caído: se arranca como visitante
-      catchError(() => { this.user.set(null); return of(null); }),
+      // 401 (sin cookie o expirada) o backend caído: se arranca como visitante, sin datos del usuario anterior
+      catchError(() => { this.user.set(null); clearUserStorage(); return of(null); }),
       map(() => undefined)
     );
   }
@@ -67,6 +68,8 @@ export class AuthService {
    */
   logout(redirectTo = '/'): void {
     this.user.set(null);
+    // En un computador compartido, el siguiente usuario no debe ver lo que dejó este (p. ej. la recomendación de IA)
+    clearUserStorage();
     this.http.post<void>(`${apiBase()}/auth/logout`, {}).subscribe({ error: () => {} });
     this.router.navigateByUrl(redirectTo);
   }
