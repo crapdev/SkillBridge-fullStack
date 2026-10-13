@@ -12,7 +12,6 @@ public interface OfferingRepositoryPort {
     /** Actualiza título, descripción, categoría y precio conservando dueño, estado y fecha de creación. */
     Offering update(Offering offering);
     Optional<Offering> findById(UUID id);
-    List<Offering> findAllActive();
     List<Offering> findVisible();
     Page<Offering> findVisible(Pageable pageable);
     Optional<Offering> findVisibleById(UUID id);
