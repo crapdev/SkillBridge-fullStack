@@ -1,7 +1,32 @@
+// src/app/features/about/about.component.ts
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { RevealDirective } from '../../shared/reveal.directive';
+
+export interface TeamMember {
+  name: string;
+  role: string;
+  badge: string;
+  initials: string;
+  bio: string;
+  tags: string[];
+}
+
+export interface ValueItem {
+  icon: string;
+  title: string;
+  text: string;
+}
+
+export interface WorkflowItem {
+  step: string;
+  badge: string;
+  title: string;
+  description: string;
+  details: string[];
+  icon: string;
+}
 
 @Component({
   standalone: true,
@@ -11,6 +36,131 @@ import { RevealDirective } from '../../shared/reveal.directive';
 })
 export class AboutComponent {
   readonly auth = inject(AuthService);
+
+  showLegalModal = false;
+  activeLegalTab: 'terms' | 'privacy' = 'terms';
+
+  openLegalModal(tab: 'terms' | 'privacy' = 'terms'): void {
+    this.activeLegalTab = tab;
+    this.showLegalModal = true;
+  }
+
+  closeLegalModal(): void {
+    this.showLegalModal = false;
+  }
+
+  // Misión y Visión
+  readonly mission = {
+    title: 'Nuestra Misión',
+    lead: 'Menos tiempo buscando, más tiempo aprendiendo.',
+    text: 'Construir el puente que conecta a estudiantes y desarrolladores júnior con mentores técnicos experimentados, transformando días de búsqueda solitaria en minutos de reserva 1:1 en vivo sobre casos reales, guiados por una inteligencia artificial que orienta con transparencia y jamás sustituye el valor humano.'
+  };
+
+  readonly vision = {
+    title: 'Nuestra Visión',
+    lead: 'Ser la red de mentoría técnica y transferencia de talento líder en Latinoamérica.',
+    text: 'Consolidarnos como el canal principal donde bootcamps como Riwi y comunidades tecnológicas conecten a sus egresados sénior con los coders que vienen detrás, democratizando el acceso a buenas prácticas de arquitectura, código limpio y especialización en Backend, Frontend y Cloud.'
+  };
+
+  // Valores corporativos
+  readonly values: ValueItem[] = [
+    {
+      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z',
+      title: 'Aprendizaje 1:1 y en vivo',
+      text: 'Creemos en personas reales resolviendo dudas reales. No videos de hace dos años ni cursos genéricos de 40 horas: una hora intensiva con quien domina tu tecnología.'
+    },
+    {
+      icon: 'M13 10V3L4 14h7v7l9-11h-7z',
+      title: 'IA que guía, no que reemplaza',
+      text: 'Nuestro asistente orienta tu camino sugiriendo mentorías exactas del catálogo según tus metas. No inventa cursos y protege tu privacidad sin enviar datos personales.'
+    },
+    {
+      icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+      title: 'Mentores y calidad verificada',
+      text: 'No somos un marketplace genérico de todo tipo de servicios. Un administrador valida y aprueba cada perfil antes de que pueda publicar sus horarios.'
+    },
+    {
+      icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+      title: 'Cero fricción y transparencia',
+      text: 'Adiós a negociar precios y horarios por chat. Agendas automatizadas sin cruces, tarifas transparentes (10% de comisión), pagos seguros en Stripe y reembolsos garantizados.'
+    }
+  ];
+
+  // Explicación de cómo funciona (Mentorías, Revisión y Pagos)
+  readonly workflows: WorkflowItem[] = [
+    {
+      step: '01',
+      badge: 'Mentorías 1:1',
+      title: '¿Cómo funcionan las mentorías?',
+      description: 'De la duda a la solución en minutos, enfocado en tu necesidad puntual:',
+      details: [
+        'Especialización técnica: sesiones directas en Backend (Spring Boot), Frontend (Angular) o Cloud (Docker, Nginx).',
+        'Agenda sin chat: selecciona fecha y hora disponible en el calendario del mentor con reserva inmediata.',
+        'Sesión en vivo: 60 minutos prácticos sobre tu código, arquitectura o proyecto, resolviendo bloqueos reales.'
+      ],
+      icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+    },
+    {
+      step: '02',
+      badge: 'Verificación',
+      title: '¿Cómo es la revisión de mentorías?',
+      description: 'Control de calidad estricto para asegurar que solo enseñe gente capacitada:',
+      details: [
+        'Aprobación de cuentas: el administrador revisa el perfil y la experiencia técnica del mentor antes de activarlo.',
+        'Ofertas claras: cada mentoría detalla temario, nivel, duración y precio antes de que pagues.',
+        'Asistente de IA: evalúa tu meta profesional y te orienta hacia la mentoría adecuada sin que gastes en algo que aún no necesitas.'
+      ],
+      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+    },
+    {
+      step: '03',
+      badge: 'Finanzas Claras',
+      title: '¿Cómo funcionan los pagos y reembolsos?',
+      description: 'Seguridad bancaria mediante Stripe y condiciones justas para ambas partes:',
+      details: [
+        'Pasarela Stripe: procesa tus pagos con tarjeta de forma cifrada sin que guardemos datos financieros.',
+        'Comisión clara del 10%: el proveedor recibe pagos semanales de sus sesiones acumuladas.',
+        'Garantía de reembolso: cancelación total con más de 24 horas de anticipación o si el mentor no asiste a la sesión.'
+      ],
+      icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'
+    }
+  ];
+
+  // Datos del equipo técnico
+  readonly team: TeamMember[] = [
+    {
+      name: 'Líder Técnico & Arquitectura Backend',
+      role: 'Lead Backend Developer & Systems Architect',
+      badge: 'Backend · Cloud',
+      initials: 'BE',
+      bio: 'Diseño de arquitectura hexagonal desacoplada, APIs REST con Spring Boot 3, persistencia con PostgreSQL/Flyway y mensajería con RabbitMQ.',
+      tags: ['Java 21', 'Spring Boot', 'PostgreSQL', 'Hexagonal']
+    },
+    {
+      name: 'Desarrollador Frontend & UI/UX',
+      role: 'Frontend Engineer & Interface Specialist',
+      badge: 'Frontend',
+      initials: 'FE',
+      bio: 'Desarrollo del catálogo de mentorías, sistema de reservas y panel de control en Angular 20, componentes standalone, Signals y diseño responsivo.',
+      tags: ['Angular 20', 'TypeScript', 'CSS Moderno', 'Signals']
+    },
+    {
+      name: 'Ingeniero Cloud & DevOps',
+      role: 'DevOps Engineer & Cloud Infrastructure',
+      badge: 'Infraestructura',
+      initials: 'DO',
+      bio: 'Contenerización de microservicios con Docker, configuración del servidor web Nginx, automatización de CI/CD y despliegue del sistema.',
+      tags: ['Docker', 'Nginx', 'GitHub Actions', 'Linux']
+    },
+    {
+      name: 'Especialista en IA & Calidad (QA)',
+      role: 'AI Engineer & Quality Assurance Lead',
+      badge: 'IA & QA',
+      initials: 'AI',
+      bio: 'Integración del asistente de recomendaciones de catálogo, seguridad JWT en autenticación y diseño de pruebas automáticas con Jasmine y Karma.',
+      tags: ['Motor IA', 'Spring Security', 'Stripe API', 'Testing']
+    }
+  ];
 
   readonly pillars = [
     {
