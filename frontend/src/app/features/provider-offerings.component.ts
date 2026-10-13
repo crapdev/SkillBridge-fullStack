@@ -98,6 +98,11 @@ function deleteErrorMessage(err: HttpErrorResponse): { title: string; message: s
 
             <div class="form-group">
               <label for="price">Precio (COP)</label>
+               <p class="field-note">
+                Ten en cuenta que SkillBridge cobra una comisión del <strong>10%</strong>
+                por cada mentoría realizada.
+               </p>
+              <input type="number" id="price" formControlName="price" placeholder="Ej. 85000">
               <input type="number" id="price" formControlName="price" min="1" step="1000" placeholder="Ej. 85000">
               @if (showError('price')) { <small class="field-error">El precio es obligatorio y debe ser mayor a cero.</small> }
             </div>
@@ -162,6 +167,8 @@ function deleteErrorMessage(err: HttpErrorResponse): { title: string; message: s
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+    .field-note { font-size: 0.85rem; line-height: 1.4; color: #667085; margin: 0 0 8px 0; }
+    .field-note strong { color: #13213c; }
     .form-group input.ng-invalid.ng-touched, .form-group select.ng-invalid.ng-touched, .form-group textarea.ng-invalid.ng-touched { border-color: #dc2626; }
     .field-error { display: block; margin-top: 6px; color: #b91c1c; font-size: 0.8rem; }
     .w-100 { width: 100%; }
