@@ -1,14 +1,15 @@
 import { Component, ElementRef, OnInit, inject, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { OfferingService, Offering, OfferingInput, OfferingLevel, SyllabusTopic, WeekDay } from '../core/offering.service';
 import { AlertService } from '../shared/alert.service';
 import {
   DURATION_OPTIONS, LEVELS, MAX_TOPICS, MIN_TOPICS, PLATFORM_COMMISSION, WEEK_DAYS,
   formatDays, formatDuration, formatPrice, levelLabel, platformFee, providerEarnings, sortDays
 } from '../shared/offering-format';
+import { REVIEW_ESTIMATE, REVIEW_STATUS, reviewStatusOf } from '../shared/offering-review';
 
 /** El backend rechaza precios en cero o negativos; el formulario aplica la misma regla */
 function positivePrice(control: AbstractControl): ValidationErrors | null {
@@ -75,6 +76,8 @@ export class ProviderOfferingsComponent implements OnInit {
   offeringForm: FormGroup;
   offeringService = inject(OfferingService);
   private readonly alerts = inject(AlertService);
+  /** HU-22: el dashboard enlaza a /provider/offerings?editar=<id> para abrir esa mentoría en el formulario */
+  private editFromLink = inject(ActivatedRoute).snapshot.queryParamMap.get('editar');
   private readonly formCard = viewChild<ElementRef<HTMLElement>>('formCard');
 
   // Opciones y textos de la ficha (HU-20)
@@ -90,6 +93,13 @@ export class ProviderOfferingsComponent implements OnInit {
   readonly formatDuration = formatDuration;
   readonly formatDays = formatDays;
   readonly levelLabel = levelLabel;
+  // Revisión del administrador (HU-21)
+  readonly reviewEstimate = REVIEW_ESTIMATE;
+  readonly reviewStatus = reviewStatusOf;
+  readonly reviewLabel = (o: Offering) => REVIEW_STATUS[reviewStatusOf(o)];
+
+  /** Horarios futuros libres de cada mentoría (null = no se pudo consultar): sin horarios no llega a los clientes */
+  freeSlots: Record<string, number | null> = {};
 
   isSubmitting = false;
   successMessage = '';
@@ -177,8 +187,44 @@ export class ProviderOfferingsComponent implements OnInit {
 
   loadOfferings() {
     this.offeringService.getProviderOfferings().subscribe({
-      next: (data) => this.myOfferings = data,
+      next: (data) => {
+        this.myOfferings = data;
+        this.loadFreeSlots(data);
+        // Solo la primera carga: las recargas posteriores no deben volver a abrir el formulario
+        if (this.editFromLink) {
+          const fromLink = data.find(o => o.id === this.editFromLink);
+          this.editFromLink = null;
+          if (fromLink) this.startEdit(fromLink);
+        }
+      },
       error: (err) => console.error('Error cargando mentorías', err)
+    });
+  }
+
+  /** ¿Mostrar el aviso de "sin horarios"? Una rechazada ya muestra su propio aviso */
+  needsSlots(offering: Offering): boolean {
+    return this.freeSlots[offering.id] === 0 && this.reviewStatus(offering) !== 'REJECTED';
+  }
+
+  /** Visible para los clientes: aprobada y con al menos un horario libre */
+  isPublic(offering: Offering): boolean {
+    return this.reviewStatus(offering) === 'APPROVED' && (this.freeSlots[offering.id] ?? 0) > 0;
+  }
+
+  /** La mentoría que se está editando, para avisar si al guardarla vuelve a revisión */
+  get editingOffering(): Offering | undefined {
+    return this.myOfferings.find(o => o.id === this.editingId);
+  }
+
+  // Un proveedor tiene pocas mentorías: se consultan en paralelo. Si una consulta falla, no se muestra el aviso
+  private loadFreeSlots(offerings: Offering[]) {
+    if (!offerings.length) { this.freeSlots = {}; return; }
+    const now = Date.now();
+    forkJoin(offerings.map(o => this.offeringService.getProviderSlots(o.id).pipe(
+      map(slots => slots.filter(s => !s.reserved && new Date(s.scheduledAt).getTime() > now).length),
+      catchError(() => of(null))
+    ))).subscribe(counts => {
+      this.freeSlots = Object.fromEntries(offerings.map((o, i) => [o.id, counts[i]]));
     });
   }
 
@@ -268,7 +314,9 @@ export class ProviderOfferingsComponent implements OnInit {
   private create(data: OfferingInput) {
     this.offeringService.createProviderOffering(data).subscribe({
       next: () => {
-        this.successMessage = '¡Mentoría publicada con éxito!';
+        // HU-21: toda mentoría nueva espera la revisión del administrador antes de llegar al catálogo
+        this.successMessage = `Tu mentoría quedó en revisión. Un administrador la revisará en ${REVIEW_ESTIMATE}; ` +
+          'mientras tanto no se muestra a los clientes. Aprovecha para publicar sus horarios.';
         this.resetForm();
         this.isSubmitting = false;
         this.loadOfferings(); // Recarga la lista automáticamente
@@ -285,12 +333,13 @@ export class ProviderOfferingsComponent implements OnInit {
   private saveChanges(id: string, data: OfferingInput) {
     this.offeringService.updateProviderOffering(id, data).subscribe({
       next: (updated) => {
+        const before = this.myOfferings.find(o => o.id === updated.id);
         // Se reemplaza en la lista sin esperar otra consulta al backend
         this.myOfferings = this.myOfferings.map(o => o.id === updated.id ? updated : o);
         this.editingId = null;
         this.resetForm();
         this.isSubmitting = false;
-        this.successMessage = 'Cambios guardados. El catálogo ya muestra la versión actualizada.';
+        this.successMessage = this.savedMessage(before, updated);
       },
       error: (err: HttpErrorResponse) => {
         this.isSubmitting = false;
@@ -303,6 +352,18 @@ export class ProviderOfferingsComponent implements OnInit {
         }
       }
     });
+  }
+
+  // HU-21: corregir una rechazada la reenvía a revisión; una pendiente sigue esperando; una aprobada sigue publicada
+  private savedMessage(before: Offering | undefined, updated: Offering): string {
+    const status = this.reviewStatus(updated);
+    if (status === 'PENDING_REVIEW' && before && this.reviewStatus(before) === 'REJECTED') {
+      return `Cambios guardados y enviados de nuevo a revisión. Un administrador la revisará en ${REVIEW_ESTIMATE}.`;
+    }
+    if (status === 'PENDING_REVIEW') {
+      return 'Cambios guardados. La mentoría sigue en revisión y aún no se muestra a los clientes.';
+    }
+    return 'Cambios guardados. El catálogo ya muestra la versión actualizada.';
   }
 
   private updateErrorMessage(err: HttpErrorResponse): string {

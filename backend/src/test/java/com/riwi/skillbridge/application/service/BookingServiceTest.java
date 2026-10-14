@@ -52,6 +52,26 @@ class BookingServiceTest {
         verify(slots).save(any(AvailabilitySlot.class));
     }
 
+    // HU-21: una mentoría pendiente o rechazada no está en el catálogo y tampoco se puede reservar por la API
+    @Test
+    void shouldRejectBookingOfOfferingNotApprovedByAdmin() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
+        AvailabilitySlotRepositoryPort slots = mock(AvailabilitySlotRepositoryPort.class);
+        UUID offeringId = UUID.randomUUID();
+        Offering pending = new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", BigDecimal.TEN, true)
+                .pendingReview();
+        when(offerings.findById(offeringId)).thenReturn(Optional.of(pending));
+
+        BookingService service = new BookingService(bookings, offerings, mock(UserAccountPort.class),
+                mock(BookingEventPublisherPort.class), slots);
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.riwi.skillbridge.domain.exception.BusinessRuleException.class,
+                () -> service.create(offeringId, Instant.now().plusSeconds(3600), "user@example.com"));
+        verify(bookings, never()).save(any());
+        verify(slots, never()).save(any());
+    }
+
     // HU-09: Tests de cancelación
     @Test
     void shouldCancelBookingSuccessfully() {

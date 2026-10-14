@@ -4,6 +4,7 @@ import com.riwi.skillbridge.application.service.ProviderOfferingService;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotsRequest;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.OfferingRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -63,6 +64,15 @@ public class ProviderOfferingController {
     public AvailabilitySlot addSlot(@PathVariable UUID id, @Valid @RequestBody CreateSlotRequest request,
                                     Authentication authentication) {
         return providerOfferingService.addAvailabilitySlot(id, request.scheduledAt(), authentication.getName());
+    }
+
+    // Publicar varios horarios a la vez (las mismas horas en varios días). Los que no se pueden publicar
+    // vuelven en "skipped" con su motivo; 400 si la lista está vacía o supera el límite
+    @PostMapping("/{id}/slots/batch")
+    public ProviderOfferingService.SlotBatchResult addSlots(@PathVariable UUID id,
+                                                            @Valid @RequestBody CreateSlotsRequest request,
+                                                            Authentication authentication) {
+        return providerOfferingService.addAvailabilitySlots(id, request.scheduledAt(), authentication.getName());
     }
 
     @DeleteMapping("/{id}/slots/{slotId}")

@@ -27,7 +27,12 @@ export interface Offering {
   durationMinutes: number;
   level: OfferingLevel;
   workingDays: WeekDay[];
+  // ---- Revisión del administrador (HU-21): solo las aprobadas llegan al catálogo ----
+  reviewStatus?: OfferingReviewStatus;
+  rejectionReason?: string | null;
 }
+
+export type OfferingReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
 
 /** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
 export interface AvailabilitySlot {
@@ -35,6 +40,12 @@ export interface AvailabilitySlot {
   offeringId: string;
   scheduledAt: string;
   reserved: boolean;
+}
+
+/** Resultado de publicar horarios en lote: los creados y los omitidos con su motivo */
+export interface SlotBatchResult {
+  created: AvailabilitySlot[];
+  skipped: { scheduledAt: string; reason: string }[];
 }
 
 export interface PageMetadata {
@@ -114,6 +125,11 @@ export class OfferingService {
 
   addProviderSlot(offeringId: string, scheduledAt: string) {
     return this.http.post<AvailabilitySlot>(`${apiBase()}/provider/offerings/${offeringId}/slots`, { scheduledAt });
+  }
+
+  /** Varios horarios de una vez: los que no se pueden publicar vuelven en "skipped" con su motivo */
+  addProviderSlots(offeringId: string, scheduledAt: string[]) {
+    return this.http.post<SlotBatchResult>(`${apiBase()}/provider/offerings/${offeringId}/slots/batch`, { scheduledAt });
   }
 
   deleteProviderSlot(offeringId: string, slotId: string) {

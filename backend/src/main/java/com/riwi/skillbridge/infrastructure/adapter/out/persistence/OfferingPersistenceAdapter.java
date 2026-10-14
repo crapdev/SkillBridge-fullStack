@@ -3,6 +3,7 @@ package com.riwi.skillbridge.infrastructure.adapter.out.persistence;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.OfferingReviewStatus;
 import com.riwi.skillbridge.domain.model.SyllabusTopic;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.OfferingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.SyllabusTopicEmbeddable;
@@ -37,7 +38,9 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
             toEmbeddables(offering.syllabus()),
             offering.durationMinutes(),
             offering.level(),
-            offering.workingDays()
+            offering.workingDays(),
+            offering.reviewStatus(),
+            offering.rejectionReason()
         );
         OfferingEntity saved = repository.save(entity);
         return toDomain(saved);
@@ -51,6 +54,7 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
         entity.updateDetails(offering.title(), offering.description(), offering.category(), offering.price());
         entity.updateProfile(toEmbeddables(offering.syllabus()), offering.durationMinutes(), offering.level(),
             offering.workingDays());
+        entity.updateReview(offering.reviewStatus(), offering.rejectionReason());
         return toDomain(repository.save(entity));
     }
 
@@ -88,6 +92,14 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     }
 
     @Override
+    public List<Offering> findByReviewStatus(OfferingReviewStatus reviewStatus) {
+        return repository.findByReviewStatusOrderByCreatedAtAsc(reviewStatus)
+            .stream()
+            .map(this::toDomain)
+            .toList();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         repository.deleteById(id);
     }
@@ -106,7 +118,9 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
                 .toList(),
             e.getDurationMinutes(),
             e.getLevel(),
-            e.getWorkingDays()
+            e.getWorkingDays(),
+            e.getReviewStatus(),
+            e.getRejectionReason()
         );
     }
 

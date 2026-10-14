@@ -7,6 +7,7 @@ import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.Jp
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
@@ -41,6 +42,22 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     @Override
     public List<Booking> findByCustomerId(UUID customerId) {
         return repository.findByCustomerIdOrderByScheduledAtDesc(customerId)
+            .stream()
+            .map(entity -> new Booking(
+                entity.getId(),
+                entity.getOfferingId(),
+                entity.getCustomerId(),
+                entity.getScheduledAt(),
+                entity.getStatus()
+            ))
+            .toList();
+    }
+
+    @Override
+    public List<Booking> findByOfferingIds(Collection<UUID> offeringIds) {
+        // IN () vacío no es SQL válido en todas las bases: sin mentorías no hay reservas que buscar
+        if (offeringIds.isEmpty()) return List.of();
+        return repository.findByOfferingIdIn(offeringIds)
             .stream()
             .map(entity -> new Booking(
                 entity.getId(),

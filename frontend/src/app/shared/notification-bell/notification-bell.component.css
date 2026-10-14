@@ -86,3 +86,8 @@
 }
 
 @keyframes drop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* Variante para barras claras (panel del proveedor, HU-22) */
+:host(.bell--light) .bell { color: #13213c; border-color: #e5eaf1; background: #fff; }
+:host(.bell--light) .bell:hover { color: #2563eb; border-color: #bfdbfe; }
+:host(.bell--light) .bell__count { border-color: #fff; }

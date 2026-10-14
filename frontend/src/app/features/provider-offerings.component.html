@@ -153,6 +153,18 @@
           </div>
         </fieldset>
 
+        <!-- HU-21: se avisa antes de publicar que la mentoría pasa por la revisión del administrador -->
+        @if (!isEditing) {
+          <p class="notice notice--info" role="note">
+            Al publicarla quedará <strong>en revisión</strong>: un administrador la aprobará en {{ reviewEstimate }}
+            y desde entonces aparecerá en el catálogo, siempre que tenga horarios publicados.
+          </p>
+        } @else if (editingOffering && reviewStatus(editingOffering) === 'REJECTED') {
+          <p class="notice notice--info" role="note">
+            Al guardar los cambios, la mentoría se enviará <strong>de nuevo a revisión</strong>.
+          </p>
+        }
+
         <button type="submit" class="btn btn-primary w-100" [disabled]="offeringForm.invalid || isSubmitting">
           {{ submitLabel }}
         </button>
@@ -166,14 +178,36 @@
 
     <!-- Lista de mentorías extraída de la Base de Datos -->
     <div class="card list-card">
-      <h2>Mis Mentorías Activas</h2>
-      <p class="muted small hint">Solo puedes eliminar mentorías sin horarios reservados.</p>
+      <h2>Mis Mentorías</h2>
+      <p class="muted small hint">Solo las aprobadas y con horarios aparecen en el catálogo. Solo puedes eliminar mentorías sin horarios reservados.</p>
 
       <div class="offerings-list">
         @for (offering of myOfferings; track offering.id) {
           <div class="offering-item" [class.selected]="offering.id === editingId">
             <div class="offering-info">
               <h3>{{ offering.title }}</h3>
+              <!-- Revisión del administrador (HU-21): solo las aprobadas y con horarios llegan a los clientes -->
+              <p class="review">
+                <span [class]="'review-chip review-chip--' + reviewLabel(offering).tone">{{ reviewLabel(offering).label }}</span>
+                @if (isPublic(offering)) {
+                  <span class="review-note">Visible en el catálogo</span>
+                } @else if (reviewStatus(offering) === 'PENDING_REVIEW') {
+                  <span class="review-note">Un administrador la revisará en {{ reviewEstimate }}</span>
+                }
+              </p>
+              @if (reviewStatus(offering) === 'REJECTED') {
+                <div class="notice notice--danger" role="note">
+                  <strong>{{ offering.rejectionReason ? 'Motivo: ' + offering.rejectionReason : 'El administrador no indicó un motivo.' }}</strong>
+                  <span>No se muestra a los clientes. Edítala para corregirla y se enviará de nuevo a revisión.</span>
+                </div>
+              }
+              @if (needsSlots(offering)) {
+                <div class="notice notice--warn" role="note">
+                  <strong>Sin horarios disponibles</strong>
+                  <span>Los clientes no la ven hasta que publiques al menos un horario.
+                    <a [routerLink]="['/provider/offerings', offering.id, 'horarios']">Publicar horarios →</a></span>
+                </div>
+              }
               <span class="badge">{{ offering.category }}</span>
               <span class="badge badge-level">{{ levelLabel(offering.level) }}</span>
               <p class="price">{{ formatPrice(offering.price) }}</p>
@@ -184,7 +218,8 @@
             </div>
             <div class="offering-actions">
               <button type="button" class="btn btn-outline btn-sm" (click)="startEdit(offering)"
-                      [disabled]="offering.id === editingId">Editar</button>
+                      [class.btn-fix]="reviewStatus(offering) === 'REJECTED'"
+                      [disabled]="offering.id === editingId">{{ reviewStatus(offering) === 'REJECTED' ? 'Corregir' : 'Editar' }}</button>
               <a class="btn btn-outline btn-sm" [routerLink]="['/provider/offerings', offering.id, 'horarios']">Horarios</a>
               <button type="button" class="btn btn-danger btn-sm" (click)="deleteOffering(offering)"
                       [disabled]="deletingId === offering.id">

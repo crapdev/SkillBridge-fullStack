@@ -47,6 +47,10 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
         if (!offering.active()) {
             throw new BusinessRuleException("La mentoría no está activa");
         }
+        // HU-21: una mentoría pendiente o rechazada no aparece en el catálogo, pero se podría llamar a la API con su id
+        if (!offering.isApproved()) {
+            throw new BusinessRuleException("La mentoría todavía no está disponible para reservas");
+        }
 
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
             .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));

@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity;
 
 import com.riwi.skillbridge.domain.model.OfferingLevel;
+import com.riwi.skillbridge.domain.model.OfferingReviewStatus;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
@@ -47,12 +48,22 @@ public class OfferingEntity {
     @Column(name = "day_of_week", nullable = false, length = 9)
     private Set<DayOfWeek> workingDays = new HashSet<>();
 
+    // ---- Revisión del administrador (HU-21, migración V9) ----
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status", nullable = false, length = 20)
+    private OfferingReviewStatus reviewStatus = OfferingReviewStatus.APPROVED;
+
+    @Column(name = "rejection_reason", length = 300)
+    private String rejectionReason;
+
     protected OfferingEntity() {}
 
     // Constructor público requerido por OfferingPersistenceAdapter
     public OfferingEntity(UUID id, UUID providerId, String title, String description, String category, BigDecimal price,
                           boolean active, List<SyllabusTopicEmbeddable> syllabus, int durationMinutes,
-                          OfferingLevel level, Set<DayOfWeek> workingDays) {
+                          OfferingLevel level, Set<DayOfWeek> workingDays,
+                          OfferingReviewStatus reviewStatus, String rejectionReason) {
         this.id = id;
         this.providerId = providerId;
         this.title = title;
@@ -62,6 +73,13 @@ public class OfferingEntity {
         this.active = active;
         this.createdAt = Instant.now();
         updateProfile(syllabus, durationMinutes, level, workingDays);
+        updateReview(reviewStatus, rejectionReason);
+    }
+
+    // Decisión del administrador, o vuelta a revisión cuando el proveedor corrige una mentoría rechazada
+    public void updateReview(OfferingReviewStatus reviewStatus, String rejectionReason) {
+        this.reviewStatus = reviewStatus;
+        this.rejectionReason = rejectionReason;
     }
 
     // Edición del proveedor: no toca el dueño, el estado ni la fecha de creación
@@ -94,6 +112,8 @@ public class OfferingEntity {
     public List<SyllabusTopicEmbeddable> getSyllabus() { return syllabus; }
     public int getDurationMinutes() { return durationMinutes; }
     public OfferingLevel getLevel() { return level; }
+    public OfferingReviewStatus getReviewStatus() { return reviewStatus; }
+    public String getRejectionReason() { return rejectionReason; }
     public Set<DayOfWeek> getWorkingDays() {
         return workingDays.isEmpty() ? Set.of() : EnumSet.copyOf(workingDays);
     }

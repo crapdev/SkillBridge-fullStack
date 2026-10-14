@@ -1,7 +1,7 @@
 .section { padding: 40px 20px; }
 .dashboard-header { margin-bottom: 30px; }
 .dashboard-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 30px; align-items: start; }
-@media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+@container (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
 .card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e7ebf0; }
 .form-card.editing { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
 .form-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -13,7 +13,7 @@
 .form-section legend { display: flex; align-items: center; gap: 10px; padding: 0; margin-bottom: 12px; font-size: 1rem; font-weight: 700; }
 .form-section .small { margin-top: -6px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+@container (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
 
 .form-group { margin-bottom: 16px; }
 .form-group label, .label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
@@ -25,9 +25,9 @@
 
 /* Nivel: control segmentado */
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; }
-.segmented__option { margin: 0 !important; padding: 9px 6px; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #475467; }
+.segmented__option { position: relative; margin: 0 !important; padding: 9px 6px; text-align: center; cursor: pointer; font-weight: 600; font-size: 0.88rem; color: #475467; }
 .segmented__option + .segmented__option { border-left: 1px solid #d1d5db; }
-.segmented__option input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented__option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; pointer-events: none; }
 .segmented__option.active { background: #eff6ff; color: #1d4ed8; }
 .segmented__option:focus-within { box-shadow: inset 0 0 0 2px rgba(37, 99, 235, .4); }
 
@@ -80,3 +80,17 @@
 .price { font-weight: bold; margin: 8px 0 2px; color: #2563eb; }
 .meta { margin: 0; font-size: 0.82rem; color: #667085; }
 .offering-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* Revisión del administrador (HU-21) */
+.review { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; }
+.review-chip { padding: 3px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+.review-chip--warn { background: #fffaeb; color: #b54708; }
+.review-chip--ok { background: #dcfce7; color: #166534; }
+.review-chip--danger { background: #fee2e2; color: #b91c1c; }
+.review-note { font-size: 0.8rem; color: #667085; }
+.notice { display: grid; gap: 2px; margin: 8px 0; padding: 10px 12px; border-radius: 8px; font-size: 0.85rem; line-height: 1.45; }
+.notice--danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.notice--warn { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; }
+.notice--info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; }
+.notice a { font-weight: 700; color: inherit; text-decoration: underline; }
+.btn-fix { border-color: #b91c1c; color: #b91c1c; }
