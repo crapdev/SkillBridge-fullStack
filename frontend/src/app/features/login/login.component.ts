@@ -16,6 +16,8 @@ export class LoginComponent {
   // Mensaje del backend tras enviar una solicitud de proveedor; mientras exista se muestra la confirmación
   providerRequestMessage = '';
   error = '';
+  // ?expired=1 lo pone el interceptor cuando el backend rechaza la sesión (cookie vencida)
+  sessionExpired = false;
   loading = false;
   showPassword = false;
   showTerms = false;
@@ -26,6 +28,7 @@ export class LoginComponent {
     const params = this.route.snapshot.queryParamMap;
     if (params.get('mode') === 'register') this.mode = 'register';
     if (params.get('type') === 'provider') { this.mode = 'register'; this.accountType = 'PROVIDER'; }
+    this.sessionExpired = params.get('expired') === '1';
   }
 
   toggle(form: NgForm): void {

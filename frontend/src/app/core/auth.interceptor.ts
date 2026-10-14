@@ -26,7 +26,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           && !req.context.get(KEEP_SESSION_ON_401)) {
         const auth = injector.get(AuthService);
         if (auth.isAuthenticated()) {
-          auth.logout('/login?returnUrl=' + encodeURIComponent(injector.get(Router).url));
+          // expired=1: el login le explica al usuario por qué tiene que volver a ingresar
+          auth.logout('/login?expired=1&returnUrl=' + encodeURIComponent(injector.get(Router).url));
         }
       }
       return throwError(() => error);
