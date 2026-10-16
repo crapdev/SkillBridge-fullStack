@@ -6,13 +6,14 @@ import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { AlertHostComponent } from './shared/alert-host.component';
 import { SiteFooterComponent } from './shared/site-footer/site-footer.component';
+import { NotificationBellComponent } from './shared/notification-bell/notification-bell.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent, SiteFooterComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AlertHostComponent, SiteFooterComponent, NotificationBellComponent],
   template: `
-    <!-- El login y el panel de administración tienen su propio encabezado -->
+    <!-- El login y los paneles de administración y del proveedor tienen su propio encabezado -->
     @if (!hideHeader()) {
     <header class="nav">
       <div class="container nav-inner">
@@ -46,10 +47,9 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
             <a routerLink="/servicios" routerLinkActive="active">Servicios</a>
             <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER -->
             @if (auth.hasRole('CUSTOMER')) {
-              <a routerLink="/book" routerLinkActive="active">Reservar</a>
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (auth.hasRole('PROVIDER')) {
-              <a routerLink="/provider/offerings" routerLinkActive="active">Panel de mentorías</a>
+              <a routerLink="/provider" routerLinkActive="active">Panel de mentorías</a>
             } @else if (auth.hasRole('ADMIN')) {
               <a routerLink="/admin">Administración</a>
             } @else if (!auth.isAuthenticated()) {
@@ -71,6 +71,10 @@ import { SiteFooterComponent } from './shared/site-footer/site-footer.component'
             }
           </div>
         </div>
+        <!-- Solo el proveedor: el cliente ya ve en pantalla el resultado de sus acciones. Va fuera del menú desplegable para que el contador se vea también en móvil -->
+        @if (auth.hasRole('PROVIDER')) {
+          <app-notification-bell class="nav-bell" />
+        }
       </div>
     </header>
     }
@@ -109,6 +113,6 @@ export class AppComponent {
   closeMenu(): void { this.menuOpen.set(false); }
 
   private static hasOwnLayout(url: string): boolean {
-    return url.startsWith('/login') || url.startsWith('/admin');
+    return url.startsWith('/login') || url.startsWith('/admin') || url.startsWith('/provider');
   }
 }

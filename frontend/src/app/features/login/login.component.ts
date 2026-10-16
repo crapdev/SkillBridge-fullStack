@@ -18,6 +18,7 @@ export class LoginComponent {
   error = '';
   loading = false;
   showPassword = false;
+  showTerms = false;
   readonly year = new Date().getFullYear();
 
   constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute) {
@@ -47,6 +48,7 @@ export class LoginComponent {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
     if (url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) return url;
     if (this.auth.hasRole('ADMIN')) return '/admin';
+    if (this.auth.hasRole('PROVIDER')) return '/provider';
     return this.auth.hasRole('CUSTOMER') ? '/ai' : '/';
   }
 

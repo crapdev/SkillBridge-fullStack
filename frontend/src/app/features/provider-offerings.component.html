@@ -1,0 +1,236 @@
+<section class="container section">
+  <div class="dashboard-header">
+    <h1>Panel de Mentorías</h1>
+    <p class="muted">Crea nuevos servicios y gestiona tu catálogo actual.</p>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Formulario para crear o editar una mentoría con su ficha completa (HU-19 / HU-20) -->
+    <div #formCard class="card form-card" [class.editing]="isEditing">
+      <div class="form-heading">
+        <h2>{{ isEditing ? 'Editar Mentoría' : 'Nueva Mentoría' }}</h2>
+        @if (isEditing) {
+          <span class="badge badge-editing">Editando</span>
+        }
+      </div>
+      @if (isEditing) {
+        <p class="muted small">Los cambios se verán en el catálogo apenas guardes.</p>
+      }
+
+      @if (successMessage) {
+        <div class="alert alert-success" role="status">{{ successMessage }}</div>
+      }
+      @if (errorMessage) {
+        <div class="alert alert-danger" role="alert">{{ errorMessage }}</div>
+      }
+
+      <form [formGroup]="offeringForm" (ngSubmit)="onSubmit()" novalidate>
+        <!-- 1. DATOS BÁSICOS -->
+        <fieldset class="form-section">
+          <legend>Datos básicos</legend>
+
+          <div class="form-group">
+            <label for="title">Título</label>
+            <input type="text" id="title" formControlName="title" maxlength="160" placeholder="Ej. Mentoría Java Backend">
+            @if (showError('title')) { <small class="field-error">El título es obligatorio.</small> }
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="category">Categoría</label>
+              <select id="category" formControlName="category">
+                <option value="">Selecciona una categoría</option>
+                <option value="BACKEND">Backend</option>
+                <option value="FRONTEND">Frontend</option>
+                <option value="CLOUD">Cloud / DevOps</option>
+              </select>
+              @if (showError('category')) { <small class="field-error">Selecciona una categoría.</small> }
+            </div>
+
+            <div class="form-group">
+              <label for="durationMinutes">Duración de la sesión</label>
+              <select id="durationMinutes" formControlName="durationMinutes">
+                @for (minutes of durationOptions; track minutes) {
+                  <option [ngValue]="minutes">{{ formatDuration(minutes) }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <span class="label" id="level-label">Nivel</span>
+            <div class="segmented" role="radiogroup" aria-labelledby="level-label">
+              @for (level of levels; track level.value) {
+                <label class="segmented__option" [class.active]="offeringForm.value.level === level.value">
+                  <input type="radio" formControlName="level" [value]="level.value">
+                  {{ level.label }}
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Descripción</label>
+            <textarea id="description" formControlName="description" rows="3" maxlength="1200" placeholder="¿Qué aprenderá el estudiante?"></textarea>
+            @if (showError('description')) { <small class="field-error">La descripción es obligatoria.</small> }
+          </div>
+        </fieldset>
+
+        <!-- 2. TEMARIO DINÁMICO -->
+        <fieldset class="form-section" formArrayName="syllabus">
+          <legend>
+            Temario
+            <span class="counter" [class.counter--error]="syllabus.length < minTopics">
+              {{ syllabus.length }} {{ syllabus.length === 1 ? 'tema' : 'temas' }} · mínimo {{ minTopics }}
+            </span>
+          </legend>
+          <p class="muted small">Lo que verá el cliente en el detalle del servicio, en este orden.</p>
+
+          @for (topic of syllabus.controls; track topic; let i = $index) {
+            <div class="topic" [formGroupName]="i">
+              <span class="topic__index" aria-hidden="true">{{ i + 1 }}</span>
+              <div class="topic__fields">
+                <input type="text" formControlName="title" maxlength="120"
+                       [attr.aria-label]="'Título del tema ' + (i + 1)" placeholder="Título del tema">
+                <textarea formControlName="description" rows="2" maxlength="300"
+                          [attr.aria-label]="'Descripción del tema ' + (i + 1)" placeholder="Descripción breve"></textarea>
+                @if (topicHasError(i)) {
+                  <small class="field-error">Cada tema necesita título y descripción.</small>
+                }
+              </div>
+              <button type="button" class="btn-icon" (click)="removeTopic(i)" [disabled]="syllabus.length <= minTopics"
+                      [attr.aria-label]="'Quitar tema ' + (i + 1)"
+                      [title]="syllabus.length <= minTopics ? 'El temario necesita al menos ' + minTopics + ' temas' : 'Quitar tema'">×</button>
+            </div>
+          }
+
+          <button type="button" class="btn btn-outline btn-sm" (click)="addTopic()" [disabled]="syllabus.length >= maxTopics">
+            + Agregar tema
+          </button>
+          @if (syllabus.length >= maxTopics) {
+            <small class="muted small-inline">Llegaste al máximo de {{ maxTopics }} temas.</small>
+          }
+        </fieldset>
+
+        <!-- 3. DÍAS EN QUE SE OFRECE -->
+        <fieldset class="form-section">
+          <legend>Días en que la ofreces</legend>
+          <p class="muted small">Solo podrás publicar horarios en estos días.</p>
+          <div class="days" role="group" aria-label="Días de la semana">
+            @for (day of weekDays; track day.value) {
+              <button type="button" class="day" [class.active]="hasDay(day.value)"
+                      [attr.aria-pressed]="hasDay(day.value)" (click)="toggleDay(day.value)" [title]="day.label">
+                {{ day.short }}
+              </button>
+            }
+          </div>
+          <div class="presets">
+            <button type="button" class="link" (click)="setDays(weekdays)">Lunes a viernes</button>
+            <button type="button" class="link" (click)="setDays(allDays)">Todos los días</button>
+          </div>
+          @if (showError('workingDays')) { <small class="field-error">Elige al menos un día.</small> }
+        </fieldset>
+
+        <!-- 4. PRECIO Y COMISIÓN -->
+        <fieldset class="form-section">
+          <legend>Precio</legend>
+          <div class="form-group">
+            <label for="price">Precio por sesión (COP)</label>
+            <input type="number" id="price" formControlName="price" min="1" step="1000" placeholder="Ej. 85000">
+            @if (showError('price')) { <small class="field-error">El precio es obligatorio y debe ser mayor a cero.</small> }
+          </div>
+
+          <div class="commission" role="note" aria-live="polite">
+            <strong>La plataforma cobra una comisión del {{ commissionPercent }}% sobre el valor de cada mentoría.</strong>
+            @if (earnings(); as e) {
+              <span>
+                Por cada sesión de {{ formatPrice(e.price) }} recibirás <b class="commission__net">{{ formatPrice(e.net) }}</b>
+                (comisión: {{ formatPrice(e.fee) }}).
+              </span>
+            } @else {
+              <span>Escribe el precio para ver cuánto recibirás por cada sesión.</span>
+            }
+          </div>
+        </fieldset>
+
+        <!-- HU-21: se avisa antes de publicar que la mentoría pasa por la revisión del administrador -->
+        @if (!isEditing) {
+          <p class="notice notice--info" role="note">
+            Al publicarla quedará <strong>en revisión</strong>: un administrador la aprobará en {{ reviewEstimate }}
+            y desde entonces aparecerá en el catálogo, siempre que tenga horarios publicados.
+          </p>
+        } @else if (editingOffering && reviewStatus(editingOffering) === 'REJECTED') {
+          <p class="notice notice--info" role="note">
+            Al guardar los cambios, la mentoría se enviará <strong>de nuevo a revisión</strong>.
+          </p>
+        }
+
+        <button type="submit" class="btn btn-primary w-100" [disabled]="offeringForm.invalid || isSubmitting">
+          {{ submitLabel }}
+        </button>
+        @if (isEditing) {
+          <button type="button" class="btn btn-outline w-100 mt-8" (click)="cancelEdit()" [disabled]="isSubmitting">
+            Cancelar edición
+          </button>
+        }
+      </form>
+    </div>
+
+    <!-- Lista de mentorías extraída de la Base de Datos -->
+    <div class="card list-card">
+      <h2>Mis Mentorías</h2>
+      <p class="muted small hint">Solo las aprobadas y con horarios aparecen en el catálogo. Solo puedes eliminar mentorías sin horarios reservados.</p>
+
+      <div class="offerings-list">
+        @for (offering of myOfferings; track offering.id) {
+          <div class="offering-item" [class.selected]="offering.id === editingId">
+            <div class="offering-info">
+              <h3>{{ offering.title }}</h3>
+              <!-- Revisión del administrador (HU-21): solo las aprobadas y con horarios llegan a los clientes -->
+              <p class="review">
+                <span [class]="'review-chip review-chip--' + reviewLabel(offering).tone">{{ reviewLabel(offering).label }}</span>
+                @if (isPublic(offering)) {
+                  <span class="review-note">Visible en el catálogo</span>
+                } @else if (reviewStatus(offering) === 'PENDING_REVIEW') {
+                  <span class="review-note">Un administrador la revisará en {{ reviewEstimate }}</span>
+                }
+              </p>
+              @if (reviewStatus(offering) === 'REJECTED') {
+                <div class="notice notice--danger" role="note">
+                  <strong>{{ offering.rejectionReason ? 'Motivo: ' + offering.rejectionReason : 'El administrador no indicó un motivo.' }}</strong>
+                  <span>No se muestra a los clientes. Edítala para corregirla y se enviará de nuevo a revisión.</span>
+                </div>
+              }
+              @if (needsSlots(offering)) {
+                <div class="notice notice--warn" role="note">
+                  <strong>Sin horarios disponibles</strong>
+                  <span>Los clientes no la ven hasta que publiques al menos un horario.
+                    <a [routerLink]="['/provider/offerings', offering.id, 'horarios']">Publicar horarios →</a></span>
+                </div>
+              }
+              <span class="badge">{{ offering.category }}</span>
+              <span class="badge badge-level">{{ levelLabel(offering.level) }}</span>
+              <p class="price">{{ formatPrice(offering.price) }}</p>
+              <p class="meta">
+                {{ formatDuration(offering.durationMinutes) }} · {{ formatDays(offering.workingDays) }}
+                · {{ offering.syllabus.length }} {{ offering.syllabus.length === 1 ? 'tema' : 'temas' }}
+              </p>
+            </div>
+            <div class="offering-actions">
+              <button type="button" class="btn btn-outline btn-sm" (click)="startEdit(offering)"
+                      [class.btn-fix]="reviewStatus(offering) === 'REJECTED'"
+                      [disabled]="offering.id === editingId">{{ reviewStatus(offering) === 'REJECTED' ? 'Corregir' : 'Editar' }}</button>
+              <a class="btn btn-outline btn-sm" [routerLink]="['/provider/offerings', offering.id, 'horarios']">Horarios</a>
+              <button type="button" class="btn btn-danger btn-sm" (click)="deleteOffering(offering)"
+                      [disabled]="deletingId === offering.id">
+                {{ deletingId === offering.id ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <p class="muted">No tienes mentorías publicadas aún. ¡Crea la primera!</p>
+        }
+      </div>
+    </div>
+  </div>
+</section>

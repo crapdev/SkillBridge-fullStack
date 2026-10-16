@@ -1,0 +1,32 @@
+/* Tarjetas, indicadores y botones vienen de admin.css (global); aquí solo lo propio del dashboard */
+.alerts { display: grid; gap: 10px; margin-bottom: 20px; }
+.alerts:empty { display: none; }
+.alerts .adm-notice { margin: 0; }
+.adm-notice a { font-weight: 700; color: inherit; text-decoration: underline; }
+.adm-notice--info { background: var(--adm-primary-soft); color: #1e3a8a; }
+.link { margin-left: 8px; padding: 0; border: 0; background: none; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.kpi-skel { width: 40%; height: 30px; }
+
+.list { margin-top: 20px; padding: 20px; }
+.list__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.list__head h2 { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.list__head p { margin: 4px 0 0; font-size: .85rem; color: var(--adm-muted); }
+.list__all { font-size: .85rem; font-weight: 600; color: var(--adm-primary); white-space: nowrap; }
+.list__rows { margin: 0; padding: 0; list-style: none; }
+.list__rows li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--adm-border); }
+.list__rows li:first-child { border-top: 0; }
+.grow { flex: 1; display: grid; min-width: 0; }
+.grow strong { font-size: .92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow small { font-size: .8rem; color: var(--adm-muted); }
+.list__actions { display: flex; gap: 6px; }
+.list__actions .adm-btn { min-height: 34px; padding: 0 12px; }
+.list__state { display: grid; justify-items: start; gap: 12px; padding: 12px 0; color: var(--adm-muted); }
+.list__state p { margin: 0; }
+
+/* Móvil: la fila de cada mentoría pasa a dos líneas para no apretar los botones */
+@media (max-width: 640px) {
+  .list__rows li { flex-wrap: wrap; }
+  .grow { flex-basis: calc(100% - 110px); }
+  .list__actions { width: 100%; }
+  .list__actions .adm-btn { flex: 1; }
+}

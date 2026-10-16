@@ -1,0 +1,79 @@
+<ol class="adm-crumbs" aria-label="Ruta">
+  <li>Administración</li>
+  <li aria-current="page">Mentorías</li>
+</ol>
+<div class="adm-page-head">
+  <div>
+    <h1>Revisión de mentorías</h1>
+    <p>Las mentorías nuevas no aparecen en el catálogo hasta que las apruebes.</p>
+  </div>
+  @if (!loading() && !error()) {
+    <span class="adm-chip" [class.adm-chip--warn]="pending().length > 0" [class.adm-chip--ok]="pending().length === 0">
+      {{ pending().length }} pendiente{{ pending().length === 1 ? '' : 's' }}
+    </span>
+  }
+</div>
+
+@if (loading()) {
+  <div class="queue" aria-busy="true">
+    @for (i of [1, 2]; track i) {
+      <article class="adm-card review"><span class="adm-skeleton" style="width:45%"></span>
+        <span class="adm-skeleton" style="width:80%"></span><span class="adm-skeleton" style="width:65%"></span></article>
+    }
+  </div>
+} @else if (error()) {
+  <div class="adm-card state">
+    <p class="adm-notice adm-notice--error" role="alert">{{ error() }}</p>
+    <button type="button" class="adm-btn adm-btn--outline" (click)="load()">Reintentar</button>
+  </div>
+} @else if (pending().length === 0) {
+  <div class="adm-card state state--done">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+    <strong>No hay mentorías por revisar. Todo al día.</strong>
+    <span>Cuando un proveedor cree o corrija una mentoría, aparecerá aquí.</span>
+  </div>
+} @else {
+  <div class="queue">
+    @for (o of pending(); track o.id) {
+      <article class="adm-card review" [attr.aria-labelledby]="'offering-' + o.id">
+        <header class="review__head">
+          <div class="review__title">
+            <span class="adm-chip adm-chip--info adm-chip--plain">{{ o.category }}</span>
+            <h2 [id]="'offering-' + o.id">{{ o.title }}</h2>
+          </div>
+          <strong class="review__price">{{ price(o) }} <small>/ sesión</small></strong>
+        </header>
+
+        <div class="review__provider">
+          <adm-avatar [name]="o.providerName || 'Proveedor'" [size]="32" />
+          <span><strong>{{ o.providerName || 'Proveedor' }}</strong><small>{{ o.providerEmail }}</small></span>
+        </div>
+
+        <ul class="review__facts" aria-label="Ficha">
+          <li><span>Nivel</span>{{ level(o) }}</li>
+          <li><span>Duración</span>{{ duration(o) }}</li>
+          <li><span>Días</span>{{ days(o) }}</li>
+        </ul>
+
+        <p class="review__desc">{{ o.description }}</p>
+
+        <details class="review__syllabus">
+          <summary>Temario · {{ o.syllabus.length }} tema{{ o.syllabus.length === 1 ? '' : 's' }}</summary>
+          <ol>
+            @for (t of o.syllabus; track $index) {
+              <li><strong>{{ t.title }}</strong><span>{{ t.description }}</span></li>
+            }
+          </ol>
+        </details>
+
+        <footer class="review__actions">
+          <button type="button" class="adm-btn adm-btn--ghost review__reject" (click)="ask(o, 'reject')">Rechazar</button>
+          <button type="button" class="adm-btn adm-btn--primary" (click)="ask(o, 'approve')">Aprobar</button>
+        </footer>
+      </article>
+    }
+  </div>
+}
+
+<adm-offering-review-dialog [offering]="selected()" [action]="action()" [busy]="saving()"
+                            (confirm)="confirm($event)" (cancel)="selected.set(null)" />

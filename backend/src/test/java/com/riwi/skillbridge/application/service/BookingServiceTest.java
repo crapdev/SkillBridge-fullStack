@@ -52,6 +52,26 @@ class BookingServiceTest {
         verify(slots).save(any(AvailabilitySlot.class));
     }
 
+    // HU-21: una mentoría pendiente o rechazada no está en el catálogo y tampoco se puede reservar por la API
+    @Test
+    void shouldRejectBookingOfOfferingNotApprovedByAdmin() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
+        AvailabilitySlotRepositoryPort slots = mock(AvailabilitySlotRepositoryPort.class);
+        UUID offeringId = UUID.randomUUID();
+        Offering pending = new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", BigDecimal.TEN, true)
+                .pendingReview();
+        when(offerings.findById(offeringId)).thenReturn(Optional.of(pending));
+
+        BookingService service = new BookingService(bookings, offerings, mock(UserAccountPort.class),
+                mock(BookingEventPublisherPort.class), slots);
+
+        org.junit.jupiter.api.Assertions.assertThrows(com.riwi.skillbridge.domain.exception.BusinessRuleException.class,
+                () -> service.create(offeringId, Instant.now().plusSeconds(3600), "user@example.com"));
+        verify(bookings, never()).save(any());
+        verify(slots, never()).save(any());
+    }
+
     // HU-09: Tests de cancelación
     @Test
     void shouldCancelBookingSuccessfully() {
@@ -67,11 +87,14 @@ class BookingServiceTest {
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
         when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
+        BookingEventPublisherPort publisher = mock(BookingEventPublisherPort.class);
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class));
         Booking result = service.cancelBooking(bookingId, "user@example.com");
 
         assertEquals(com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED, result.status());
         verify(bookings).save(any(Booking.class));
+        // HU-11: la cancelación avisa para generar las notificaciones
+        verify(publisher).bookingCancelled(result);
     }
 
     @Test
@@ -110,12 +133,15 @@ class BookingServiceTest {
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
-        
+        BookingEventPublisherPort publisher = mock(BookingEventPublisherPort.class);
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class));
+
         org.junit.jupiter.api.Assertions.assertThrows(
-            com.riwi.skillbridge.domain.exception.BusinessRuleException.class, 
+            com.riwi.skillbridge.domain.exception.BusinessRuleException.class,
             () -> service.cancelBooking(bookingId, "user@example.com")
         );
         verify(bookings, never()).save(any());
+        // HU-11: una cancelación rechazada no genera notificaciones
+        verifyNoInteractions(publisher);
     }
 }

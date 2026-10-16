@@ -5,6 +5,8 @@ RUN npm install --no-audit --no-fund
 COPY . .
 ARG API_URL=/api
 ENV API_URL=$API_URL
+ARG STRIPE_PUBLISHABLE_KEY=
+ENV STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY
 RUN npm run build
 
 FROM nginx:stable-alpine

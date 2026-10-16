@@ -8,19 +8,26 @@ import { AvatarComponent } from '../shared/avatar.component';
 import { UserStatusDialogComponent } from '../shared/user-status-dialog.component';
 import { ToastService } from '../shared/toast.service';
 import { errorMessage, timeAgo } from '../shared/format';
+import { AdminOfferingsService } from '../data/admin-offerings.service';
+import { AdminOffering, ReviewAction } from '../data/admin-offering.model';
+import { OfferingReviewDialogComponent } from '../shared/offering-review-dialog.component';
+import { formatPrice } from '../../../shared/offering-format';
 
 interface Recent { loading: boolean; error: string; rows: AdminUser[]; }
+interface PendingOfferings { loading: boolean; error: string; rows: AdminOffering[]; }
 
 const PENDING_PREVIEW = 5;
+const OFFERINGS_PREVIEW = 3;
 
 @Component({
   standalone: true,
-  imports: [RouterLink, AvatarComponent, UserStatusDialogComponent],
+  imports: [RouterLink, AvatarComponent, UserStatusDialogComponent, OfferingReviewDialogComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent {
   private service = inject(AdminUsersService);
+  private offeringsService = inject(AdminOfferingsService);
   private toast = inject(ToastService);
 
   protected readonly labels = ROLE_LABELS;
@@ -42,6 +49,14 @@ export class DashboardComponent {
   protected readonly action = signal<StatusAction>('approve');
   protected readonly saving = signal(false);
 
+  // HU-21: mentorías que esperan revisión (vista previa; la lista completa está en /admin/mentorias)
+  protected readonly offerings = signal<PendingOfferings>({ loading: true, error: '', rows: [] });
+  protected readonly offeringPreview = computed(() => this.offerings().rows.slice(0, OFFERINGS_PREVIEW));
+  protected readonly selectedOffering = signal<AdminOffering | null>(null);
+  protected readonly offeringAction = signal<ReviewAction>('approve');
+  protected readonly offeringSaving = signal(false);
+  protected readonly price = (o: AdminOffering) => formatPrice(o.price);
+
   protected readonly status = computed(() => {
     const s = this.stats();
     if (!s) return null;
@@ -61,6 +76,7 @@ export class DashboardComponent {
   constructor() {
     this.loadStats();
     this.loadPending();
+    this.loadOfferings();
     this.roles.forEach(role => this.loadRecent(role));
   }
 
@@ -109,6 +125,41 @@ export class DashboardComponent {
       error: e => {
         this.saving.set(false);
         this.toast.error(errorMessage(e, 'No fue posible cambiar el estado de la cuenta.'));
+      }
+    });
+  }
+
+  protected loadOfferings() {
+    this.offerings.update(o => ({ ...o, loading: true, error: '' }));
+    this.offeringsService.pending().subscribe({
+      next: rows => this.offerings.set({ loading: false, error: '', rows }),
+      error: e => this.offerings.set({ loading: false, error: errorMessage(e, 'No fue posible cargar las mentorías.'), rows: [] })
+    });
+  }
+
+  protected askOffering(offering: AdminOffering, action: ReviewAction) {
+    this.offeringAction.set(action);
+    this.selectedOffering.set(offering);
+  }
+
+  protected confirmOffering(reason: string) {
+    const offering = this.selectedOffering();
+    if (!offering) return;
+    const approving = this.offeringAction() === 'approve';
+    this.offeringSaving.set(true);
+    const request = approving ? this.offeringsService.approve(offering.id) : this.offeringsService.reject(offering.id, reason);
+    request.subscribe({
+      next: () => {
+        this.offeringSaving.set(false);
+        this.selectedOffering.set(null);
+        this.toast.success(approving
+          ? `«${offering.title}» fue aprobada y aparecerá en el catálogo cuando tenga horarios.`
+          : `«${offering.title}» fue rechazada. El proveedor verá el estado en su panel.`);
+        this.loadOfferings();
+      },
+      error: e => {
+        this.offeringSaving.set(false);
+        this.toast.error(errorMessage(e, 'No fue posible guardar la revisión.'));
       }
     });
   }

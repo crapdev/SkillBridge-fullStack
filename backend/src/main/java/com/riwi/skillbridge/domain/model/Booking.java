@@ -31,4 +31,18 @@ public record Booking(
         // persistencia
         return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CANCELLED);
     }
+
+    // HU-15: solo se cobran las reservas que siguen pendientes
+    public boolean isPayable() {
+        return this.status == BookingStatus.CREATED;
+    }
+
+    // HU-15: el pago aprobado confirma la reserva
+    public Booking confirm() {
+        if (!isPayable()) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "Solo se pueden confirmar reservas pendientes");
+        }
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CONFIRMED);
+    }
 }
