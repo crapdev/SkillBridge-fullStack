@@ -1,7 +1,7 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { ViewportScroller } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { AuthService } from './core/auth.service';
 import { AlertHostComponent } from './shared/alert-host.component';
@@ -45,8 +45,10 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
           <nav class="nav-links">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
             <a routerLink="/servicios" routerLinkActive="active">Servicios</a>
-            <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER -->
-            @if (auth.hasRole('CUSTOMER')) {
+            <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER.
+                 Mientras no se sabe si hay sesión no se muestra nada, para no enseñar opciones que luego cambian -->
+            @if (!auth.ready()) {
+            } @else if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
             } @else if (auth.hasRole('PROVIDER')) {
               <a routerLink="/provider" routerLinkActive="active">Panel de mentorías</a>
@@ -59,12 +61,14 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
             }
           </nav>
           <div class="nav-actions">
-            @if (!auth.isAuthenticated()) {
+            @if (!auth.ready()) {
+            } @else if (!auth.isAuthenticated()) {
               <a routerLink="/login" class="nav-login">Ingresar</a>
             } @else {
               <button type="button" class="nav-login" (click)="auth.logout()">Salir</button>
             }
-            @if (auth.hasRole('CUSTOMER')) {
+            @if (!auth.ready()) {
+            } @else if (auth.hasRole('CUSTOMER')) {
               <a routerLink="/bookings/me" class="button-primary">Mis Reservas</a>
             } @else if (!auth.isAuthenticated()) {
               <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="button-primary">Crear cuenta</a>
@@ -77,6 +81,10 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
         }
       </div>
     </header>
+    }
+    <!-- Una ruta protegida espera a /auth/me; con el backend dormido puede tardar, así que se avisa en vez de dejar la página vacía -->
+    @if (waitingSession()) {
+      <p class="session-loading" role="status">Comprobando tu sesión…</p>
     }
     <main><router-outlet /></main>
     @if (!hideHeader()) { <app-site-footer /> }
@@ -98,6 +106,19 @@ export class AppComponent {
     // Antes de la primera navegación router.url aún es '/', por eso se usa la ruta del navegador
     { initialValue: AppComponent.hasOwnLayout(location.pathname) }
   );
+
+  // true entre el inicio y el fin de una navegación (incluida la primera, antes de que empiece)
+  private readonly navigating = toSignal(
+    this.router.events.pipe(
+      filter(e => e instanceof NavigationStart || e instanceof NavigationEnd
+        || e instanceof NavigationCancel || e instanceof NavigationError),
+      map(e => e instanceof NavigationStart)
+    ),
+    { initialValue: true }
+  );
+
+  // Las páginas públicas navegan al instante; solo las que tienen guard se quedan esperando a la sesión
+  readonly waitingSession = computed(() => this.navigating() && !this.auth.ready());
 
   constructor() {
     // Al saltar a una sección (/#mentores) se descuenta la altura del header fijo para que no la tape
