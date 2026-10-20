@@ -38,7 +38,9 @@ public class PaymentEntity {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = Instant.now();
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
         if (this.status == null) {
             this.status = PaymentStatus.PENDING;
         }
