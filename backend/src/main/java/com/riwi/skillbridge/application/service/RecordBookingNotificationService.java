@@ -12,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Optional;
@@ -30,18 +28,19 @@ public class RecordBookingNotificationService implements RecordBookingNotificati
     // Las sesiones se agendan en hora de Colombia, igual que las muestra el frontend. Formato de 24 h:
     // "a. m." usa espacios invisibles (U+202F) y su punto final se duplicaría al terminar la frase
     private static final DateTimeFormatter SESSION_DATE = DateTimeFormatter
-        .ofPattern("EEEE d 'de' MMMM 'a las' HH:mm", Locale.forLanguageTag("es-CO"))
-        .withZone(ZoneId.of("America/Bogota"));
+        .ofPattern("EEEE d 'de' MMMM 'a las' HH:mm", Locale.forLanguageTag("es-CO"));
 
     private final BookingRepositoryPort bookings;
     private final OfferingRepositoryPort offerings;
     private final NotificationRepositoryPort notifications;
+    private final BusinessTime businessTime;
 
     public RecordBookingNotificationService(BookingRepositoryPort bookings, OfferingRepositoryPort offerings,
-                                            NotificationRepositoryPort notifications) {
+                                            NotificationRepositoryPort notifications, BusinessTime businessTime) {
         this.bookings = bookings;
         this.offerings = offerings;
         this.notifications = notifications;
+        this.businessTime = businessTime;
     }
 
     @Override
@@ -60,9 +59,10 @@ public class RecordBookingNotificationService implements RecordBookingNotificati
             return;
         }
 
-        String message = message(type, offering.get().title(), SESSION_DATE.format(b.scheduledAt()));
+        String message = message(type, offering.get().title(),
+            SESSION_DATE.withZone(businessTime.zone()).format(b.scheduledAt()));
         boolean saved = notifications.saveIfAbsent(
-            new Notification(UUID.randomUUID(), providerId, b.id(), type, message, Instant.now(), null));
+            new Notification(UUID.randomUUID(), providerId, b.id(), type, message, businessTime.now(), null));
         if (!saved) {
             log.debug("Notificación repetida ignorada (tipo={}, bookingId={})", type, bookingId);
         }
