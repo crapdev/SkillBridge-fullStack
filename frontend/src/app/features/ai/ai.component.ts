@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { apiBase } from '../../core/api';
+import { AI_CHAT_HISTORY_KEY, AI_RECOMMENDATION_KEY } from '../../core/user-storage';
 
 export interface ChatMessage {
   id: string;
@@ -26,7 +27,8 @@ interface StoredChatMessage {
   styleUrls: ['./ai.css']
 })
 export class AiComponent implements OnInit {
-  private readonly STORAGE_KEY = 'skillbridge_ai_chat_history';
+  // Registrada en core/user-storage: se borra al cerrar sesión para que otro usuario no la vea
+  private readonly STORAGE_KEY = AI_CHAT_HISTORY_KEY;
   readonly maxLength = 500;
 
   @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLElement>;
@@ -200,7 +202,7 @@ export class AiComponent implements OnInit {
       }
 
       // Compatibilidad con almacenamiento previo
-      const legacyRaw = localStorage.getItem('skillbridge_ai_last_recommendation');
+      const legacyRaw = localStorage.getItem(AI_RECOMMENDATION_KEY);
       if (legacyRaw) {
         const legacy = JSON.parse(legacyRaw);
         if (legacy && typeof legacy.answer === 'string' && legacy.answer.trim().length > 0) {
@@ -231,7 +233,7 @@ export class AiComponent implements OnInit {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
       localStorage.removeItem(this.STORAGE_KEY);
-      localStorage.removeItem('skillbridge_ai_last_recommendation');
+      localStorage.removeItem(AI_RECOMMENDATION_KEY);
     } catch (e) {
       console.warn('[SkillBridge AI] Error al limpiar historial en localStorage:', e);
     }

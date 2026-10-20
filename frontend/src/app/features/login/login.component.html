@@ -267,4 +267,19 @@
     </div>
   </div>
   }
+
+  <!-- Aviso de sesión expirada: llega con ?expired=1 desde el interceptor -->
+  @if (sessionExpired) {
+  <div class="modal-backdrop" (click)="sessionExpired = false" (keydown.escape)="sessionExpired = false">
+    <div class="modal modal--notice" role="alertdialog" aria-modal="true" aria-labelledby="expired-title"
+         aria-describedby="expired-text" (click)="$event.stopPropagation()">
+      <span class="modal__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+      </span>
+      <h2 id="expired-title">Tu sesión expiró</h2>
+      <p id="expired-text" class="modal-body">Por seguridad cerramos tu sesión. Vuelve a iniciar sesión para continuar donde estabas.</p>
+      <button type="button" class="submit" autofocus (click)="sessionExpired = false">Entendido</button>
+    </div>
+  </div>
+  }
 </div>

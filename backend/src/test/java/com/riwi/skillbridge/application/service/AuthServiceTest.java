@@ -5,6 +5,7 @@ import com.riwi.skillbridge.application.port.out.TokenPort;
 import com.riwi.skillbridge.application.port.out.UserRepositoryPort;
 import com.riwi.skillbridge.domain.exception.AccountNotActiveException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
+import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
 import com.riwi.skillbridge.domain.model.AccountStatus;
 import com.riwi.skillbridge.domain.model.Role;
@@ -632,6 +633,28 @@ class AuthServiceTest {
 
             assertThrows(InvalidCredentialsException.class,
                 () -> authService.login("ana@email.com", "wrong_password"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Current User (HU-29)")
+    class CurrentUserTests {
+
+        @Test
+        @DisplayName("Should return the user of the session, normalizing the email")
+        void currentUser_ShouldReturnTheAccount() {
+            UserAccount account = new UserAccount(UUID.randomUUID(), "Sofía", "sofia@email.com", "hash", Role.CUSTOMER);
+            when(userRepository.findByEmail("sofia@email.com")).thenReturn(Optional.of(account));
+
+            assertEquals(account, authService.currentUser(" Sofia@Email.com "));
+        }
+
+        @Test
+        @DisplayName("Should fail when the user no longer exists")
+        void currentUser_ShouldThrow_WhenUserDoesNotExist() {
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+            assertThrows(DomainNotFoundException.class, () -> authService.currentUser("nadie@email.com"));
         }
     }
 }

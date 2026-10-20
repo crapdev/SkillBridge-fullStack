@@ -463,7 +463,7 @@ TTL offerings:active
 ## 8.2 Registrar usuario
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -c cookies.txt -X POST http://localhost:8080/api/auth/register \
   -H 'Content-Type: application/json' \
   -d '{
     "name":"Ada Lovelace",
@@ -472,23 +472,22 @@ curl -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
-Obtendrás:
+Obtendrás el usuario de la sesión:
 
 ```json
-{
-  "token": "...",
-  "tokenType": "Bearer"
-}
+{ "email": "ada@example.com", "name": "Ada Lovelace", "role": "CUSTOMER" }
 ```
+
+El JWT **no** viene en el cuerpo: llega en la cookie HttpOnly `sb_token`, que `-c cookies.txt` guarda. Detalles en [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
 
 También puedes hacerlo desde la interfaz Angular.
 
 ## 8.3 Crear una reserva
 
-Copia el JWT y ejecuta:
+Toma el JWT de la cookie guardada y úsalo como Bearer:
 
 ```bash
-TOKEN="PEGA_EL_TOKEN"
+TOKEN=$(awk '$6=="sb_token"{print $7}' cookies.txt)
 ```
 
 Uno de los servicios iniciales tiene este id:
@@ -1050,10 +1049,13 @@ DATABASE_PASSWORD=...
 REDIS_URL=rediss://...
 RABBITMQ_URL=amqps://...
 JWT_SECRET=...
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.8-flash
+DEEPSEEK_API_KEY=...
+STRIPE_SECRET_KEY=sk_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 CORS_ALLOWED_ORIGINS=https://TU-FRONTEND.vercel.app
 ```
+
+La tabla completa (incluidas `JWT_EXPIRATION` y `AUTH_COOKIE_SECURE`) está en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#2-backend-en-render).
 
 `PORT` normalmente es proporcionado por Render y Spring lo consume mediante:
 
@@ -1122,35 +1124,21 @@ Configura:
 Root Directory: frontend
 ```
 
-El `vercel.json` ya especifica el build y el fallback del SPA.
+El `vercel.json` ya especifica el build, el fallback del SPA y el rewrite de `/api` hacia Render.
 
-## Paso 3 — Variable
+## Paso 3 — Rewrite y variables
 
-Agrega:
+En `frontend/vercel.json`, apunta el rewrite de `/api/:path*` a la URL de tu backend en Render.
+
+**No definas `API_URL`**: debe quedar en `/api` para que el navegador llame a la API en el mismo dominio de Vercel. La sesión es una cookie `SameSite=Strict`; si Angular llamara directo a Render, el navegador no la enviaría y todas las peticiones responderían `401`.
+
+Agrega solo:
 
 ```env
-API_URL=https://TU-BACKEND.onrender.com/api
+STRIPE_PUBLISHABLE_KEY=pk_...
 ```
 
-Durante:
-
-```bash
-npm run build
-```
-
-se ejecuta:
-
-```text
-scripts/generate-env.mjs
-```
-
-y se genera:
-
-```javascript
-window.__env = {
-  API_URL: "https://TU-BACKEND.onrender.com/api"
-};
-```
+Durante `npm run build` se ejecuta `scripts/generate-env.mjs`, que genera `public/env.js` con esos valores. Detalles en [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#3-frontend-en-vercel).
 
 ## Paso 4
 
@@ -1215,9 +1203,11 @@ Si quieres demostrar Nginx también en cloud, puedes desplegar `frontend/Dockerf
 | `REDIS_URL` | Redis local/cloud |
 | `RABBITMQ_URL` | AMQP/AMQPS |
 | `JWT_SECRET` | firma JWT |
-| `JWT_EXPIRATION_MINUTES` | expiración del token |
-| `GEMINI_API_KEY` | key IA |
-| `GEMINI_MODEL` | modelo IA |
+| `JWT_EXPIRATION` | duración de la sesión en ms (por defecto 8 h) |
+| `AUTH_COOKIE_SECURE` | cookie de sesión solo por HTTPS (`true` en producción) |
+| `DEEPSEEK_API_KEY` | key IA |
+| `DEEPSEEK_MODEL` | modelo IA |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | pagos |
 | `CORS_ALLOWED_ORIGINS` | orígenes frontend |
 | `OFFERINGS_CACHE_TTL_MINUTES` | TTL de catálogo |
 | `DB_POOL_SIZE` | Hikari pool |
@@ -1226,7 +1216,8 @@ Si quieres demostrar Nginx también en cloud, puedes desplegar `frontend/Dockerf
 
 | Variable | Propósito |
 |---|---|
-| `API_URL` | URL pública del backend + `/api` |
+| `API_URL` | Dejar sin definir (`/api`, pasa por el rewrite de Vercel) |
+| `STRIPE_PUBLISHABLE_KEY` | clave pública de Stripe (`pk_...`) |
 
 ---
 
@@ -1687,7 +1678,9 @@ Lee también:
 
 ```text
 docs/ARCHITECTURE.md
+docs/AUTHENTICATION.md
 docs/BACKLOG.md
+docs/DEPLOYMENT.md
 docs/DEPLOYMENT-CHECKLIST.md
 docs/INSTRUCTOR-GUIDE.md
 ```
