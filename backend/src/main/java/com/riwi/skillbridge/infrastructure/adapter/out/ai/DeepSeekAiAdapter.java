@@ -3,15 +3,20 @@ package com.riwi.skillbridge.infrastructure.adapter.out.ai;
 import com.riwi.skillbridge.application.port.out.AiRecommendationPort;
 import com.riwi.skillbridge.domain.exception.AiProviderException;
 import com.riwi.skillbridge.domain.exception.AiProviderException.Reason;
+import com.riwi.skillbridge.domain.model.ChatMessage;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class DeepSeekAiAdapter implements AiRecommendationPort {
@@ -31,28 +36,36 @@ public class DeepSeekAiAdapter implements AiRecommendationPort {
         this.chatClient = chatClientBuilder.build();
     }
 
+    // Va como mensaje de sistema para que lo que escriba el usuario en el chat no reemplace las reglas
+    static final String SYSTEM_PROMPT = """
+            Eres el asistente de SkillBridge AI y conversas con un cliente que busca mentorías.
+            Usa los mensajes anteriores de la conversación como contexto para afinar tus respuestas.
+
+            Reglas:
+            - Recomienda como máximo 3 mentorías y solo del catálogo de abajo; nunca inventes mentorías.
+            - Cada mentoría que recomiendes debe ir como enlace markdown con su título y su id exacto
+              del catálogo, así: [Título](/services/<id>)
+            - Explica brevemente por qué encaja con lo que busca el cliente y propone un siguiente paso.
+            - Si ninguna mentoría encaja o el catálogo está vacío, dilo con claridad y no recomiendes nada.
+
+            Catálogo de mentorías disponibles para reservar:
+            %s
+            """;
+
     @Override
-    public String recommend(String goal, List<Offering> offerings) {
-        String catalog = offerings.stream()
-            .map(o -> "- %s [%s]: %s".formatted(o.title(), o.category(), o.description()))
-            .reduce("", (a, b) -> a + "\n" + b);
+    public String recommend(List<ChatMessage> conversation, List<Offering> catalog) {
+        String catalogText = catalog.isEmpty() ? "(no hay mentorías disponibles en este momento)"
+            : catalog.stream()
+                .map(o -> "- id=%s | %s [%s]: %s".formatted(o.id(), o.title(), o.category(), o.description()))
+                .collect(Collectors.joining("\n"));
 
-        String prompt = """
-                Eres el asistente de SkillBridge AI. Recomienda como máximo 3 servicios del catálogo
-                que ayuden al usuario a lograr su objetivo. Explica brevemente por qué y propone un
-                siguiente paso. No inventes servicios que no estén en el catálogo.
-
-                Objetivo del usuario:
-                %s
-
-                Catálogo disponible:
-                %s
-                """.formatted(goal, catalog);
+        List<Message> messages = conversation.stream().map(DeepSeekAiAdapter::toMessage).toList();
 
         String response;
         try {
             response = chatClient.prompt()
-                .user(prompt)
+                .system(SYSTEM_PROMPT.formatted(catalogText))
+                .messages(messages)
                 .call()
                 .content();
         } catch (RuntimeException ex) {
@@ -64,6 +77,13 @@ public class DeepSeekAiAdapter implements AiRecommendationPort {
             throw new AiProviderException(Reason.UNAVAILABLE, UNAVAILABLE_MESSAGE);
         }
         return response;
+    }
+
+    private static Message toMessage(ChatMessage message) {
+        return switch (message.author()) {
+            case USER -> new UserMessage(message.content());
+            case ASSISTANT -> new AssistantMessage(message.content());
+        };
     }
 
     private AiProviderException translate(RuntimeException ex) {

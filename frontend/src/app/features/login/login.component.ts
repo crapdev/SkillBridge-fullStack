@@ -51,6 +51,7 @@ export class LoginComponent {
     const url = this.route.snapshot.queryParamMap.get('returnUrl');
     if (url && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\')) return url;
     if (this.auth.hasRole('ADMIN')) return '/admin';
+    if (this.auth.hasRole('PROVIDER')) return '/provider';
     return this.auth.hasRole('CUSTOMER') ? '/ai' : '/';
   }
 

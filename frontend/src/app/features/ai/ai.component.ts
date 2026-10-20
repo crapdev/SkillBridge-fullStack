@@ -1,15 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { apiBase } from '../../core/api';
-import { AI_RECOMMENDATION_KEY } from '../../core/user-storage';
+import { AI_CHAT_HISTORY_KEY, AI_RECOMMENDATION_KEY } from '../../core/user-storage';
 
-interface StoredAiState {
-  goal: string;
-  answer: string;
-  savedAt: number;
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  formattedContent?: SafeHtml;
+  timestamp: number;
+}
+
+interface StoredChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: number;
 }
 
 @Component({
@@ -20,8 +28,10 @@ interface StoredAiState {
 })
 export class AiComponent implements OnInit {
   // Registrada en core/user-storage: se borra al cerrar sesión para que otro usuario no la vea
-  private readonly STORAGE_KEY = AI_RECOMMENDATION_KEY;
+  private readonly STORAGE_KEY = AI_CHAT_HISTORY_KEY;
   readonly maxLength = 500;
+
+  @ViewChild('scrollContainer') private scrollContainer?: ElementRef<HTMLElement>;
 
   readonly suggestions = [
     { category: 'backend', label: 'Entrevista backend Java', goal: 'Quiero prepararme para una entrevista técnica de backend con Java y Spring Boot.' },
@@ -30,117 +40,216 @@ export class AiComponent implements OnInit {
   ];
 
   goal = '';
-  answer = '';
-  formattedAnswer: SafeHtml = '';
+  messages: ChatMessage[] = [];
   error = '';
   loading = false;
   unauthorized = false;
-  copied = false;
+  copiedId: string | null = null;
+
+  // Propiedades de compatibilidad
+  get answer(): string {
+    const lastAssistant = [...this.messages].reverse().find(m => m.role === 'assistant');
+    return lastAssistant ? lastAssistant.content : '';
+  }
+
+  get formattedAnswer(): SafeHtml {
+    const lastAssistant = [...this.messages].reverse().find(m => m.role === 'assistant');
+    return lastAssistant?.formattedContent ?? '';
+  }
 
   constructor(
     private http: HttpClient,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.restoreState();
+    this.restoreHistory();
   }
 
   useSuggestion(goal: string): void {
     this.goal = goal;
   }
 
+  handleEnter(event: Event): void {
+    const ke = event as KeyboardEvent;
+    if (ke.shiftKey) return;
+    ke.preventDefault();
+    this.ask();
+  }
+
   ask(): void {
     if (!this.goal.trim() || this.loading) return;
 
+    const currentGoal = this.goal.trim();
     this.error = '';
-    this.answer = '';
-    this.formattedAnswer = '';
     this.unauthorized = false;
-    this.copied = false;
+
+    // Historial previo antes del mensaje actual
+    const historyPayload = this.messages.map(m => ({
+      role: m.role,
+      content: m.content
+    }));
+
+    // Agregar mensaje del usuario a la vista
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      role: 'user',
+      content: currentGoal,
+      timestamp: Date.now()
+    };
+    this.messages.push(userMsg);
+    this.goal = '';
     this.loading = true;
+    this.scrollToBottom();
 
     this.http.post<{ recommendation: string }>(`${apiBase()}/ai/recommendations`, {
-      goal: this.goal.trim()
+      goal: currentGoal,
+      history: historyPayload
     }).subscribe({
       next: r => {
-        this.answer = r.recommendation;
-        this.formattedAnswer = this.parseMarkdown(r.recommendation);
-        this.saveState(); // <-- Persistir automáticamente tras respuesta exitosa
+        const assistantMsg: ChatMessage = {
+          id: `a-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          role: 'assistant',
+          content: r.recommendation,
+          formattedContent: this.parseMarkdown(r.recommendation),
+          timestamp: Date.now()
+        };
+        this.messages.push(assistantMsg);
+        this.saveHistory();
         this.loading = false;
+        this.scrollToBottom();
       },
       error: e => {
         this.unauthorized = e?.status === 401;
         this.error = this.unauthorized
           ? 'Necesitas iniciar sesión para usar el asistente.'
-          : e?.error?.detail || this.fallbackError(e?.status);
+          : e?.error?.detail || e?.error?.message || this.fallbackError(e?.status);
         this.loading = false;
+        this.scrollToBottom();
       }
     });
   }
 
   // ==========================================
-  // FUNCIONES DE PERSISTENCIA (LocalStorage)
+  // NAVEGACIÓN Y CLICK EN ENLACES DE MENTORÍAS
   // ==========================================
 
-  private saveState(): void {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    try {
-      const payload: StoredAiState = {
-        goal: this.goal,
-        answer: this.answer,
-        savedAt: Date.now()
-      };
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(payload));
-    } catch (e) {
-      console.warn('[SkillBridge AI] No se pudo guardar el estado en localStorage:', e);
-    }
-  }
-
-  private restoreState(): void {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      if (!raw) return;
-
-      const state: StoredAiState = JSON.parse(raw);
-      if (state && typeof state.answer === 'string' && state.answer.trim().length > 0) {
-        this.goal = state.goal || '';
-        this.answer = state.answer;
-        this.formattedAnswer = this.parseMarkdown(state.answer);
+  onMessageClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    const link = target.closest('a');
+    if (link) {
+      const href = link.getAttribute('href') || link.getAttribute('data-link');
+      if (href && href.startsWith('/')) {
+        event.preventDefault();
+        this.router.navigateByUrl(href);
       }
-    } catch (e) {
-      console.warn('[SkillBridge AI] Error al restaurar el estado desde localStorage:', e);
-    }
-  }
-
-  private clearState(): void {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    try {
-      localStorage.removeItem(this.STORAGE_KEY);
-    } catch (e) {
-      console.warn('[SkillBridge AI] Error al limpiar localStorage:', e);
     }
   }
 
   // ==========================================
-  // UTILIDADES
+  // PERSISTENCIA Y NUEVA CONVERSACIÓN
   // ==========================================
 
   reset(): void {
     this.goal = '';
-    this.answer = '';
-    this.formattedAnswer = '';
+    this.messages = [];
     this.error = '';
-    this.clearState(); // <-- Limpiar la memoria al pedir una nueva consulta
+    this.unauthorized = false;
+    this.clearHistory();
   }
 
-  copy(): void {
-    navigator.clipboard?.writeText(this.answer).then(() => {
-      this.copied = true;
-      setTimeout(() => (this.copied = false), 2000);
+  copy(text: string, id: string): void {
+    navigator.clipboard?.writeText(text).then(() => {
+      this.copiedId = id;
+      setTimeout(() => {
+        if (this.copiedId === id) this.copiedId = null;
+      }, 2000);
     });
   }
+
+  private saveHistory(): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const payload: StoredChatMessage[] = this.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp
+      }));
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn('[SkillBridge AI] No se pudo guardar el historial en localStorage:', e);
+    }
+  }
+
+  private restoreHistory(): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (raw) {
+        const parsed: StoredChatMessage[] = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.messages = parsed.map((m, idx) => ({
+            id: `restored-${idx}-${m.timestamp || Date.now()}`,
+            role: m.role,
+            content: m.content,
+            formattedContent: m.role === 'assistant' ? this.parseMarkdown(m.content) : undefined,
+            timestamp: m.timestamp || Date.now()
+          }));
+          this.scrollToBottom();
+          return;
+        }
+      }
+
+      // Compatibilidad con almacenamiento previo
+      const legacyRaw = localStorage.getItem(AI_RECOMMENDATION_KEY);
+      if (legacyRaw) {
+        const legacy = JSON.parse(legacyRaw);
+        if (legacy && typeof legacy.answer === 'string' && legacy.answer.trim().length > 0) {
+          if (legacy.goal) {
+            this.messages.push({
+              id: 'legacy-user',
+              role: 'user',
+              content: legacy.goal,
+              timestamp: legacy.savedAt || Date.now()
+            });
+          }
+          this.messages.push({
+            id: 'legacy-asst',
+            role: 'assistant',
+            content: legacy.answer,
+            formattedContent: this.parseMarkdown(legacy.answer),
+            timestamp: legacy.savedAt || Date.now()
+          });
+          this.scrollToBottom();
+        }
+      }
+    } catch (e) {
+      console.warn('[SkillBridge AI] Error al restaurar historial desde localStorage:', e);
+    }
+  }
+
+  private clearHistory(): void {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(AI_RECOMMENDATION_KEY);
+    } catch (e) {
+      console.warn('[SkillBridge AI] Error al limpiar historial en localStorage:', e);
+    }
+  }
+
+  private scrollToBottom(): void {
+    setTimeout(() => {
+      if (this.scrollContainer?.nativeElement) {
+        this.scrollContainer.nativeElement.scrollTop = this.scrollContainer.nativeElement.scrollHeight;
+      }
+    }, 50);
+  }
+
+  // ==========================================
+  // FORMATO MARKDOWN Y ENLACES A MENTORÍAS
+  // ==========================================
 
   private parseMarkdown(text: string): SafeHtml {
     if (!text) return '';
@@ -157,6 +266,12 @@ export class AiComponent implements OnInit {
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
     html = html.replace(/`(.*?)`/g, '<code class="md-code">$1</code>');
+
+    // Enlaces de mentorías hacia su detalle: [Título](/services/<id>)
+    html = html.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" class="chat-offering-link" data-link="$2">$1 <span class="chat-link-arrow">→</span></a>'
+    );
 
     html = html.replace(/^[*-] (.*$)/gim, '<li>$1</li>');
     html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');

@@ -46,6 +46,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -104,7 +105,7 @@ class AuthSecurityIntegrationTest {
                 .thenReturn(User.withUsername(EMAIL).password(HASH).roles("CUSTOMER").build());
         when(listOfferings.listActive()).thenReturn(List.of());
         when(listOfferings.listVisible(any())).thenReturn(new org.springframework.data.domain.PageImpl<>(List.of()));
-        when(recommendations.recommend(anyString())).thenReturn("Te recomiendo Mentoría Java Backend");
+        when(recommendations.recommend(anyString(), anyList())).thenReturn("Te recomiendo Mentoría Java Backend");
     }
 
     private ResultActions login(String email, String password) throws Exception {

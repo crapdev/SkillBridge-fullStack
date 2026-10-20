@@ -12,7 +12,6 @@ import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
-import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 
 import java.time.Instant;
 import java.util.List;
@@ -47,6 +46,10 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
             .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
         if (!offering.active()) {
             throw new BusinessRuleException("La mentoría no está activa");
+        }
+        // HU-21: una mentoría pendiente o rechazada no aparece en el catálogo, pero se podría llamar a la API con su id
+        if (!offering.isApproved()) {
+            throw new BusinessRuleException("La mentoría todavía no está disponible para reservas");
         }
 
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)

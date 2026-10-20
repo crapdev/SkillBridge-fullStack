@@ -3,6 +3,18 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
 import { apiBase } from './api';
 
+/** Nivel de la mentoría (HU-20) */
+export type OfferingLevel = 'BASICO' | 'INTERMEDIO' | 'AVANZADO';
+
+/** Días de la semana tal como los maneja el backend (java.time.DayOfWeek) */
+export type WeekDay = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+
+/** Un tema del temario definido por el proveedor */
+export interface SyllabusTopic {
+  title: string;
+  description: string;
+}
+
 export interface Offering {
   id: string;
   title: string;
@@ -10,14 +22,17 @@ export interface Offering {
   category: string;
   price: number;
   active: boolean;
+  // ---- Ficha de la mentoría (HU-20) ----
+  syllabus: SyllabusTopic[];
+  durationMinutes: number;
+  level: OfferingLevel;
+  workingDays: WeekDay[];
+  // ---- Revisión del administrador (HU-21): solo las aprobadas llegan al catálogo ----
+  reviewStatus?: OfferingReviewStatus;
+  rejectionReason?: string | null;
 }
 
-export interface OfferingInput {
-  title: string;
-  description: string;
-  category: string;
-  price: number;
-}
+export type OfferingReviewStatus = 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
 
 /** Horario publicado por el proveedor; `reserved` indica que un cliente ya lo tomó. */
 export interface AvailabilitySlot {
@@ -25,6 +40,12 @@ export interface AvailabilitySlot {
   offeringId: string;
   scheduledAt: string;
   reserved: boolean;
+}
+
+/** Resultado de publicar horarios en lote: los creados y los omitidos con su motivo */
+export interface SlotBatchResult {
+  created: AvailabilitySlot[];
+  skipped: { scheduledAt: string; reason: string }[];
 }
 
 export interface PageMetadata {
@@ -39,12 +60,16 @@ export interface PagedOfferings {
   page: PageMetadata;
 }
 
-/** Campos que el proveedor llena al crear o editar una mentoría */
+/** Campos que el proveedor llena al crear o editar una mentoría (datos básicos + ficha HU-20) */
 export interface OfferingInput {
   title: string;
   description: string;
   category: string;
   price: number;
+  syllabus: SyllabusTopic[];
+  durationMinutes: number;
+  level: OfferingLevel;
+  workingDays: WeekDay[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -100,6 +125,11 @@ export class OfferingService {
 
   addProviderSlot(offeringId: string, scheduledAt: string) {
     return this.http.post<AvailabilitySlot>(`${apiBase()}/provider/offerings/${offeringId}/slots`, { scheduledAt });
+  }
+
+  /** Varios horarios de una vez: los que no se pueden publicar vuelven en "skipped" con su motivo */
+  addProviderSlots(offeringId: string, scheduledAt: string[]) {
+    return this.http.post<SlotBatchResult>(`${apiBase()}/provider/offerings/${offeringId}/slots/batch`, { scheduledAt });
   }
 
   deleteProviderSlot(offeringId: string, slotId: string) {

@@ -4,13 +4,13 @@ import com.riwi.skillbridge.application.service.ProviderOfferingService;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotRequest;
-import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.UpdateOfferingRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.CreateSlotsRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.OfferingRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.List;
 
@@ -24,20 +24,12 @@ public class ProviderOfferingController {
         this.providerOfferingService = providerOfferingService;
     }
 
-    // DTO local para recibir los datos exactos que envía tu formulario de Angular
-    public record CreateOfferingRequest(String title, String description, String category, BigDecimal price) {}
-
+    // HU-20: crear una mentoría con su ficha completa. 400 si algún dato no es válido (p. ej. menos de 2 temas)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Offering createOffering(@RequestBody CreateOfferingRequest request, Authentication authentication) {
+    public Offering createOffering(@Valid @RequestBody OfferingRequest request, Authentication authentication) {
         // authentication.getName() saca el email del token automáticamente
-        return providerOfferingService.createOffering(
-                request.title(),
-                request.description(),
-                request.category(),
-                request.price(),
-                authentication.getName() 
-        );
+        return providerOfferingService.createOffering(request.toDraft(), authentication.getName());
     }
 
     @GetMapping
@@ -46,18 +38,12 @@ public class ProviderOfferingController {
         return providerOfferingService.getOwnedOfferings(authentication.getName());
     }
 
-    // HU-19: editar una mentoría propia. 400 si los datos no son válidos, 403 si es de otro proveedor, 404 si no existe
+    // HU-19/HU-20: editar una mentoría propia y su ficha. 400 si los datos no son válidos,
+    // 403 si es de otro proveedor, 404 si no existe
     @PutMapping("/{id}")
-    public Offering updateOffering(@PathVariable UUID id, @Valid @RequestBody UpdateOfferingRequest request,
+    public Offering updateOffering(@PathVariable UUID id, @Valid @RequestBody OfferingRequest request,
                                    Authentication authentication) {
-        return providerOfferingService.updateOffering(
-                id,
-                request.title(),
-                request.description(),
-                request.category(),
-                request.price(),
-                authentication.getName()
-        );
+        return providerOfferingService.updateOffering(id, request.toDraft(), authentication.getName());
     }
 
     @DeleteMapping("/{id}")
@@ -78,6 +64,15 @@ public class ProviderOfferingController {
     public AvailabilitySlot addSlot(@PathVariable UUID id, @Valid @RequestBody CreateSlotRequest request,
                                     Authentication authentication) {
         return providerOfferingService.addAvailabilitySlot(id, request.scheduledAt(), authentication.getName());
+    }
+
+    // Publicar varios horarios a la vez (las mismas horas en varios días). Los que no se pueden publicar
+    // vuelven en "skipped" con su motivo; 400 si la lista está vacía o supera el límite
+    @PostMapping("/{id}/slots/batch")
+    public ProviderOfferingService.SlotBatchResult addSlots(@PathVariable UUID id,
+                                                            @Valid @RequestBody CreateSlotsRequest request,
+                                                            Authentication authentication) {
+        return providerOfferingService.addAvailabilitySlots(id, request.scheduledAt(), authentication.getName());
     }
 
     @DeleteMapping("/{id}/slots/{slotId}")

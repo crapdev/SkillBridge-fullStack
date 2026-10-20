@@ -13,11 +13,16 @@ describe('ProviderOfferingsComponent', () => {
   let http: HttpTestingController;
   let alerts: AlertService;
 
+  // Ficha de la mentoría (HU-20)
+  const profile = {
+    syllabus: [{ title: 'JPA', description: 'Entidades' }, { title: 'Seguridad', description: 'JWT' }],
+    durationMinutes: 60, level: 'INTERMEDIO' as const, workingDays: ['MONDAY' as const, 'WEDNESDAY' as const]
+  };
   const java: Offering = {
-    id: 'o-1', title: 'Mentoría Java', description: 'Spring Boot', category: 'BACKEND', price: 85000, active: true
+    id: 'o-1', title: 'Mentoría Java', description: 'Spring Boot', category: 'BACKEND', price: 85000, active: true, ...profile
   };
   const angular: Offering = {
-    id: 'o-2', title: 'Mentoría Angular', description: 'Signals', category: 'FRONTEND', price: 75000, active: true
+    id: 'o-2', title: 'Mentoría Angular', description: 'Signals', category: 'FRONTEND', price: 75000, active: true, ...profile
   };
 
   const slot = (reserved: boolean) => ({
@@ -36,8 +41,14 @@ describe('ProviderOfferingsComponent', () => {
     alerts = TestBed.inject(AlertService);
 
     fixture.detectChanges();
-    http.expectOne('/api/provider/offerings').flush([java, angular]);
+    flushList([java, angular]);
   });
+
+  // La lista también pide los horarios de cada mentoría (HU-21: aviso "sin horarios")
+  function flushList(offerings: Offering[], freeSlots: Record<string, unknown[]> = {}) {
+    http.expectOne('/api/provider/offerings').flush(offerings);
+    offerings.forEach(o => http.expectOne(`/api/provider/offerings/${o.id}/slots`).flush(freeSlots[o.id] ?? [slot(false)]));
+  }
 
   afterEach(() => http.verify());
 
@@ -50,7 +61,7 @@ describe('ProviderOfferingsComponent', () => {
 
     expect(component.isEditing).toBeTrue();
     expect(component.offeringForm.value).toEqual({
-      title: 'Mentoría Java', category: 'BACKEND', price: 85000, description: 'Spring Boot'
+      title: 'Mentoría Java', category: 'BACKEND', price: 85000, description: 'Spring Boot', ...profile
     });
     expect(component.submitLabel).toBe('Guardar cambios');
   });
@@ -64,7 +75,7 @@ describe('ProviderOfferingsComponent', () => {
     const req = http.expectOne('/api/provider/offerings/o-1');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({
-      title: 'Java avanzado', description: 'Spring Boot', category: 'BACKEND', price: 120000
+      title: 'Java avanzado', description: 'Spring Boot', category: 'BACKEND', price: 120000, ...profile
     });
     req.flush({ ...java, title: 'Java avanzado', price: 120000 });
 
@@ -103,7 +114,7 @@ describe('ProviderOfferingsComponent', () => {
 
     expect(component.errorMessage).toBe('No puedes editar una mentoría que pertenece a otro proveedor.');
     expect(component.isEditing).toBeFalse();
-    http.expectOne('/api/provider/offerings').flush([angular]);
+    flushList([angular]);
   });
 
   it('cancelar la edición vuelve al modo crear', () => {

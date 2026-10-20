@@ -72,11 +72,15 @@
               </li>
               <li>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                {{ content().duration }}
+                {{ durationText() }}
               </li>
               <li>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
-                {{ content().level }}
+                Nivel {{ levelText().toLowerCase() }}
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+                {{ daysText() }}
               </li>
             </ul>
           </div>
@@ -124,25 +128,56 @@
       <section class="detail-section">
         <div class="container">
           <header class="section-head" appReveal>
-            <span class="eyebrow">Contenido de la sesión</span>
+            <span class="eyebrow">Temario</span>
             <h2>Qué vas a trabajar</h2>
-            <p>Adaptamos la sesión a tu nivel y a lo que necesitas resolver hoy.</p>
+            <p>Temario definido por el mentor para esta sesión de {{ durationText() }}.</p>
           </header>
 
-          <div class="topics">
-            @for (topic of content().topics; track topic.title; let i = $index) {
-              <article class="topic" appReveal [revealDelay]="i * 70">
-                <span class="topic__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
-                <h3>{{ topic.title }}</h3>
-                <p>{{ topic.text }}</p>
-              </article>
+          @if (syllabus().length) {
+            <div class="topics">
+              @for (topic of syllabus(); track $index; let i = $index) {
+                <article class="topic" appReveal [revealDelay]="i * 70">
+                  <span class="topic__index">{{ (i + 1).toString().padStart(2, '0') }}</span>
+                  <h3>{{ topic.title }}</h3>
+                  <p>{{ topic.description }}</p>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="detail-note">El mentor aún no ha publicado el temario de esta sesión.</p>
+          }
+        </div>
+      </section>
+
+      <!-- PRÓXIMOS HORARIOS (HU-20: hora de inicio y de finalización) -->
+      <section class="detail-section detail-section--alt">
+        <div class="container">
+          <header class="section-head" appReveal>
+            <span class="eyebrow">Disponibilidad</span>
+            <h2>Próximos horarios</h2>
+            <p>Se ofrece {{ daysText().toLowerCase() }}. Cada sesión dura {{ durationText() }}.</p>
+          </header>
+
+          @if (upcomingSlots().length) {
+            <ul class="slots" appReveal>
+              @for (slot of upcomingSlots(); track slot.id) {
+                <li class="slot">
+                  <span class="slot__day">{{ slot.day }}</span>
+                  <span class="slot__range">{{ slot.range }}</span>
+                </li>
+              }
+            </ul>
+            @if (moreSlots()) {
+              <p class="detail-note">Y {{ moreSlots() }} {{ moreSlots() === 1 ? 'horario más' : 'horarios más' }} al momento de reservar.</p>
             }
-          </div>
+          } @else {
+            <p class="detail-note">Por ahora no hay horarios disponibles para esta mentoría.</p>
+          }
         </div>
       </section>
 
       <!-- CÓMO FUNCIONA -->
-      <section class="detail-section detail-section--alt">
+      <section class="detail-section">
         <div class="container">
           <header class="section-head" appReveal>
             <span class="eyebrow">Proceso</span>
@@ -163,7 +198,7 @@
 
       <!-- OTROS SERVICIOS -->
       @if (related().length) {
-        <section class="detail-section">
+        <section class="detail-section detail-section--alt">
           <div class="container">
             <header class="section-head" appReveal>
               <span class="eyebrow">Sigue explorando</span>

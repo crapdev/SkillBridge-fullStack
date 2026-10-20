@@ -1,6 +1,7 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from '@angular/common/http';
 import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
 import { adminMockEnabled } from '../admin.config';
+import { OFFERINGS_URL, handleOfferings } from './admin-offerings.mock';
 import { AccountStatus, AdminUser, CreateUserRequest, ManagedRole, Page, RoleStats, UpdateUserRequest, UserStats } from './admin-user.model';
 
 /**
@@ -9,6 +10,10 @@ import { AccountStatus, AdminUser, CreateUserRequest, ManagedRole, Page, RoleSta
  * Los datos viven en memoria y se reinician al recargar la página.
  */
 export const adminMockInterceptor: HttpInterceptorFn = (req, next) => {
+  // Revisión de mentorías (HU-21): sus datos simulados viven en admin-offerings.mock.ts
+  const offerings = req.url.match(OFFERINGS_URL);
+  if (offerings && adminMockEnabled()) return handleOfferings(req, offerings);
+
   const match = req.url.match(/\/admin\/users(?:\/([^/?]+))?(?:\/(status))?$/);
   if (!match || !adminMockEnabled()) return next(req);
   return handle(req, match[1], match[2]).pipe(delay(350));

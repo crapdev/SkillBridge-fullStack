@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { AuthService } from './auth.service';
 
 describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
@@ -61,6 +61,20 @@ describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
     http.expectOne('/api/auth/logout').flush(null);
 
     expect(localStorage.getItem('skillbridge_ai_last_recommendation')).toBeNull();
+  });
+
+  it('logout borra el historial del chat de IA (HU-25) y redirige', () => {
+    const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl');
+    localStorage.setItem('skillbridge_ai_chat_history', JSON.stringify([{ role: 'user', content: 'privado' }]));
+    auth.login('sofia@test.com', 'secreto').subscribe();
+    http.expectOne('/api/auth/login').flush({ email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' });
+
+    auth.logout('/login');
+    http.expectOne('/api/auth/logout').flush(null);
+
+    expect(localStorage.getItem('skillbridge_ai_chat_history')).toBeNull();
+    expect(auth.isAuthenticated()).toBeFalse();
+    expect(navigate).toHaveBeenCalledWith('/login');
   });
 
   it('al arrancar con la sesión expirada también borra los datos del usuario anterior', () => {

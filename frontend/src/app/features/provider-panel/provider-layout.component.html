@@ -1,0 +1,58 @@
+<div class="shell" [class.shell--open]="menuOpen()">
+  <aside class="side" id="provider-sidebar" aria-label="Menú del proveedor">
+    <a routerLink="/provider" class="side__brand" aria-label="SkillBridge, panel del proveedor">
+      SkillBridge <span class="side__badge">Mentor</span>
+    </a>
+
+    <nav class="side__nav">
+      <a routerLink="/provider" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a routerLink="/provider/offerings" routerLinkActive="active">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>
+        Mis mentorías
+      </a>
+      <a routerLink="/servicios">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        Ver el catálogo
+      </a>
+    </nav>
+
+    <div class="side__footer">
+      <div class="side__user">
+        <adm-avatar [name]="displayName()" [size]="38" />
+        <div>
+          <strong>Mentor</strong>
+          <small [title]="email()">{{ email() }}</small>
+        </div>
+      </div>
+      <button type="button" class="side__link" (click)="logout()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </aside>
+
+  <button type="button" class="scrim" aria-label="Cerrar menú" tabindex="-1" (click)="menuOpen.set(false)"></button>
+
+  <div class="main">
+    <header class="top">
+      <button type="button" class="adm-icon-btn top__menu" (click)="menuOpen.set(!menuOpen())"
+              [attr.aria-expanded]="menuOpen()" aria-controls="provider-sidebar"
+              [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <span class="top__title">Panel del mentor</span>
+      <div class="top__end">
+        <!-- Notificaciones de reservas (HU-11), con los colores claros de esta barra -->
+        <app-notification-bell class="bell--light" />
+        <adm-avatar [name]="displayName()" [size]="34" />
+      </div>
+    </header>
+
+    <div class="content">
+      <router-outlet />
+    </div>
+  </div>
+</div>

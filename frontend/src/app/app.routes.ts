@@ -8,8 +8,6 @@ import { PaymentComponent } from './features/payment/payment.component';
 import { ServiceDetailComponent } from './features/service-detail/service-detail.component';
 import { AboutComponent } from './features/about/about.component';
 import { ServicesComponent } from './features/services/services.component';
-import { ProviderOfferingsComponent } from './features/provider-offerings.component';
-import { ProviderSlotsComponent } from './features/provider-slots/provider-slots.component';
 import { adminGuard, customerGuard, providerGuard } from './core/role.guard';
 import { guestGuard } from './core/guest.guard';
 
@@ -27,8 +25,13 @@ export const routes: Routes = [
   { path: 'bookings/me', component: MyBookingsComponent, canActivate: [customerGuard], title },
   { path: 'bookings/:id/pay', component: PaymentComponent, canActivate: [customerGuard], title },
   { path: 'my-bookings', redirectTo: 'bookings/me' },
-  { path: 'provider/offerings', component: ProviderOfferingsComponent, canActivate: [providerGuard], title },
-  { path: 'provider/offerings/:id/horarios', component: ProviderSlotsComponent, canActivate: [providerGuard], title },
+  // Panel del proveedor (HU-22): dashboard, mentorías y horarios con su propio layout, bajo demanda y solo para PROVIDER
+  {
+    path: 'provider',
+    canActivate: [providerGuard],
+    canActivateChild: [providerGuard],
+    loadChildren: () => import('./features/provider-panel/provider.routes').then(m => m.PROVIDER_ROUTES)
+  },
   // Panel de administración: se carga bajo demanda y solo para el rol ADMIN
   {
     path: 'admin',
