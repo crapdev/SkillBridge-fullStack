@@ -2,6 +2,7 @@ package com.riwi.skillbridge.infrastructure.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -36,17 +38,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
-
-        // 1. Si no hay token o no empieza con Bearer, deja pasar la petición (rutas públicas)
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // 1. Si no hay token (ni Bearer ni cookie), deja pasar la petición (rutas públicas)
+        final String jwt = resolveToken(request);
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            // 2. Extraer el token
-            final String jwt = authHeader.substring(7);
+            // 2. Extraer el usuario del token
             final String userEmail = jwtService.extractUsername(jwt);
 
             // 3. Validar y autenticar si no está autenticado aún
@@ -79,5 +79,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // 7. Continuar con el siguiente filtro
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * El Bearer tiene prioridad porque es explícito (Swagger, curl, scripts): si alguien prueba con otro token,
+     * manda ese aunque el navegador tenga su propia cookie. Sin cabecera se usa la cookie HttpOnly (HU-29).
+     */
+    static String resolveToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return null;
+        }
+        return Arrays.stream(cookies)
+                .filter(c -> AuthCookies.NAME.equals(c.getName()) && !c.getValue().isBlank())
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElse(null);
     }
 }

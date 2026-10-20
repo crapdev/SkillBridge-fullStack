@@ -6,6 +6,7 @@ import com.riwi.skillbridge.application.port.out.TokenPort;
 import com.riwi.skillbridge.application.port.out.UserRepositoryPort;
 import com.riwi.skillbridge.domain.exception.AccountNotActiveException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
+import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
 import com.riwi.skillbridge.domain.model.AccountStatus;
 import com.riwi.skillbridge.domain.model.Role;
@@ -65,5 +66,11 @@ public class AuthService implements AuthUseCase {
             throw new AccountNotActiveException("Tu cuenta fue desactivada por un administrador");
         }
         return tokens.generate(user.email(), user.role().name());
+    }
+
+    @Override
+    public UserAccount currentUser(String email) {
+        return users.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
     }
 }
