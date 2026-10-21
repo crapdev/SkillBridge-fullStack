@@ -1,4 +1,5 @@
 import { OfferingLevel, WeekDay } from '../core/offering.service';
+import { businessDateFormat } from './business-time';
 
 /**
  * Textos y reglas de la ficha de la mentoría (HU-20) compartidos por el panel del proveedor,
@@ -35,7 +36,7 @@ const DAY_ORDER = WEEK_DAYS.map(d => d.value);
 // Date.getDay(): 0 = domingo … 6 = sábado
 const JS_DAY: WeekDay[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
-const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' });
+const timeFormat = businessDateFormat({ hour: 'numeric', minute: '2-digit' });
 const priceFormat = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
 export function levelLabel(level: OfferingLevel | null | undefined): string {

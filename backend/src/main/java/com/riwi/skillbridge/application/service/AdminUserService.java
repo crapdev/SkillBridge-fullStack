@@ -12,8 +12,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -25,10 +23,12 @@ public class AdminUserService implements AdminManageUsersUseCase {
 
     private final UserRepositoryPort users;
     private final PasswordHasherPort passwords;
+    private final BusinessTime businessTime;
 
-    public AdminUserService(UserRepositoryPort users, PasswordHasherPort passwords) {
+    public AdminUserService(UserRepositoryPort users, PasswordHasherPort passwords, BusinessTime businessTime) {
         this.users = users;
         this.passwords = passwords;
+        this.businessTime = businessTime;
     }
 
     @Override
@@ -42,13 +42,7 @@ public class AdminUserService implements AdminManageUsersUseCase {
 
     @Override
     public Map<String, Map<String, Long>> getStats() {
-        ZonedDateTime firstDayOfMonth = ZonedDateTime.now(ZoneId.of("America/Bogota"))
-                .withDayOfMonth(1)
-                .withHour(0)
-                .withMinute(0)
-                .withSecond(0)
-                .withNano(0);
-        Instant startOfMonth = firstDayOfMonth.toInstant();
+        Instant startOfMonth = businessTime.startOfMonth();
 
         Map<String, Map<String, Long>> stats = new HashMap<>();
         stats.put("providers", roleStats(Role.PROVIDER, startOfMonth));

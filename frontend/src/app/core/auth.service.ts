@@ -1,7 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, shareReplay, tap } from 'rxjs';
 import { apiBase } from './api';
 import { clearUserStorage } from './user-storage';
 
@@ -17,10 +17,17 @@ const LEGACY_TOKEN_KEY = 'skillbridge_token';
 /**
  * Sesión del usuario (HU-29). El JWT viaja en una cookie HttpOnly que el JavaScript no puede leer:
  * aquí solo se guarda en memoria quién es el usuario, y al arrancar se le pregunta al backend (/auth/me).
+ * Esa pregunta no bloquea el arranque: en Render Free el backend puede tardar ~1 minuto en despertar y la
+ * página quedaría en blanco. Solo los guards esperan la respuesta.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly user = signal<SessionUser | null>(null);
+  private readonly checked = signal(false);
+  private restoring?: Observable<void>;
+
+  /** false mientras /auth/me no ha respondido: todavía no se sabe si hay sesión. */
+  readonly ready = this.checked.asReadonly();
 
   readonly authenticated = computed(() => this.user() !== null);
   readonly role = computed(() => this.user()?.role ?? null);
@@ -29,8 +36,20 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  /** Se ejecuta una vez al arrancar la app: si la cookie sigue vigente, recupera la sesión. */
+  /**
+   * Recupera la sesión si la cookie sigue vigente. Se pide al backend una sola vez: las llamadas
+   * siguientes (los guards) reciben la misma respuesta, o la esperan si aún no ha llegado.
+   */
   restore(): Observable<void> {
+    this.restoring ??= this.fetchSession().pipe(
+      // Siempre emite una vez (el error ya se convirtió en visitante): a partir de aquí se sabe si hay sesión
+      tap(() => this.checked.set(true)),
+      shareReplay(1)
+    );
+    return this.restoring;
+  }
+
+  private fetchSession(): Observable<void> {
     try { localStorage.removeItem(LEGACY_TOKEN_KEY); } catch { /* sin storage */ }
     return this.http.get<SessionUser>(`${apiBase()}/auth/me`).pipe(
       tap(user => this.user.set(user)),

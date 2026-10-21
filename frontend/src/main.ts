@@ -15,6 +15,7 @@ bootstrapApplication(AppComponent, {
       withInterceptors([authInterceptor]),
       // Los mismos nombres que usa el backend (HU-29): Angular lee la cookie y envía la cabecera en las escrituras
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' })),
-    // La primera pantalla espera a saber si hay sesión: así los guards no mandan al login a quien recarga la página
-    provideAppInitializer(() => inject(AuthService).restore())]
+    // Se pregunta por la sesión al arrancar, pero sin esperar la respuesta: si el backend está dormido
+    // (cold start de Render) la página se pinta igual. Los guards son los que esperan (role.guard.ts)
+    provideAppInitializer(() => { inject(AuthService).restore().subscribe(); })]
 }).catch(err => console.error(err));
