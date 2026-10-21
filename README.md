@@ -825,6 +825,15 @@ backend/target/site/jacoco/index.html
 
 El proyecto incluye un ejemplo de prueba de `OfferingService` que demuestra que cuando existe cache hit el repositorio no debe consultarse.
 
+## Datos (PySpark)
+
+```bash
+make data-build
+make data-test
+```
+
+Pipeline PySpark y pruebas de calidad de datos en `data/`. Contexto, decisiones y cómo trabajar en paralelo en [docs/DATA-PIPELINE.md](docs/DATA-PIPELINE.md).
+
 ## Siguiente nivel recomendado
 
 Agregar Testcontainers para probar:
@@ -857,9 +866,14 @@ Frontend
   -> npm install
   -> npm run build
 
+Data
+  -> Java 21 + Python 3.12
+  -> pytest (contrato y calidad de datos)
+
 Docker
   -> build backend image
   -> build frontend image
+  -> build data image
 ```
 
 Para una cohorte real recomiendo que después de ejecutar una vez `npm install` se confirme el `package-lock.json` al repositorio y se cambien los comandos a `npm ci` para builds completamente reproducibles.
