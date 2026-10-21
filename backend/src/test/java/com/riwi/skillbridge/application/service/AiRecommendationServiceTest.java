@@ -41,7 +41,7 @@ class AiRecommendationServiceTest {
     }
 
     @Nested
-    @DisplayName("Catálogo visible (HU-17)")
+    @DisplayName("Catálogo visible (HU-17 / BUG-02)")
     class VisibleCatalogTests {
 
         @Test
@@ -62,13 +62,17 @@ class AiRecommendationServiceTest {
         }
 
         @Test
-        @DisplayName("Con catálogo vacío igual consulta a la IA para que lo explique")
-        void shouldCallAiWithEmptyCatalog() {
+        @DisplayName("Con catálogo vacío no debe invocar el puerto de IA (BUG-02)")
+        void shouldNotCallAiWhenCatalogIsEmpty() {
+            // Arrange
             when(offeringRepo.findVisible()).thenReturn(List.of());
-            when(aiPort.recommend(anyList(), any())).thenReturn("No hay mentorías disponibles");
 
-            assertEquals("No hay mentorías disponibles", service.recommend("Aprender algo", List.of()));
-            verify(aiPort).recommend(anyList(), eq(List.of()));
+            // Act
+            String result = service.recommend("Aprender algo", List.of());
+
+            // Assert
+            assertEquals(AiRecommendationService.EMPTY_CATALOG_MESSAGE, result);
+            verify(aiPort, never()).recommend(anyList(), any());
         }
     }
 
@@ -80,7 +84,7 @@ class AiRecommendationServiceTest {
         @DisplayName("Debe enviar el historial y al final el mensaje actual del usuario")
         void shouldSendHistoryFollowedByCurrentMessage() {
             // Arrange
-            when(offeringRepo.findVisible()).thenReturn(List.of());
+            when(offeringRepo.findVisible()).thenReturn(List.of(offering("Spring Boot Pro")));
             when(aiPort.recommend(anyList(), any())).thenReturn("Respuesta");
             var history = List.of(
                 ChatMessage.user("Quiero aprender backend"),
@@ -101,7 +105,7 @@ class AiRecommendationServiceTest {
         @Test
         @DisplayName("Sin historial (null) envía solo el mensaje actual")
         void shouldSendOnlyCurrentMessageWhenHistoryIsNull() {
-            when(offeringRepo.findVisible()).thenReturn(List.of());
+            when(offeringRepo.findVisible()).thenReturn(List.of(offering("Spring Boot Pro")));
             when(aiPort.recommend(anyList(), any())).thenReturn("Respuesta");
 
             service.recommend("Hola", null);
@@ -113,7 +117,7 @@ class AiRecommendationServiceTest {
         @DisplayName("Debe enviar solo los últimos mensajes del historial y descartar los más antiguos")
         void shouldKeepOnlyLastHistoryMessages() {
             // Arrange
-            when(offeringRepo.findVisible()).thenReturn(List.of());
+            when(offeringRepo.findVisible()).thenReturn(List.of(offering("Spring Boot Pro")));
             when(aiPort.recommend(anyList(), any())).thenReturn("Respuesta");
             int total = AiRecommendationService.MAX_HISTORY_MESSAGES + 5;
             var history = IntStream.rangeClosed(1, total).mapToObj(i -> ChatMessage.user("mensaje " + i)).toList();

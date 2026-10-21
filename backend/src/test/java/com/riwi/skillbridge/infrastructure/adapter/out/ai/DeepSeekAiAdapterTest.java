@@ -79,6 +79,20 @@ class DeepSeekAiAdapterTest {
     }
 
     @Test
+    @DisplayName("El prompt de sistema instruye decir que no hay mentoría adecuada sin forzar ni inventar (BUG-02)")
+    void shouldInstructNotToForceOrInventWhenNoOfferingFits() {
+        Offering java = new Offering(UUID.randomUUID(), UUID.randomUUID(), "Java Básico", "Introducción", "BACKEND", BigDecimal.TEN, true);
+        when(callResponseSpec.content()).thenReturn("No hay una mentoría adecuada en este momento.");
+
+        adapter.recommend(List.of(ChatMessage.user("Quiero aprender cocina")), List.of(java));
+
+        ArgumentCaptor<String> system = ArgumentCaptor.forClass(String.class);
+        verify(requestSpec).system(system.capture());
+        assertTrue(system.getValue().contains("no hay una mentoría adecuada"));
+        assertTrue(system.getValue().contains("nunca fuerces ni inventes"));
+    }
+
+    @Test
     @DisplayName("Debe enviar la conversación como mensajes de usuario y asistente en orden")
     @SuppressWarnings("unchecked")
     void shouldSendConversationAsChatMessages() {

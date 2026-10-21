@@ -42,11 +42,12 @@ public class DeepSeekAiAdapter implements AiRecommendationPort {
             Usa los mensajes anteriores de la conversación como contexto para afinar tus respuestas.
 
             Reglas:
-            - Recomienda como máximo 3 mentorías y solo del catálogo de abajo; nunca inventes mentorías.
+            - Recomienda como máximo 3 mentorías y solo del catálogo de abajo; nunca inventes mentorías, títulos ni enlaces.
+            - Solo recomienda una mentoría si su tema o tecnología guarda relación directa con lo que pide el cliente.
             - Cada mentoría que recomiendes debe ir como enlace markdown con su título y su id exacto
               del catálogo, así: [Título](/services/<id>)
             - Explica brevemente por qué encaja con lo que busca el cliente y propone un siguiente paso.
-            - Si ninguna mentoría encaja o el catálogo está vacío, dilo con claridad y no recomiendes nada.
+            - Si ninguna mentoría del catálogo se adecúa a lo que busca el cliente o el catálogo está vacío, responde claramente que no hay una mentoría adecuada en este momento; nunca fuerces ni inventes una recomendación.
 
             Catálogo de mentorías disponibles para reservar:
             %s
@@ -56,8 +57,8 @@ public class DeepSeekAiAdapter implements AiRecommendationPort {
     public String recommend(List<ChatMessage> conversation, List<Offering> catalog) {
         String catalogText = catalog.isEmpty() ? "(no hay mentorías disponibles en este momento)"
             : catalog.stream()
-                .map(o -> "- id=%s | %s [%s]: %s".formatted(o.id(), o.title(), o.category(), o.description()))
-                .collect(Collectors.joining("\n"));
+            .map(o -> "- id=%s | %s [%s]: %s".formatted(o.id(), o.title(), o.category(), o.description()))
+            .collect(Collectors.joining("\n"));
 
         List<Message> messages = conversation.stream().map(DeepSeekAiAdapter::toMessage).toList();
 
