@@ -15,6 +15,9 @@ import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,7 +34,10 @@ class RecordBookingNotificationServiceTest {
     // 2030-10-10 15:00 UTC = jueves 10 de octubre a las 10:00 en Colombia
     private final Booking booking = new Booking(bookingId, offeringId, customerId,
             Instant.parse("2030-10-10T15:00:00Z"), BookingStatus.CREATED);
-
+    // "Ahora" fijo: 19/10/2026 23:30 en Colombia
+    private static final Instant NOW = Instant.parse("2026-10-20T04:30:00Z");
+    private final BusinessTime businessTime =
+        new BusinessTime(Clock.fixed(NOW, ZoneOffset.UTC), ZoneId.of("America/Bogota"));
     private BookingRepositoryPort bookings;
     private OfferingRepositoryPort offerings;
     private NotificationRepositoryPort notifications;
@@ -42,7 +48,7 @@ class RecordBookingNotificationServiceTest {
         bookings = mock(BookingRepositoryPort.class);
         offerings = mock(OfferingRepositoryPort.class);
         notifications = mock(NotificationRepositoryPort.class);
-        service = new RecordBookingNotificationService(bookings, offerings, notifications);
+        service = new RecordBookingNotificationService(bookings, offerings, notifications, businessTime);
 
         when(bookings.findById(bookingId)).thenReturn(Optional.of(booking));
         when(offerings.findById(offeringId)).thenReturn(Optional.of(
@@ -115,6 +121,14 @@ class RecordBookingNotificationServiceTest {
         service.record(NotificationType.BOOKING_CREATED, bookingId);
 
         verify(notifications).saveIfAbsent(any());
+    }
+
+    @Test
+    @DisplayName("La notificación se fecha con el reloj inyectado, no con la hora real")
+    void notificationUsesInjectedClock() {
+        service.record(NotificationType.BOOKING_CREATED, bookingId);
+
+        assertThat(captureSaved().createdAt()).isEqualTo(NOW);
     }
 
     private Notification captureSaved() {

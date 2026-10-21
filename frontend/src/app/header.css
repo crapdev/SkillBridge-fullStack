@@ -186,3 +186,11 @@
   }
   .button-primary { text-align: center; }
 }
+
+/* Aviso mientras una ruta protegida espera a saber si hay sesión (cold start del backend) */
+.session-loading {
+  margin: 0;
+  padding: 96px 16px;
+  text-align: center;
+  color: #64748b;
+}

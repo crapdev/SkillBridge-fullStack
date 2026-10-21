@@ -35,6 +35,25 @@ describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
     expect(auth.isAuthenticated()).toBeFalse();
   });
 
+  it('no se sabe si hay sesión hasta que /auth/me responde', () => {
+    auth.restore().subscribe();
+    expect(auth.ready()).toBeFalse();
+
+    http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(auth.ready()).toBeTrue();
+  });
+
+  it('pregunta al backend una sola vez aunque varios (arranque y guards) llamen a restore', () => {
+    auth.restore().subscribe();
+    auth.restore().subscribe();
+    http.expectOne('/api/auth/me').flush({ email: 'laura@test.com', name: 'Laura', role: 'PROVIDER' });
+
+    // Quien llega después recibe la respuesta guardada, sin otra petición
+    let done = false;
+    auth.restore().subscribe({ complete: () => (done = true) });
+    expect(done).toBeTrue();
+  });
+
   it('borra el token que guardaba la versión anterior en localStorage', () => {
     localStorage.setItem('skillbridge_token', 'token-viejo');
 

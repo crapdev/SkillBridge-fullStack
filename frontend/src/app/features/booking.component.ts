@@ -6,13 +6,12 @@ import { apiBase } from '../core/api';
 import { CurrencyPipe } from '@angular/common';
 import { SERVICE_CONTENT, categoryKey } from './service-detail/service-content';
 import { formatDuration, formatTime, formatTimeRange, endOf, levelLabel } from '../shared/offering-format';
+import { businessDateFormat, businessDayKey } from '../shared/business-time';
 
-const dayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'short', day: 'numeric', month: 'short' });
-const fullDayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-const pad = (n: number) => String(n).padStart(2, '0');
+const dayFormat = businessDateFormat({ weekday: 'short', day: 'numeric', month: 'short' });
+const fullDayFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long' });
 // Solo la primera letra en mayúscula ("Sáb, 10 de oct"); text-transform: capitalize afectaría cada palabra
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 
 @Component({
   standalone: true,
@@ -148,7 +147,7 @@ export class BookingComponent implements OnInit {
 
   readonly days = computed(() => {
     const groups = new Map<string, AvailabilitySlot[]>();
-    for (const slot of this.slots()) groups.set(dayKey(slot.scheduledAt), [...(groups.get(dayKey(slot.scheduledAt)) ?? []), slot]);
+    for (const slot of this.slots()) groups.set(businessDayKey(slot.scheduledAt), [...(groups.get(businessDayKey(slot.scheduledAt)) ?? []), slot]);
     return [...groups.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, slots]) => ({ key, label: capitalize(dayFormat.format(new Date(slots[0].scheduledAt)).replace(/\./g, '')), slots }));

@@ -6,6 +6,7 @@ import { Offering, OfferingService } from '../../core/offering.service';
 import { AlertService } from '../../shared/alert.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 import { SERVICE_CONTENT, categoryKey } from '../service-detail/service-content';
+import { businessDateFormat } from '../../shared/business-time';
 
 type Tab = 'upcoming' | 'past' | 'cancelled' | 'all';
 type LoadStatus = 'loading' | 'ready' | 'error';
@@ -20,11 +21,11 @@ const STATUS_INFO: Record<BookingStatus, { label: string; hint: string }> = {
   COMPLETED: { label: 'Completada', hint: 'Sesión finalizada' }
 };
 
-const dayFormat = new Intl.DateTimeFormat('es-CO', { day: '2-digit' });
-const monthFormat = new Intl.DateTimeFormat('es-CO', { month: 'short' });
-const weekdayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long' });
-const fullFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
-const timeFormat = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' });
+const dayFormat = businessDateFormat({ day: '2-digit' });
+const monthFormat = businessDateFormat({ month: 'short' });
+const weekdayFormat = businessDateFormat({ weekday: 'long' });
+const fullFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
+const timeFormat = businessDateFormat({ hour: 'numeric', minute: '2-digit' });
 const relativeFormat = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
 // Solo la primera letra en mayúscula ("Viernes, 9 de octubre"); text-transform: capitalize afectaría cada palabra
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

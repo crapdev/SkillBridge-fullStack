@@ -8,10 +8,11 @@ import { AvailabilitySlot, Offering, OfferingService } from '../../core/offering
 import { RevealDirective } from '../../shared/reveal.directive';
 import { formatDays, formatDuration, formatTimeRange, levelLabel } from '../../shared/offering-format';
 import { SERVICE_CONTENT, categoryKey } from './service-content';
+import { businessDateFormat } from '../../shared/business-time';
 
 /** Cuántos horarios próximos se muestran en el detalle; el resto se ve al reservar */
 const MAX_UPCOMING_SLOTS = 6;
-const slotDayFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+const slotDayFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long' });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 type DetailState =
