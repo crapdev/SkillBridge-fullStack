@@ -1,4 +1,5 @@
 """Fixtures compartidas por todas las pruebas de datos."""
+import os
 from pathlib import Path
 
 import pytest
@@ -30,3 +31,15 @@ def tables(spark, fixtures_dir):
     cuando se les inyecta un defecto. No se modifican; cada prueba deriva sus propios DataFrames.
     """
     return {name: df.cache() for name, df in read_all(spark, fixtures_dir).items()}
+
+
+@pytest.fixture
+def parquet_dir(tmp_path):
+    """Carpeta temporal para escribir Parquet en una prueba.
+
+    En Windows sin Docker, Spark no puede escribir Parquet (pide HADOOP_HOME y winutils.exe):
+    la prueba se omite con un aviso y se ejecuta en Docker (make data-test) y en el CI.
+    """
+    if os.name == "nt" and not os.getenv("HADOOP_HOME"):
+        pytest.skip("Escribir Parquet en Windows requiere Docker: corre `make data-test`")
+    return tmp_path / "parquet"

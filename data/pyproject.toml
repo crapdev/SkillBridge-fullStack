@@ -24,7 +24,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]                # permite correr pytest sin instalar el paquete
-addopts = "-ra"
+addopts = "-ra --import-mode=importlib"   # permite archivos de prueba con el mismo nombre en carpetas distintas
 markers = [
   "quality: pruebas de calidad de datos (Anexo A)",
   "reconciliation: conciliación origen-destino",

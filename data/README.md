@@ -4,7 +4,7 @@ Proyecto Python independiente del backend. Corre Spark en modo local (sin clúst
 con Python 3.12 y Java 21, para que todos tengan el mismo entorno.
 
 Contexto completo para el equipo (decisiones, contrato, frentes de trabajo y recetas):
-[docs/DATA-PIPELINE.md](../docs/DATA-PIPELINE.md).
+[docs/DATA-PIPELINE.md](../docs/DATA-PIPELINE.md). Cómo trabajar tu HU: [docs/GUIA-HU-DATOS.md](../docs/GUIA-HU-DATOS.md).
 
 ## Comandos
 
@@ -32,7 +32,9 @@ es demasiado larga o tiene espacios. Antes de `pytest`, en PowerShell:
 | `src/skillbridge_data/readers.py` | Lectura de CSV con esquema explícito; falla si el encabezado o un tipo no coincide. |
 | `src/skillbridge_data/session.py` | SparkSession local en UTC. |
 | `tests/fixtures/*.csv` | Datos pequeños, sintéticos y **correctos**. Base para probar métricas y reglas sin esperar al generador. |
-| `tests/conftest.py` | Fixtures `spark`, `fixtures_dir` y `tables`. |
+| `src/skillbridge_data/metrics/` | Una métrica por archivo. `ejemplo_reservas_por_estado.py` es el modelo a copiar. |
+| `src/skillbridge_data/quality/` | Una regla de calidad por archivo. `ejemplo_completitud.py` es el modelo a copiar. |
+| `tests/conftest.py` | Fixtures `spark`, `fixtures_dir`, `tables` y `parquet_dir`. |
 | `output/` | Resultados (crudo, limpio, métricas). No se versiona. |
 
 ## Reglas
