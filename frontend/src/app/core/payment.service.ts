@@ -9,7 +9,7 @@ export class PaymentService {
   private http = inject(HttpClient);
   private stripe?: Promise<Stripe | null>;
 
-  /** Clave publicable configurada en env.js; vacía si el entorno no tiene Stripe. */
+  /** Clave publicable configurada en .env.js; vacía si el entorno no tiene Stripe. */
   publishableKey(): string {
     return window.__env?.STRIPE_PUBLISHABLE_KEY || '';
   }

@@ -34,5 +34,5 @@ frontend/.env
 .claude/
 gi
 
-env
+.env
 .env

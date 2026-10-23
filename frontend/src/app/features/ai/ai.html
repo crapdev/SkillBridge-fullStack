@@ -4,22 +4,18 @@
       <span class="eyebrow__dot" aria-hidden="true"></span>
       Asistente IA
     </p>
-
     <h1>
       Diseña tu ruta de aprendizaje
       <span class="ai-hero__highlight">con inteligencia artificial.</span>
     </h1>
-
     <p class="ai-hero__lead">
       Conversa con el asistente para afinar tus dudas y recibir recomendaciones
       personalizadas de mentorías listas para reservar.
     </p>
   </div>
 </section>
-
 <section class="ai-section">
   <div class="ai-container">
-
     <article class="chat-card" aria-label="Chat del asistente de IA">
       <!-- Encabezado del Chat -->
       <header class="chat-header">
@@ -44,7 +40,6 @@
             <p>Solo recomienda mentorías activas con horarios libres</p>
           </div>
         </div>
-
         <button
           type="button"
           class="btn-new-chat"
@@ -61,93 +56,87 @@
           Nueva conversación
         </button>
       </header>
-
       <!-- Feed de mensajes -->
       <div class="chat-feed" #scrollContainer role="log" aria-live="polite">
         @if (messages.length === 0) {
-          <!-- Mensaje de bienvenida cuando no hay historial -->
-          <div class="chat-welcome">
-            <div class="chat-msg chat-msg--assistant">
-              <div class="chat-avatar-sm" aria-hidden="true">AI</div>
-              <div class="chat-bubble chat-bubble--assistant">
-                <p class="welcome-title"><strong>¡Hola! 👋 Soy tu asistente en SkillBridge.</strong></p>
-                <p>Cuéntame tus objetivos o lo que buscas aprender y te sugeriré sesiones prácticas disponibles en el catálogo.</p>
-                
-                <div class="chat-suggestions">
-                  <span class="chat-suggestions__label">Ejemplos para comenzar:</span>
-                  <div class="chat-suggestions__list">
-                    @for (s of suggestions; track s.label) {
-                      <button type="button" class="suggestion-chip" (click)="useSuggestion(s.goal)">
-                        <span class="suggestion-chip__dot" [class]="s.category" aria-hidden="true"></span>
-                        {{ s.label }}
-                      </button>
-                    }
-                  </div>
+        <!-- Mensaje de bienvenida cuando no hay historial -->
+        <div class="chat-welcome">
+          <div class="chat-msg chat-msg--assistant">
+            <div class="chat-avatar-sm" aria-hidden="true">AI</div>
+            <div class="chat-bubble chat-bubble--assistant">
+              <p class="welcome-title"><strong>¡Hola! 👋 Soy tu asistente en SkillBridge.</strong></p>
+              <p>Cuéntame tus objetivos o lo que buscas aprender y te sugeriré sesiones prácticas disponibles en el catálogo.</p>
+              <div class="chat-suggestions">
+                <span class="chat-suggestions__label">Ejemplos para comenzar:</span>
+                <div class="chat-suggestions__list">
+                  @for (s of suggestions; track s.label) {
+                  <button type="button" class="suggestion-chip" (click)="useSuggestion(s.goal)">
+                    <span class="suggestion-chip__dot" [class]="s.category" aria-hidden="true"></span>
+                    {{ s.label }}
+                  </button>
+                  }
                 </div>
               </div>
             </div>
           </div>
+        </div>
         }
-
         @for (msg of messages; track msg.id) {
-          @if (msg.role === 'user') {
-            <div class="chat-msg chat-msg--user">
-              <div class="chat-bubble chat-bubble--user">
-                <p class="chat-text">{{ msg.content }}</p>
-              </div>
+        @if (msg.role === 'user') {
+        <div class="chat-msg chat-msg--user">
+          <div class="chat-bubble chat-bubble--user">
+            <p class="chat-text">{{ msg.content }}</p>
+          </div>
+        </div>
+        } @else {
+        <div class="chat-msg chat-msg--assistant">
+          <div class="chat-avatar-sm" aria-hidden="true">AI</div>
+          <div class="chat-bubble chat-bubble--assistant">
+            <div
+              class="chat-bubble__content"
+              [innerHTML]="msg.formattedContent"
+              (click)="onMessageClick($event)"
+            ></div>
+            <div class="chat-bubble__footer">
+              <button
+                type="button"
+                class="tool-button-sm"
+                (click)="copy(msg.content, msg.id)"
+              >
+                {{ copiedId === msg.id ? '¡Copiado!' : 'Copiar' }}
+              </button>
             </div>
-          } @else {
-            <div class="chat-msg chat-msg--assistant">
-              <div class="chat-avatar-sm" aria-hidden="true">AI</div>
-              <div class="chat-bubble chat-bubble--assistant">
-                <div
-                  class="chat-bubble__content"
-                  [innerHTML]="msg.formattedContent"
-                  (click)="onMessageClick($event)"
-                ></div>
-                <div class="chat-bubble__footer">
-                  <button
-                    type="button"
-                    class="tool-button-sm"
-                    (click)="copy(msg.content, msg.id)"
-                  >
-                    {{ copiedId === msg.id ? '¡Copiado!' : 'Copiar' }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          }
+          </div>
+        </div>
         }
-
+        }
         <!-- Indicador de escribiendo -->
         @if (loading) {
-          <div class="chat-msg chat-msg--assistant chat-msg--typing" aria-live="assertive">
-            <div class="chat-avatar-sm" aria-hidden="true">AI</div>
-            <div class="chat-bubble chat-bubble--assistant typing-bubble">
-              <div class="typing-indicator" aria-label="El asistente está escribiendo">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-              <span class="typing-label">El asistente está escribiendo...</span>
+        <div class="chat-msg chat-msg--assistant chat-msg--typing" aria-live="assertive">
+          <div class="chat-avatar-sm" aria-hidden="true">AI</div>
+          <div class="chat-bubble chat-bubble--assistant typing-bubble">
+            <div class="typing-indicator" aria-label="El asistente está escribiendo">
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
+            <span class="typing-label">El asistente está escribiendo...</span>
           </div>
+        </div>
         }
       </div>
-
       <!-- Alerta de Error -->
       @if (error) {
-        <div class="chat-error" role="alert">
-          <div class="chat-error__content">
-            <span class="chat-error__icon" aria-hidden="true">!</span>
-            <span>{{ error }}</span>
-          </div>
-          @if (unauthorized) {
-            <a routerLink="/login" class="chat-error__link">Ingresar →</a>
-          }
+      <div class="chat-error" role="alert">
+        <div class="chat-error__content">
+          <span class="chat-error__icon" aria-hidden="true">!</span>
+          <span>{{ error }}</span>
         </div>
+        @if (unauthorized) {
+        <a routerLink="/login" class="chat-error__link">Ingresar →</a>
+        }
+      </div>
       }
-
       <!-- Barra de entrada fija al fondo de la tarjeta -->
       <footer class="chat-input-area">
         <div class="chat-input-box">
@@ -161,7 +150,6 @@
             (keydown.enter)="handleEnter($event)"
             placeholder="Pregunta o afina tu duda (ej: ¿Tienes algo más enfocado en testing?)..."
           ></textarea>
-
           <div class="chat-input-controls">
             <span class="chat-counter">{{ goal.length }}/{{ maxLength }}</span>
             <button
@@ -173,13 +161,13 @@
               aria-label="Enviar mensaje"
             >
               @if (loading) {
-                <span class="spinner" aria-hidden="true"></span>
+              <span class="spinner" aria-hidden="true"></span>
               } @else {
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-                <span>Enviar</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              <span>Enviar</span>
               }
             </button>
           </div>
@@ -187,6 +175,5 @@
         <p class="chat-keyboard-hint">Presiona <strong>Enter</strong> para enviar · <strong>Shift + Enter</strong> para salto de línea</p>
       </footer>
     </article>
-
   </div>
 </section>

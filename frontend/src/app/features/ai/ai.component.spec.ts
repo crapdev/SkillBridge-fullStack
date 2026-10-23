@@ -135,6 +135,20 @@ describe('AiComponent (HU-25 Asistente IA Conversacional)', () => {
     expect(navigateSpy).toHaveBeenCalledWith('/services/42');
   });
 
+  it('debe mostrar "Por ahora no hay mentorias disponibles" con enlace al catálogo cuando la lista de recomendaciones venga vacía (BUG-02)', () => {
+    component.goal = 'Quiero aprender algo';
+    component.ask();
+
+    const req = httpMock.expectOne(r => r.url.endsWith('/ai/recommendations'));
+    req.flush({ recommendation: '' });
+
+    fixture.detectChanges();
+
+    expect(component.answer).toContain('Por ahora no hay mentorias disponibles');
+    const link = (fixture.nativeElement as HTMLElement).querySelector('a[href="/servicios"]');
+    expect(link).toBeTruthy();
+  });
+
   it('debe vaciar el historial local y en memoria al presionar Nueva Conversación (reset)', () => {
     component.messages = [
       { id: '1', role: 'user', content: 'Hola', timestamp: Date.now() },
