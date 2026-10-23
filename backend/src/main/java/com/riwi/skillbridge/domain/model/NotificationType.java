@@ -4,5 +4,6 @@ package com.riwi.skillbridge.domain.model;
 public enum NotificationType {
     BOOKING_CREATED,
     BOOKING_CANCELLED,
-    BOOKING_PAID
+    BOOKING_PAID,
+    BOOKING_COMPLETED
 }

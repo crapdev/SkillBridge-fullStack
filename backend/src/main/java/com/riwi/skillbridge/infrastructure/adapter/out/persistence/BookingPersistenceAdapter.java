@@ -2,9 +2,11 @@ package com.riwi.skillbridge.infrastructure.adapter.out.persistence;
 
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.domain.model.Booking;
+import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.BookingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaBookingRepository;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -82,5 +84,25 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     @Override
     public boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt) {
         return repository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt);
+    }
+
+    @Override
+    public List<Booking> findConfirmedScheduledBefore(Instant instant) {
+        return repository.findByStatusAndScheduledAtBefore(BookingStatus.CONFIRMED, instant)
+            .stream()
+            .map(entity -> new Booking(
+                entity.getId(),
+                entity.getOfferingId(),
+                entity.getCustomerId(),
+                entity.getScheduledAt(),
+                entity.getStatus()
+            ))
+            .toList();
+    }
+
+    @Override
+    @Transactional
+    public boolean updateStatusIf(UUID id, BookingStatus expected, BookingStatus next) {
+        return repository.updateStatusIf(id, expected, next) == 1;
     }
 }

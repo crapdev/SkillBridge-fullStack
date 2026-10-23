@@ -95,3 +95,8 @@ app:
   cache:
     offerings-ttl-minutes: ${OFFERINGS_CACHE_TTL_MINUTES:10}
   timezone: ${APP_TIMEZONE:America/Bogota}
+  bookings:
+    # BUG-05: cada cuánto se pasan a COMPLETED las reservas confirmadas cuya sesión ya terminó
+    completion:
+      enabled: ${BOOKING_COMPLETION_ENABLED:true}
+      interval-ms: ${BOOKING_COMPLETION_INTERVAL_MS:300000} # 5 minutos

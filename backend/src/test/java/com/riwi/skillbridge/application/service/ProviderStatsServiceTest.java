@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.CompleteFinishedBookingsUseCase;
 import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.ProviderStats;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
@@ -39,6 +40,7 @@ class ProviderStatsServiceTest {
     @Mock private OfferingRepositoryPort offerings;
     @Mock private AvailabilitySlotRepositoryPort slots;
     @Mock private BookingRepositoryPort bookings;
+    @Mock private CompleteFinishedBookingsUseCase completion;
 
     @InjectMocks private ProviderStatsService service;
 
@@ -65,6 +67,8 @@ class ProviderStatsServiceTest {
 
     @BeforeEach
     void setUp() {
+        // BUG-05: el completado tiene sus propias pruebas; aquí deja las reservas como vienen
+        lenient().when(completion.completeIfFinished(org.mockito.ArgumentMatchers.anyList())).thenAnswer(i -> i.getArgument(0));
         lenient().when(users.findIdByEmail("laura@test.com")).thenReturn(Optional.of(providerId));
         lenient().when(offerings.findByProviderId(providerId)).thenReturn(List.of(withSlots, onlyReserved, pending, rejected));
         lenient().when(slots.findByOfferingId(withSlots.id())).thenReturn(List.of(

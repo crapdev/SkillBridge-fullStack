@@ -10,7 +10,8 @@ const REFRESH_MS = 60_000;
 const TYPE_INFO: Record<NotificationType, { tone: string; label: string }> = {
   BOOKING_CREATED: { tone: 'info', label: 'Nueva reserva' },
   BOOKING_CANCELLED: { tone: 'danger', label: 'Reserva cancelada' },
-  BOOKING_PAID: { tone: 'success', label: 'Reserva pagada' }
+  BOOKING_PAID: { tone: 'success', label: 'Reserva pagada' },
+  BOOKING_COMPLETED: { tone: 'info', label: 'Sesión completada' }
 };
 
 const relativeFormat = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
