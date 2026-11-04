@@ -73,6 +73,7 @@ public class RecordBookingNotificationService implements RecordBookingNotificati
             case BOOKING_CREATED -> "Nueva reserva de %s para el %s.".formatted(title, date);
             case BOOKING_CANCELLED -> "Se canceló la reserva de %s del %s.".formatted(title, date);
             case BOOKING_PAID -> "La reserva de %s del %s fue pagada.".formatted(title, date);
+            case BOOKING_COMPLETED -> "Se completó la sesión de %s del %s.".formatted(title, date);
         };
     }
 }

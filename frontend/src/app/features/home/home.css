@@ -355,3 +355,27 @@
 .section {
   padding: 42px 0;
 }
+
+/* Tarjetas de carga mientras llega el catálogo (las mismas de /servicios) */
+.skeleton {
+  height: 230px;
+  border-radius: 11px;
+  background: linear-gradient(90deg, #eef2f7 25%, #f8fafc 50%, #eef2f7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

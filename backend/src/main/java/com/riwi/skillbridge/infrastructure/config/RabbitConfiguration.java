@@ -13,6 +13,7 @@ public class RabbitConfiguration {
     public static final String BOOKING_CANCELLED_KEY = "booking.cancelled";
     public static final String BOOKING_PAID_KEY = "booking.paid";
     public static final String PAYMENT_FAILED_KEY = "booking.payment-failed";
+    public static final String BOOKING_COMPLETED_KEY = "booking.completed";
 
     // Una sola cola recibe todos los eventos de reservas (booking.*) para generar las notificaciones
     public static final String NOTIFICATIONS_QUEUE = "booking.notifications.queue";

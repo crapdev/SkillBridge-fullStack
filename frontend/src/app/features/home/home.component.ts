@@ -21,9 +21,17 @@ export class HomeComponent implements OnInit {
   readonly auth = inject(AuthService);
   offerings: Offering[] = [];
   error = '';
+  // Con el backend dormido el catálogo puede tardar ~1 minuto: mientras tanto se muestran tarjetas de carga
+  loading = true;
+  readonly skeletons = Array.from({ length: this.previewSize }, (_, i) => i);
 
   get categoryCount(): number { return new Set(this.offerings.map(o => o.category)).size; }
 
   constructor(private service: OfferingService) {}
-  ngOnInit(): void { this.service.list().subscribe({ next: r => this.offerings = r, error: () => this.error = 'No fue posible cargar el catálogo.' }); }
+  ngOnInit(): void {
+    this.service.list().subscribe({
+      next: r => { this.offerings = r; this.loading = false; },
+      error: () => { this.error = 'No fue posible cargar el catálogo.'; this.loading = false; }
+    });
+  }
 }

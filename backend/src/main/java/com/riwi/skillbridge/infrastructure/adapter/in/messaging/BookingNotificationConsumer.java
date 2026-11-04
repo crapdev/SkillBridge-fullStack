@@ -26,7 +26,8 @@ public class BookingNotificationConsumer {
     private static final Map<String, NotificationType> TYPES = Map.of(
             RabbitConfiguration.BOOKING_CREATED_KEY, NotificationType.BOOKING_CREATED,
             RabbitConfiguration.BOOKING_CANCELLED_KEY, NotificationType.BOOKING_CANCELLED,
-            RabbitConfiguration.BOOKING_PAID_KEY, NotificationType.BOOKING_PAID);
+            RabbitConfiguration.BOOKING_PAID_KEY, NotificationType.BOOKING_PAID,
+            RabbitConfiguration.BOOKING_COMPLETED_KEY, NotificationType.BOOKING_COMPLETED);
 
     private final RecordBookingNotificationUseCase useCase;
 

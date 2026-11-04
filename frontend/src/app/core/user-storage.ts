@@ -7,7 +7,10 @@ export const AI_CHAT_HISTORY_KEY = 'skillbridge_ai_chat_history';
 // Formato anterior al chat (HU-25): se sigue borrando por si quedó guardado en algún navegador
 export const AI_RECOMMENDATION_KEY = 'skillbridge_ai_last_recommendation';
 
-const USER_KEYS = [AI_CHAT_HISTORY_KEY, AI_RECOMMENDATION_KEY];
+// Rol de la última sesión: con él se pinta el header mientras el backend despierta (AuthService.navRole)
+export const LAST_ROLE_KEY = 'skillbridge_last_role';
+
+const USER_KEYS = [AI_CHAT_HISTORY_KEY, AI_RECOMMENDATION_KEY, LAST_ROLE_KEY];
 
 export function clearUserStorage(): void {
   try {

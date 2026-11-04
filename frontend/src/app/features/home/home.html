@@ -71,11 +71,17 @@
 
 
     <!-- Vista previa: el catálogo completo está en /servicios -->
-    <div class="services-grid">
-      @for (offering of offerings.slice(0, previewSize); track offering.id) {
-        <app-service-card [offering]="offering" appReveal [revealDelay]="$index * 100" />
-      }
-    </div>
+    @if (loading) {
+      <div class="services-grid" aria-busy="true" aria-label="Cargando mentorías">
+        @for (s of skeletons; track s) { <div class="skeleton"></div> }
+      </div>
+    } @else {
+      <div class="services-grid">
+        @for (offering of offerings.slice(0, previewSize); track offering.id) {
+          <app-service-card [offering]="offering" appReveal [revealDelay]="$index * 100" />
+        }
+      </div>
+    }
 
     @if (offerings.length) {
       <div class="services-more">

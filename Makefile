@@ -1,4 +1,4 @@
-.PHONY: up down reset logs ps observability test-back test-front build
+.PHONY: up down reset logs ps observability test-back test-front build data-build data-test data-shell
 
 up:
 	docker compose up --build -d
@@ -27,3 +27,12 @@ test-front:
 
 build:
 	docker compose build
+
+data-build:
+	docker compose --profile data build data
+
+data-test:
+	docker compose --profile data run --rm data pytest
+
+data-shell:
+	docker compose --profile data run --rm data bash
