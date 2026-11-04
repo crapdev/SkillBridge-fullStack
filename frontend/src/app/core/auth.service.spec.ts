@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router, provideRouter } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -115,5 +115,99 @@ describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
     const req = http.expectOne('/api/auth/logout');
     expect(req.request.method).toBe('POST');
     req.flush(null);
+  });
+
+  // El header se pinta completo mientras el backend despierta (Render Free tarda ~1 minuto en /auth/me)
+  describe('navRole', () => {
+    // El rol guardado se lee al crear el servicio: cada prueba crea uno nuevo después de preparar localStorage
+    const KEY = 'skillbridge_last_role';
+    const HOUR = 60 * 60 * 1000;
+    const freshService = () => new AuthService(TestBed.inject(HttpClient), TestBed.inject(Router));
+    const saveLastSession = (role: string, expiresAt: number) =>
+      localStorage.setItem(KEY, JSON.stringify({ role, expiresAt }));
+    const storedLastSession = () => JSON.parse(localStorage.getItem(KEY) ?? 'null');
+
+    afterEach(() => localStorage.removeItem(KEY));
+
+    it('sin sesión previa en este navegador, pinta al visitante sin esperar a /auth/me', () => {
+      localStorage.removeItem(KEY);
+      const service = freshService();
+      service.restore().subscribe();
+
+      expect(service.ready()).toBeFalse();
+      expect(service.navRole()).toBeNull();
+      http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    });
+
+    it('mientras /auth/me no responde, usa el rol de la última sesión si aún no vence', () => {
+      saveLastSession('PROVIDER', Date.now() + HOUR);
+      const service = freshService();
+      service.restore().subscribe();
+
+      expect(service.navRole()).toBe('PROVIDER');
+      // Es solo presentación: la sesión real sigue sin confirmarse
+      expect(service.isAuthenticated()).toBeFalse();
+      http.expectOne('/api/auth/me').flush({ email: 'laura@test.com', name: 'Laura', role: 'PROVIDER' });
+      expect(service.navRole()).toBe('PROVIDER');
+    });
+
+    it('si pasaron más de 8 horas desde el login, pinta al visitante y olvida la sesión guardada', () => {
+      saveLastSession('CUSTOMER', Date.now() - 1);
+      const service = freshService();
+      service.restore().subscribe();
+
+      expect(service.navRole()).toBeNull();
+      expect(localStorage.getItem(KEY)).toBeNull();
+      http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    });
+
+    it('si el backend dice que la sesión ya no es válida, pasa a visitante y olvida la sesión guardada', () => {
+      saveLastSession('CUSTOMER', Date.now() + HOUR);
+      const service = freshService();
+      service.restore().subscribe();
+
+      http.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+
+      expect(service.navRole()).toBeNull();
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it('un valor manipulado en localStorage no se usa como rol', () => {
+      saveLastSession('SUPERADMIN', Date.now() + HOUR);
+      expect(freshService().navRole()).toBeNull();
+
+      localStorage.setItem(KEY, 'CUSTOMER');
+      expect(freshService().navRole()).toBeNull();
+    });
+
+    it('el login guarda el rol con un vencimiento de 8 horas y logout lo borra', () => {
+      const before = Date.now();
+      auth.login('sofia@test.com', 'secreto').subscribe();
+      http.expectOne('/api/auth/login').flush({ email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' });
+
+      const saved = storedLastSession();
+      expect(saved.role).toBe('CUSTOMER');
+      expect(saved.expiresAt).toBeGreaterThanOrEqual(before + 8 * HOUR);
+      expect(saved.expiresAt).toBeLessThanOrEqual(Date.now() + 8 * HOUR);
+      // Nada más que el rol y el vencimiento: ni token ni datos personales
+      expect(Object.keys(saved).sort()).toEqual(['expiresAt', 'role']);
+
+      auth.logout();
+      http.expectOne('/api/auth/logout').flush(null);
+
+      expect(auth.navRole()).toBeNull();
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it('/auth/me no renueva el vencimiento: la cookie solo se emite al iniciar sesión', () => {
+      const expiresAt = Date.now() + 2 * HOUR;
+      saveLastSession('CUSTOMER', expiresAt);
+      const service = freshService();
+      service.restore().subscribe();
+
+      http.expectOne('/api/auth/me').flush({ email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' });
+
+      expect(storedLastSession()).toEqual({ role: 'CUSTOMER', expiresAt });
+    });
   });
 });

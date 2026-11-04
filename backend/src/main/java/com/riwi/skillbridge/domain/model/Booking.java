@@ -45,4 +45,27 @@ public record Booking(
         }
         return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CONFIRMED);
     }
+
+    // BUG-05: la sesión termina a la hora agendada más la duración de la mentoría
+    public Instant endsAt(int durationMinutes) {
+        return this.scheduledAt.plus(durationMinutes, java.time.temporal.ChronoUnit.MINUTES);
+    }
+
+    // BUG-05: solo una reserva confirmada (pagada) cuya sesión ya terminó puede completarse
+    public boolean isFinished(Instant now, int durationMinutes) {
+        return this.status == BookingStatus.CONFIRMED && !now.isBefore(endsAt(durationMinutes));
+    }
+
+    // BUG-05: la sesión ya ocurrió; desde aquí se puede calificar (HU-27)
+    public Booking complete(Instant now, int durationMinutes) {
+        if (this.status != BookingStatus.CONFIRMED) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "Solo se pueden completar reservas confirmadas");
+        }
+        if (now.isBefore(endsAt(durationMinutes))) {
+            throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
+                    "La sesión todavía no ha terminado");
+        }
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.COMPLETED);
+    }
 }

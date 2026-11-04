@@ -45,33 +45,34 @@ import { NotificationBellComponent } from './shared/notification-bell/notificati
           <nav class="nav-links">
             <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Inicio</a>
             <a routerLink="/servicios" routerLinkActive="active">Servicios</a>
-            <!-- Solo para clientes con sesión; el backend también restringe estas rutas al rol CUSTOMER.
-                 Mientras no se sabe si hay sesión no se muestra nada, para no enseñar opciones que luego cambian -->
-            @if (!auth.ready()) {
-            } @else if (auth.hasRole('CUSTOMER')) {
-              <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
-            } @else if (auth.hasRole('PROVIDER')) {
-              <a routerLink="/provider" routerLinkActive="active">Panel de mentorías</a>
-            } @else if (auth.hasRole('ADMIN')) {
-              <a routerLink="/admin">Administración</a>
-            } @else if (!auth.isAuthenticated()) {
-              <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
-              <!-- Contacto apunta a una sección del inicio; funcionará en cuanto exista ese id -->
-              <a routerLink="/" fragment="contacto">Contacto</a>
+            <!-- Las opciones dependen del rol; el backend también restringe cada ruta.
+                 Mientras el backend despierta se usa el rol de la última sesión (o visitante) para no dejar el header a medias -->
+            @switch (auth.navRole()) {
+              @case ('CUSTOMER') {
+                <a routerLink="/ai" routerLinkActive="active">IA &amp; Cloud <span class="badge">Nuevo</span></a>
+              }
+              @case ('PROVIDER') {
+                <a routerLink="/provider" routerLinkActive="active">Panel de mentorías</a>
+              }
+              @case ('ADMIN') {
+                <a routerLink="/admin">Administración</a>
+              }
+              @default {
+                <a routerLink="/sobre-nosotros" routerLinkActive="active">Sobre nosotros</a>
+                <!-- Contacto apunta a una sección del inicio; funcionará en cuanto exista ese id -->
+                <a routerLink="/" fragment="contacto">Contacto</a>
+              }
             }
           </nav>
           <div class="nav-actions">
-            @if (!auth.ready()) {
-            } @else if (!auth.isAuthenticated()) {
+            @if (auth.navRole() === null) {
               <a routerLink="/login" class="nav-login">Ingresar</a>
+              <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="button-primary">Crear cuenta</a>
             } @else {
               <button type="button" class="nav-login" (click)="auth.logout()">Salir</button>
-            }
-            @if (!auth.ready()) {
-            } @else if (auth.hasRole('CUSTOMER')) {
-              <a routerLink="/bookings/me" class="button-primary">Mis Reservas</a>
-            } @else if (!auth.isAuthenticated()) {
-              <a routerLink="/login" [queryParams]="{ mode: 'register' }" class="button-primary">Crear cuenta</a>
+              @if (auth.navRole() === 'CUSTOMER') {
+                <a routerLink="/bookings/me" class="button-primary">Mis Reservas</a>
+              }
             }
           </div>
         </div>

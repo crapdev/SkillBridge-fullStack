@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.CompleteFinishedBookingsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.BookingEventPublisherPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
@@ -42,7 +43,7 @@ class BookingServiceTest {
         when(slots.findByOfferingIdAndScheduledAt(offeringId, scheduledAt)).thenReturn(Optional.of(availableSlot));
         when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
-        BookingService service = new BookingService(bookings, offerings, users, publisher, slots);
+        BookingService service = new BookingService(bookings, offerings, users, publisher, slots, mock(CompleteFinishedBookingsUseCase.class));
         Booking result = service.create(offeringId, scheduledAt, "user@example.com");
 
         assertEquals(offeringId, result.offeringId());
@@ -64,7 +65,7 @@ class BookingServiceTest {
         when(offerings.findById(offeringId)).thenReturn(Optional.of(pending));
 
         BookingService service = new BookingService(bookings, offerings, mock(UserAccountPort.class),
-                mock(BookingEventPublisherPort.class), slots);
+                mock(BookingEventPublisherPort.class), slots, mock(CompleteFinishedBookingsUseCase.class));
 
         org.junit.jupiter.api.Assertions.assertThrows(com.riwi.skillbridge.domain.exception.BusinessRuleException.class,
                 () -> service.create(offeringId, Instant.now().plusSeconds(3600), "user@example.com"));
@@ -88,7 +89,7 @@ class BookingServiceTest {
         when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
 
         BookingEventPublisherPort publisher = mock(BookingEventPublisherPort.class);
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class), mock(CompleteFinishedBookingsUseCase.class));
         Booking result = service.cancelBooking(bookingId, "user@example.com");
 
         assertEquals(com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED, result.status());
@@ -110,7 +111,7 @@ class BookingServiceTest {
         when(users.findIdByEmail("hacker@example.com")).thenReturn(Optional.of(hackerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
 
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, mock(BookingEventPublisherPort.class), mock(AvailabilitySlotRepositoryPort.class), mock(CompleteFinishedBookingsUseCase.class));
         
         org.junit.jupiter.api.Assertions.assertThrows(
             com.riwi.skillbridge.domain.exception.UnauthorizedActionException.class, 
@@ -134,7 +135,7 @@ class BookingServiceTest {
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
 
         BookingEventPublisherPort publisher = mock(BookingEventPublisherPort.class);
-        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class));
+        BookingService service = new BookingService(bookings, mock(OfferingRepositoryPort.class), users, publisher, mock(AvailabilitySlotRepositoryPort.class), mock(CompleteFinishedBookingsUseCase.class));
 
         org.junit.jupiter.api.Assertions.assertThrows(
             com.riwi.skillbridge.domain.exception.BusinessRuleException.class,

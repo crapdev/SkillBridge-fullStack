@@ -25,6 +25,9 @@ public class RabbitBookingEventPublisher implements BookingEventPublisherPort {
     @Override
     public void paymentFailed(Booking booking) { publish(RabbitConfiguration.PAYMENT_FAILED_KEY, booking); }
 
+    @Override
+    public void bookingCompleted(Booking booking) { publish(RabbitConfiguration.BOOKING_COMPLETED_KEY, booking); }
+
     // Todos los eventos comparten el mismo contenido; la routing key indica qué pasó
     private void publish(String routingKey, Booking booking) {
         BookingEvent event = new BookingEvent(
