@@ -64,11 +64,11 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
         AvailabilitySlot slot = slotRepository.findByOfferingIdAndScheduledAt(offeringId, scheduledAt)
             .orElseThrow(() -> new BusinessRuleException("El proveedor no tiene habilitado este horario"));
 
-        if (slot.reserved() || bookingRepository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
+        if (slot.reserved() || bookingRepository.existsActiveByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
             throw new BusinessRuleException("Este horario ya fue reservado por otro usuario");
         }
 
-        if (bookingRepository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt)) {
+        if (bookingRepository.existsActiveByCustomerIdAndScheduledAt(customerId, scheduledAt)) {
             throw new BusinessRuleException("Ya tienes otra mentoría agendada en este mismo horario");
         }
 
