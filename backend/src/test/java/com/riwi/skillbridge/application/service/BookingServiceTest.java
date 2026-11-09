@@ -7,6 +7,7 @@ import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingCachePort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
+import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.Offering;
@@ -19,6 +20,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class BookingServiceTest {
@@ -270,5 +272,78 @@ class BookingServiceTest {
         org.junit.jupiter.api.Assertions.assertThrows(com.riwi.skillbridge.domain.exception.BusinessRuleException.class,
                 () -> service.cancelBooking(bookingId, "user@example.com"));
         verifyNoInteractions(slots);
+    }
+
+    // BUG-07: arma el servicio para crear una reserva sobre una franja libre de esa mentoría
+    private BookingService serviceForCreate(BookingRepositoryPort bookings, UUID offeringId, UUID customerId,
+                                            String email, Instant scheduledAt, AvailabilitySlotRepositoryPort slots) {
+        OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
+        UserAccountPort users = mock(UserAccountPort.class);
+        Offering offering = new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", BigDecimal.TEN, true);
+        when(offerings.findById(offeringId)).thenReturn(Optional.of(offering));
+        when(users.findIdByEmail(email)).thenReturn(Optional.of(customerId));
+        when(slots.findByOfferingIdAndScheduledAt(offeringId, scheduledAt))
+                .thenReturn(Optional.of(new AvailabilitySlot(UUID.randomUUID(), offeringId, scheduledAt, false)));
+        when(bookings.save(any(Booking.class))).thenAnswer(i -> i.getArgument(0));
+        return new BookingService(bookings, offerings, users, mock(BookingEventPublisherPort.class), slots,
+                mock(CompleteFinishedBookingsUseCase.class), mock(OfferingCachePort.class));
+    }
+
+    // BUG-07: una reserva cancelada a esa hora no impide que otro cliente reserve la franja liberada
+    @Test
+    void shouldAllowBookingASlotWhoseOnlyBookingWasCancelled() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        AvailabilitySlotRepositoryPort slots = mock(AvailabilitySlotRepositoryPort.class);
+        UUID offeringId = UUID.randomUUID();
+        UUID customerB = UUID.randomUUID();
+        Instant scheduledAt = Instant.now().plus(3, java.time.temporal.ChronoUnit.DAYS);
+        // la única reserva a esa hora está CANCELLED: el repositorio no la cuenta como activa
+        when(bookings.existsActiveByOfferingIdAndScheduledAt(offeringId, scheduledAt)).thenReturn(false);
+        when(bookings.existsActiveByCustomerIdAndScheduledAt(customerB, scheduledAt)).thenReturn(false);
+
+        BookingService service = serviceForCreate(bookings, offeringId, customerB, "b@example.com", scheduledAt, slots);
+        Booking result = service.create(offeringId, scheduledAt, "b@example.com");
+
+        assertEquals(customerB, result.customerId());
+        verify(bookings).existsActiveByOfferingIdAndScheduledAt(offeringId, scheduledAt);
+        verify(bookings).existsActiveByCustomerIdAndScheduledAt(customerB, scheduledAt);
+        verify(slots).save(argThat(slot -> slot.reserved() && slot.scheduledAt().equals(scheduledAt)));
+    }
+
+    // BUG-07: una reserva activa de otro cliente sigue bloqueando la franja
+    @Test
+    void shouldRejectBookingWhenAnotherActiveBookingExistsAtThatTime() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        AvailabilitySlotRepositoryPort slots = mock(AvailabilitySlotRepositoryPort.class);
+        UUID offeringId = UUID.randomUUID();
+        Instant scheduledAt = Instant.now().plus(3, java.time.temporal.ChronoUnit.DAYS);
+        when(bookings.existsActiveByOfferingIdAndScheduledAt(offeringId, scheduledAt)).thenReturn(true);
+
+        BookingService service = serviceForCreate(bookings, offeringId, UUID.randomUUID(), "b@example.com", scheduledAt, slots);
+
+        BusinessRuleException ex = org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleException.class,
+                () -> service.create(offeringId, scheduledAt, "b@example.com"));
+        assertEquals("Este horario ya fue reservado por otro usuario", ex.getMessage());
+        verify(bookings, never()).save(any());
+        verify(slots, never()).save(any());
+    }
+
+    // BUG-07: el cliente con otra reserva activa a esa hora sigue sin poder reservar
+    @Test
+    void shouldRejectBookingWhenCustomerHasAnotherActiveBookingAtThatTime() {
+        BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
+        AvailabilitySlotRepositoryPort slots = mock(AvailabilitySlotRepositoryPort.class);
+        UUID offeringId = UUID.randomUUID();
+        UUID customerA = UUID.randomUUID();
+        Instant scheduledAt = Instant.now().plus(3, java.time.temporal.ChronoUnit.DAYS);
+        when(bookings.existsActiveByCustomerIdAndScheduledAt(customerA, scheduledAt)).thenReturn(true);
+
+        BookingService service = serviceForCreate(bookings, offeringId, customerA, "a@example.com", scheduledAt, slots);
+
+        BusinessRuleException ex = org.junit.jupiter.api.Assertions.assertThrows(BusinessRuleException.class,
+                () -> service.create(offeringId, scheduledAt, "a@example.com"));
+        assertEquals("Ya tienes otra mentoría agendada en este mismo horario", ex.getMessage());
+        verify(bookings, never()).save(any());
+        verify(slots, never()).save(any());
     }
 }

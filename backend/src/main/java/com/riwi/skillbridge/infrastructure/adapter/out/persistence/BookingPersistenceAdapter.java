@@ -10,12 +10,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.Optional;
 
 @Component
 public class BookingPersistenceAdapter implements BookingRepositoryPort {
+    /**
+     * BUG-07: estados que ya no ocupan el horario. Una reserva en estos estados no impide volver a reservar.
+     * Si HU-37 agrega un estado como EXPIRED, va aquí.
+     */
+    private static final Set<BookingStatus> RELEASED_STATUSES = EnumSet.of(BookingStatus.CANCELLED);
+
     private final JpaBookingRepository repository;
 
     public BookingPersistenceAdapter(JpaBookingRepository repository) {
@@ -77,13 +85,13 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     }
 
     @Override
-    public boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt) {
-        return repository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt);
+    public boolean existsActiveByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt) {
+        return repository.existsByOfferingIdAndScheduledAtAndStatusNotIn(offeringId, scheduledAt, RELEASED_STATUSES);
     }
 
     @Override
-    public boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt) {
-        return repository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt);
+    public boolean existsActiveByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt) {
+        return repository.existsByCustomerIdAndScheduledAtAndStatusNotIn(customerId, scheduledAt, RELEASED_STATUSES);
     }
 
     @Override

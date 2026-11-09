@@ -20,6 +20,12 @@ Jira: [SCRUM-382](https://calborparra.atlassian.net/browse/SCRUM-382) · Relacio
 2. `listAvailableSlots` solo muestra franjas con `reserved = false`, así que la franja cancelada no volvía a ofrecerse.
 3. El catálogo (`findVisible`) solo lista mentorías con al menos un horario futuro libre, y se guarda en caché (Redis). Aunque la franja se liberara, la caché seguiría sin la mentoría.
 
+**Efecto en los datos**
+
+- **Ocupación inflada (HU-45):** cada cancelación dejaba una franja `reserved = true` sin una reserva activa detrás, así que la ocupación de los proveedores salía más alta de lo real.
+- **Falsos errores de calidad (HU-45):** la regla "franja reservada sin reserva activa" saltaba con cada cancelación real, aunque no hubiera ningún problema en los datos.
+- Las franjas que quedaron bloqueadas antes de este arreglo **no se corrigen solas**: el cambio solo aplica a las cancelaciones nuevas.
+
 ## 3. Solución
 
 | Capa | Cambio |

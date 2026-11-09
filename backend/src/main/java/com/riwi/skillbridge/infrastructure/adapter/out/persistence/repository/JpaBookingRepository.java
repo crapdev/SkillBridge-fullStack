@@ -16,8 +16,11 @@ public interface JpaBookingRepository extends JpaRepository<BookingEntity, UUID>
     List<BookingEntity> findByCustomerIdOrderByScheduledAtDesc(UUID customerId);
     List<BookingEntity> findByOfferingIdIn(Collection<UUID> offeringIds);
     boolean existsByCustomerIdAndOfferingIdAndScheduledAt(UUID customerId, UUID offeringId, Instant scheduledAt);
-    boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
-    boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt);
+    // BUG-07: se excluyen los estados que ya no ocupan el horario (hoy solo CANCELLED)
+    boolean existsByOfferingIdAndScheduledAtAndStatusNotIn(UUID offeringId, Instant scheduledAt,
+                                                          Collection<BookingStatus> excluded);
+    boolean existsByCustomerIdAndScheduledAtAndStatusNotIn(UUID customerId, Instant scheduledAt,
+                                                          Collection<BookingStatus> excluded);
     List<BookingEntity> findByStatusAndScheduledAtBefore(BookingStatus status, Instant instant);
 
     // BUG-05: el WHERE con el estado esperado hace el cambio atómico; 0 filas = otro proceso ya lo hizo
