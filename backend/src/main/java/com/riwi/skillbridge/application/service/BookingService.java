@@ -3,6 +3,7 @@ package com.riwi.skillbridge.application.service;
 import com.riwi.skillbridge.application.port.in.CreateBookingUseCase;
 import com.riwi.skillbridge.application.port.in.ListMyBookingsUseCase;
 import com.riwi.skillbridge.application.port.in.CancelBookingUseCase;
+import com.riwi.skillbridge.application.port.in.CompleteFinishedBookingsUseCase;
 import com.riwi.skillbridge.application.port.out.*;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
@@ -24,16 +25,19 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
     private final UserAccountPort userAccountPort;
     private final BookingEventPublisherPort eventPublisher;
     private final AvailabilitySlotRepositoryPort slotRepository;
+    private final CompleteFinishedBookingsUseCase completion;
 
     public BookingService(BookingRepositoryPort bookingRepository,
                           OfferingRepositoryPort offeringRepository,
                           UserAccountPort userAccountPort,
-                          BookingEventPublisherPort eventPublisher, AvailabilitySlotRepositoryPort slotRepository) {
+                          BookingEventPublisherPort eventPublisher, AvailabilitySlotRepositoryPort slotRepository,
+                          CompleteFinishedBookingsUseCase completion) {
         this.bookingRepository = bookingRepository;
         this.offeringRepository = offeringRepository;
         this.userAccountPort = userAccountPort;
         this.eventPublisher = eventPublisher;
         this.slotRepository = slotRepository;
+        this.completion = completion;
     }
 
     @Override
@@ -78,7 +82,8 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
     public List<Booking> listMyBookings(String customerEmail) {
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
             .orElseThrow(() -> new DomainNotFoundException("Usuario no encontrado"));
-        return bookingRepository.findByCustomerId(customerId);
+        // BUG-05: las sesiones que ya terminaron se muestran completadas aunque el proceso programado no haya corrido
+        return completion.completeIfFinished(bookingRepository.findByCustomerId(customerId));
     }
 
     @Override

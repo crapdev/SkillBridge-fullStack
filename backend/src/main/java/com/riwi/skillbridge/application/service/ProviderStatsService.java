@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
+import com.riwi.skillbridge.application.port.in.CompleteFinishedBookingsUseCase;
 import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
@@ -27,13 +28,16 @@ public class ProviderStatsService implements GetProviderStatsUseCase {
     private final OfferingRepositoryPort offerings;
     private final AvailabilitySlotRepositoryPort slots;
     private final BookingRepositoryPort bookings;
+    private final CompleteFinishedBookingsUseCase completion;
 
     public ProviderStatsService(UserAccountPort users, OfferingRepositoryPort offerings,
-                                AvailabilitySlotRepositoryPort slots, BookingRepositoryPort bookings) {
+                                AvailabilitySlotRepositoryPort slots, BookingRepositoryPort bookings,
+                                CompleteFinishedBookingsUseCase completion) {
         this.users = users;
         this.offerings = offerings;
         this.slots = slots;
         this.bookings = bookings;
+        this.completion = completion;
     }
 
     @Override
@@ -48,7 +52,8 @@ public class ProviderStatsService implements GetProviderStatsUseCase {
         Map<UUID, List<AvailabilitySlot>> upcomingSlots = own.stream().collect(Collectors.toMap(
             Offering::id,
             o -> slots.findByOfferingId(o.id()).stream().filter(s -> s.scheduledAt().isAfter(now)).toList()));
-        List<Booking> received = bookings.findByOfferingIds(upcomingSlots.keySet());
+        // BUG-05: el conteo de completadas no depende de que el proceso programado ya haya corrido
+        List<Booking> received = completion.completeIfFinished(bookings.findByOfferingIds(upcomingSlots.keySet()));
 
         return new ProviderStats(offeringCounts(own, upcomingSlots), slotCounts(upcomingSlots), bookingCounts(received, now));
     }

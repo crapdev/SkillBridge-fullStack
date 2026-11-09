@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { apiBase } from './api';
 
-export type NotificationType = 'BOOKING_CREATED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID';
+export type NotificationType = 'BOOKING_CREATED' | 'BOOKING_CANCELLED' | 'BOOKING_PAID' | 'BOOKING_COMPLETED';
 
 export interface AppNotification {
   id: string;

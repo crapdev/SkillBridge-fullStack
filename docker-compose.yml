@@ -96,6 +96,17 @@ services:
       - "8088:80"
     networks: [ skillbridge ]
 
+  # Pipeline PySpark y pruebas de datos: solo se levanta con el perfil "data" (make data-test)
+  data:
+    build:
+      context: ./data
+    profiles: [ "data" ]
+    environment:
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-1g}
+    volumes:
+      - ./data:/app   # el código local se usa sin reconstruir la imagen
+    networks: [ skillbridge ]
+
   prometheus:
     image: prom/prometheus:v3.5.0
     profiles: [ "observability" ]

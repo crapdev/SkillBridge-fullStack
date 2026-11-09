@@ -11,7 +11,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +30,9 @@ class AdminUserServiceTest {
 
     private final UserRepositoryPort users = mock(UserRepositoryPort.class);
     private final PasswordHasherPort passwords = mock(PasswordHasherPort.class);
-    private final AdminUserService service = new AdminUserService(users, passwords);
+    private final BusinessTime businessTime =
+        new BusinessTime(Clock.fixed(Instant.parse("2026-11-01T04:30:00Z"), ZoneOffset.UTC), ZoneId.of("America/Bogota"));
+    private final AdminUserService service = new AdminUserService(users, passwords, businessTime);
 
     private UserAccount user(Role role, AccountStatus status) {
         UserAccount u = new UserAccount(UUID.randomUUID(), "Ana", "ana@email.com", "hash", role, status, Instant.now());

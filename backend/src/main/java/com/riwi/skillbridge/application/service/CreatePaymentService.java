@@ -16,7 +16,7 @@ import com.riwi.skillbridge.domain.model.PaymentStatus;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.UUID;
 
 @Service
@@ -29,17 +29,20 @@ public class CreatePaymentService implements CreatePaymentUseCase {
     private final BookingRepositoryPort bookingRepositoryPort;
     private final OfferingRepositoryPort offeringRepositoryPort;
     private final UserAccountPort userAccountPort;
+    private final Clock clock;
 
     public CreatePaymentService(PaymentPort paymentPort,
                                 PaymentGatewayPort paymentGateway,
                                 BookingRepositoryPort bookingRepositoryPort,
                                 OfferingRepositoryPort offeringRepositoryPort,
-                                UserAccountPort userAccountPort) {
+                                UserAccountPort userAccountPort,
+                                Clock clock) {
         this.paymentPort = paymentPort;
         this.paymentGateway = paymentGateway;
         this.bookingRepositoryPort = bookingRepositoryPort;
         this.offeringRepositoryPort = offeringRepositoryPort;
         this.userAccountPort = userAccountPort;
+        this.clock = clock;
     }
 
     @Override
@@ -77,7 +80,7 @@ public class CreatePaymentService implements CreatePaymentUseCase {
             CURRENCY,
             intent.id(),
             PaymentStatus.PENDING,
-            Instant.now()
+            clock.instant()
         ));
 
         return intent.clientSecret();

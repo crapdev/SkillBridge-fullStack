@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { businessDateFormat } from '../../../shared/business-time';
 
 /** "Ana María Pérez" → "AP"; "calborparra" → "CA". */
 export function initials(text: string): string {
@@ -22,7 +23,7 @@ export function avatarTone(seed: string): { bg: string; fg: string } {
   return { bg, fg };
 }
 
-const dateFormat = new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+const dateFormat = businessDateFormat({ day: '2-digit', month: 'short', year: 'numeric' });
 const relativeFormat = new Intl.RelativeTimeFormat('es', { numeric: 'auto' });
 
 /** "09 oct 2026" (sin los "de" que añade el formato largo en español). */

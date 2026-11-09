@@ -6,6 +6,7 @@ import { Booking, BookingService } from '../../core/booking.service';
 import { Offering, OfferingService } from '../../core/offering.service';
 import { PaymentService } from '../../core/payment.service';
 import { AlertService } from '../../shared/alert.service';
+import { businessDateFormat } from '../../shared/business-time';
 
 type ViewState = 'loading' | 'notice' | 'form' | 'success';
 
@@ -68,8 +69,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
   private paymentElement?: StripePaymentElement;
 
   private readonly currency = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
-  private readonly dateFormat = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-  private readonly timeFormat = new Intl.DateTimeFormat('es-CO', { hour: 'numeric', minute: '2-digit' });
+  private readonly dateFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  private readonly timeFormat = businessDateFormat({ hour: 'numeric', minute: '2-digit' });
 
   async ngOnInit(): Promise<void> {
     this.bookingId = this.route.snapshot.paramMap.get('id') ?? '';

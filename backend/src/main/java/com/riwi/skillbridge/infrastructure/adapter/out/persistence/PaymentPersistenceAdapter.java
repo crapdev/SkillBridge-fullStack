@@ -37,6 +37,11 @@ public class PaymentPersistenceAdapter implements PaymentPort {
         entity.setStatus(payment.status());
         entity.setStripePaymentIntentId(payment.stripePaymentIntentId());
 
+        // La fecha la decide el servicio (Clock); en una actualización se conserva la original
+        if (entity.getCreatedAt() == null) {
+            entity.setCreatedAt(payment.createdAt());
+        }
+
         // Como la reserva es llave foránea obligatoria, debemos buscarla y asignarla
         BookingEntity bookingEntity = bookingRepository.findById(payment.bookingId())
             .orElseThrow(() -> new IllegalArgumentException("Booking no encontrada con ID: " + payment.bookingId()));

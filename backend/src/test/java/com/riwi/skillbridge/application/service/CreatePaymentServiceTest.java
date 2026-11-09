@@ -18,7 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,7 +36,9 @@ class CreatePaymentServiceTest {
     private final BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
     private final OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
     private final UserAccountPort users = mock(UserAccountPort.class);
-    private final CreatePaymentService service = new CreatePaymentService(payments, gateway, bookings, offerings, users);
+    private final Clock clock = Clock.fixed(Instant.parse("2026-10-20T04:30:00Z"), ZoneOffset.UTC);
+    private final CreatePaymentService service =
+        new CreatePaymentService(payments, gateway, bookings, offerings, users, clock);
 
     private static final String EMAIL = "cliente@example.com";
     private final UUID customerId = UUID.randomUUID();
@@ -99,5 +103,24 @@ class CreatePaymentServiceTest {
         assertThrows(BusinessRuleException.class, () -> service.createPaymentIntent(bookingId, EMAIL));
 
         verifyNoInteractions(gateway);
+    }
+
+    @Test
+    void shouldStampPaymentWithInjectedClock() {
+        UUID bookingId = UUID.randomUUID();
+        UUID offeringId = UUID.randomUUID();
+        BigDecimal price = new BigDecimal("85000");
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(
+            new Booking(bookingId, offeringId, customerId, Instant.parse("2026-10-25T15:00:00Z"), BookingStatus.CREATED)));
+        when(offerings.findById(offeringId)).thenReturn(Optional.of(
+            new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", price, true)));
+        when(gateway.createPaymentIntent(bookingId, price, "COP"))
+            .thenReturn(new PaymentGatewayPort.PaymentIntent("pi_123", "pi_123_secret"));
+
+        service.createPaymentIntent(bookingId, EMAIL);
+
+        ArgumentCaptor<Payment> saved = ArgumentCaptor.forClass(Payment.class);
+        verify(payments).save(saved.capture());
+        assertEquals(Instant.parse("2026-10-20T04:30:00Z"), saved.getValue().createdAt());
     }
 }
