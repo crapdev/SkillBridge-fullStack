@@ -3,13 +3,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
-import { OfferingService, Offering, OfferingInput, OfferingLevel, SyllabusTopic, WeekDay } from '../core/offering.service';
-import { AlertService } from '../shared/alert.service';
+import { OfferingService, Offering, OfferingInput, OfferingLevel, SyllabusTopic, WeekDay } from '../../core/offering.service';
+import { AlertService } from '../../shared/alert.service';
 import {
   DURATION_OPTIONS, LEVELS, MAX_TOPICS, MIN_TOPICS, PLATFORM_COMMISSION, WEEK_DAYS,
   formatDays, formatDuration, formatPrice, levelLabel, platformFee, providerEarnings, sortDays
-} from '../shared/offering-format';
-import { REVIEW_ESTIMATE, REVIEW_STATUS, reviewStatusOf } from '../shared/offering-review';
+} from '../../shared/offering-format';
+import { REVIEW_ESTIMATE, REVIEW_STATUS, reviewStatusOf } from '../../shared/offering-review';
 
 /** El backend rechaza precios en cero o negativos; el formulario aplica la misma regla */
 function positivePrice(control: AbstractControl): ValidationErrors | null {

@@ -1,12 +1,12 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { AvailabilitySlot, Offering, OfferingService } from '../core/offering.service';
-import { apiBase } from '../core/api';
+import { AvailabilitySlot, Offering, OfferingService } from '../../core/offering.service';
+import { apiBase } from '../../core/api';
 import { CurrencyPipe } from '@angular/common';
-import { SERVICE_CONTENT, categoryKey } from './service-detail/service-content';
-import { formatDuration, formatTime, formatTimeRange, endOf, levelLabel } from '../shared/offering-format';
-import { businessDateFormat, businessDayKey } from '../shared/business-time';
+import { SERVICE_CONTENT, categoryKey } from '../service-detail/service-content';
+import { formatDuration, formatTime, formatTimeRange, endOf, levelLabel } from '../../shared/offering-format';
+import { businessDateFormat, businessDayKey } from '../../shared/business-time';
 
 const dayFormat = businessDateFormat({ weekday: 'short', day: 'numeric', month: 'short' });
 const fullDayFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long' });
@@ -219,14 +219,20 @@ export class BookingComponent implements OnInit {
           this.success.set('¡Reserva creada!');
           this.loading.set(false);
           // El horario ya no está disponible para nadie más
-          this.slots.update(list => list.filter(s => s.id !== slot.id));
-          this.selectedSlot.set(null);
-          if (!this.dayTimes().length) this.selectedDay.set(this.days()[0]?.key ?? '');
+          this.removeSlot(slot);
         },
         error: e => {
           this.error.set(e?.error?.detail || 'No fue posible crear la reserva.');
           this.loading.set(false);
+          // BUG-08: otro cliente lo reservó al mismo tiempo (409); se quita para que no parezca que sigue libre
+          if (e?.status === 409) this.removeSlot(slot);
         }
       });
+  }
+
+  private removeSlot(slot: AvailabilitySlot): void {
+    this.slots.update(list => list.filter(s => s.id !== slot.id));
+    this.selectedSlot.set(null);
+    if (!this.dayTimes().length) this.selectedDay.set(this.days()[0]?.key ?? '');
   }
 }

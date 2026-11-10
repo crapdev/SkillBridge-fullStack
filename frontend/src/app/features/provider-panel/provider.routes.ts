@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { ProviderLayoutComponent } from './provider-layout.component';
 import { ProviderDashboardComponent } from './provider-dashboard.component';
-import { ProviderOfferingsComponent } from '../provider-offerings.component';
+import { ProviderOfferingsComponent } from '../provider-offerings/provider-offerings.component';
 import { ProviderSlotsComponent } from '../provider-slots/provider-slots.component';
 
 /** Panel del proveedor (HU-22): las URLs de mentorías y horarios no cambian, ahora viven dentro del layout */

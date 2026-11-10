@@ -43,6 +43,8 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
     }
 
     @Override
+    // BUG-08: la franja reservada y la reserva se guardan juntas; si la reserva falla, la franja no queda reservada
+    @Transactional
     public Booking create(UUID offeringId, Instant scheduledAt, String customerEmail) {
         if (scheduledAt.isBefore(Instant.now())) {
             throw new BusinessRuleException("La reserva debe programarse en una fecha futura");

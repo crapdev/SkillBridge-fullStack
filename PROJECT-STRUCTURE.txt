@@ -57,7 +57,7 @@ skillbridge-ai/
   frontend/src/app/core/offering.service.ts
   frontend/src/app/features
   frontend/src/app/features/ai.component.ts
-  frontend/src/app/features/booking.component.ts
+  frontend/src/app/features/booking/booking.component.ts
   frontend/src/app/features/home.component.ts
   frontend/src/app/features/login.component.ts
   frontend/src/env.d.ts

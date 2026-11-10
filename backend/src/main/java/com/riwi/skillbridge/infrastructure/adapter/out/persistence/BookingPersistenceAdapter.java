@@ -1,10 +1,12 @@
 package com.riwi.skillbridge.infrastructure.adapter.out.persistence;
 
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
+import com.riwi.skillbridge.domain.exception.SlotAlreadyTakenException;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity.BookingEntity;
 import com.riwi.skillbridge.infrastructure.adapter.out.persistence.repository.JpaBookingRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
      * Si HU-37 agrega un estado como EXPIRED, va aquí.
      */
     private static final Set<BookingStatus> RELEASED_STATUSES = EnumSet.of(BookingStatus.CANCELLED);
+    /** BUG-08: índice único parcial de V10 (una sola reserva activa por mentoría y hora). */
+    static final String ACTIVE_SLOT_CONSTRAINT = "uq_bookings_active_slot";
 
     private final JpaBookingRepository repository;
 
@@ -45,8 +49,17 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     public Booking save(Booking booking) {
         BookingEntity entity = new BookingEntity(
             booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now());
-        BookingEntity saved = repository.save(entity);
-        return new Booking(saved.getId(), saved.getOfferingId(), saved.getCustomerId(), saved.getScheduledAt(), saved.getStatus());
+        try {
+            // BUG-08: flush inmediato para que el índice único falle aquí y no al confirmar la transacción
+            BookingEntity saved = repository.saveAndFlush(entity);
+            return new Booking(saved.getId(), saved.getOfferingId(), saved.getCustomerId(), saved.getScheduledAt(), saved.getStatus());
+        } catch (DataIntegrityViolationException e) {
+            String detail = e.getMostSpecificCause().getMessage();
+            if (detail != null && detail.contains(ACTIVE_SLOT_CONSTRAINT)) {
+                throw new SlotAlreadyTakenException();
+            }
+            throw e;
+        }
     }
 
     @Override
