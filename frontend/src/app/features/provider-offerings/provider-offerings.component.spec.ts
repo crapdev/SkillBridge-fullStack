@@ -3,8 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { ProviderOfferingsComponent } from './provider-offerings.component';
-import { Offering } from '../core/offering.service';
-import { AlertService } from '../shared/alert.service';
+import { Offering } from '../../core/offering.service';
+import { AlertService } from '../../shared/alert.service';
 
 /** SCRUM-168 (HU-19): edición de mentorías y confirmación al eliminar en el panel del proveedor */
 describe('ProviderOfferingsComponent', () => {
