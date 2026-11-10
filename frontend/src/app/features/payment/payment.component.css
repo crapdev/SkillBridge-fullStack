@@ -101,6 +101,7 @@ dd { margin: 0; color: #f8fafc; font-weight: 600; text-align: right; }
 .status-icon svg { width: 30px; height: 30px; stroke-width: 2.4; }
 .status-icon.success { background: #ecfdf5; color: var(--success); animation: pop .35s cubic-bezier(.2, .7, .2, 1.4); }
 .status-icon.error { background: #fef2f2; color: var(--danger); }
+.status-icon.warning { background: #fffaeb; color: #b54708; }
 
 .spinner { width: 32px; height: 32px; border: 3px solid #dbe4f3; border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
 .spinner.small { width: 18px; height: 18px; border-width: 2px; border-color: rgba(255, 255, 255, .35); border-top-color: #fff; }

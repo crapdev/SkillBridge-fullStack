@@ -66,7 +66,7 @@ Valores permitidos (copiados de los enums de `domain/model`):
 - `AccountStatus`: `ACTIVE`, `PENDING_APPROVAL`, `REJECTED`, `INACTIVE`
 - `OfferingLevel`: `BASICO`, `INTERMEDIO`, `AVANZADO`
 - `OfferingReviewStatus`: `PENDING_REVIEW`, `APPROVED`, `REJECTED`
-- `PaymentStatus`: `PENDING`, `PAID`, `FAILED`
+- `PaymentStatus`: `PENDING`, `PAID`, `FAILED` (rechazado por la pasarela), `CANCELED` (reemplazado o abandonado, BUG-09). Una reserva tiene como máximo un pago `PENDING` o `PAID`
 - Calificación de reseña: 1 a 5
 
 > **Regla:** si una migración Flyway o un enum cambia, `schemas.py` y los fixtures se actualizan **en el mismo PR**.
@@ -86,7 +86,7 @@ Están en `data/tests/fixtures/` y son coherentes entre sí:
 | offerings | 4 | 3 aprobadas y 1 pendiente de revisión |
 | bookings | 12 | Agosto–octubre 2026, todos los estados, sin solapes por proveedor |
 | availability_slots | 14 | Una por reserva (libre si se canceló) + 2 libres |
-| payments | 10 | PAID, FAILED (reserva cancelada) y PENDING |
+| payments | 11 | PAID, FAILED (reserva cancelada), PENDING y CANCELED (un intento abandonado antes de pagar) |
 | reviews | 6 | Solo de reservas COMPLETED, calificaciones de 2 a 5, una sin comentario |
 
 Los IDs son fáciles de leer: prefijo `a…` usuarios, `b…` offerings, `c…` bookings, `d…` slots, `e…` payments y

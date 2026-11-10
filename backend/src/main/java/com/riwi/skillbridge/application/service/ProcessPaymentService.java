@@ -13,12 +13,17 @@ import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.Payment;
 import com.riwi.skillbridge.domain.model.PaymentStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPaymentUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(ProcessPaymentService.class);
 
     private final PaymentPort paymentPort;
     private final BookingRepositoryPort bookingRepositoryPort;
@@ -72,6 +77,21 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
         Payment payment = paymentPort.findByStripeIntentId(stripeIntentId)
             .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado: " + stripeIntentId));
 
+        // BUG-09: solo puede haber un pago activo por reserva. Si se pagó un intento viejo (otra pestaña con el
+        // formulario abierto) mientras hay otro pendiente, se cancela el pendiente para registrar el cobro real.
+        Optional<Payment> otherActive = paymentPort.findActiveByBookingId(payment.bookingId())
+            .filter(other -> !other.id().equals(payment.id()));
+        if (otherActive.isPresent()) {
+            Payment other = otherActive.get();
+            if (other.status() == PaymentStatus.PAID || !paymentGateway.cancelPaymentIntent(other.stripePaymentIntentId())) {
+                // Se cobró dos veces la misma reserva. No se lanza error: Stripe reintentaría el webhook sin fin
+                log.error("BUG-09: la reserva {} tiene dos cobros ({} ya registrado y {}). Requiere reembolso manual",
+                    payment.bookingId(), other.stripePaymentIntentId(), stripeIntentId);
+                return;
+            }
+            paymentPort.save(withStatus(other, PaymentStatus.CANCELED));
+        }
+
         // Creamos un nuevo record con el estado actualizado (los records son inmutables)
         Payment updatedPayment = new Payment(
             payment.id(),
@@ -103,6 +123,12 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
         Payment payment = paymentPort.findByStripeIntentId(stripeIntentId)
             .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado: " + stripeIntentId));
 
+        // BUG-09: Stripe puede entregar los webhooks fuera de orden. El rechazo de un cobro que ya cancelamos
+        // (porque se reemplazó por otro) no cambia nada ni avisa al cliente de un fallo que ya no importa.
+        if (payment.status() == PaymentStatus.CANCELED) {
+            return;
+        }
+
         Payment updatedPayment = new Payment(
             payment.id(),
             payment.bookingId(),
@@ -119,5 +145,10 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
         if (payment.status() != PaymentStatus.FAILED) {
             bookingRepositoryPort.findById(payment.bookingId()).ifPresent(eventPublisher::paymentFailed);
         }
+    }
+
+    private static Payment withStatus(Payment payment, PaymentStatus status) {
+        return new Payment(payment.id(), payment.bookingId(), payment.amount(), payment.currency(),
+            payment.stripePaymentIntentId(), status, payment.createdAt());
     }
 }

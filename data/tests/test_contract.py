@@ -13,7 +13,7 @@ EXPECTED_ROWS = {
     "offerings": 4,
     "bookings": 12,
     "availability_slots": 14,
-    "payments": 10,
+    "payments": 11,
     "reviews": 6,
 }
 
