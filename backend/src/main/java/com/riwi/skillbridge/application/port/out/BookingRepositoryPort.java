@@ -16,8 +16,10 @@ public interface BookingRepositoryPort {
     /** HU-22: reservas que recibe un proveedor (las de sus mentorías). */
     List<Booking> findByOfferingIds(Collection<UUID> offeringIds);
     boolean existsDuplicateBooking(UUID customerId, UUID offeringId, Instant scheduledAt);
-    boolean existsByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
-    boolean existsByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt);
+    /** BUG-07: hay una reserva activa (no cancelada) de esa mentoría a esa hora. */
+    boolean existsActiveByOfferingIdAndScheduledAt(UUID offeringId, Instant scheduledAt);
+    /** BUG-07: el cliente ya tiene una reserva activa (no cancelada) a esa hora. */
+    boolean existsActiveByCustomerIdAndScheduledAt(UUID customerId, Instant scheduledAt);
     /** BUG-05: reservas confirmadas cuya sesión empezó antes de ese instante (candidatas a completarse). */
     List<Booking> findConfirmedScheduledBefore(Instant instant);
     /**

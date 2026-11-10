@@ -133,6 +133,19 @@ class ProcessPaymentServiceTest {
         verifyNoInteractions(publisher);
     }
 
+    // BUG-09: los webhooks pueden llegar fuera de orden; el rechazo tardío de un cobro reemplazado no cambia nada
+    @Test
+    void lateFailureWebhookForACanceledPayment_isIgnored() {
+        Payment canceled = new Payment(pending.id(), bookingId, pending.amount(), "COP", "pi_123",
+            PaymentStatus.CANCELED, pending.createdAt());
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(canceled));
+
+        service.markPaymentFailed("pi_123");
+
+        verify(payments, never()).save(any());
+        verifyNoInteractions(publisher);
+    }
+
     private Booking booking(BookingStatus status) {
         return new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(86400 * 3), status);
     }
@@ -182,6 +195,63 @@ class ProcessPaymentServiceTest {
         assertThrows(UnauthorizedActionException.class, () -> service.syncPayment("pi_123", "otro@example.com"));
 
         verifyNoInteractions(gateway);
+    }
+
+    @Test
+    void oldAttemptPaidWhileAnotherIsPending_cancelsThePendingOneAndRecordsThePayment() {
+        // BUG-09: el cliente pagó en una pestaña vieja (pi_123, ya FAILED) mientras había otro intento pendiente
+        Payment oldAttempt = withStatus(pending, PaymentStatus.FAILED);
+        Payment newerPending = new Payment(UUID.randomUUID(), bookingId, new BigDecimal("85000"), "COP",
+            "pi_456", PaymentStatus.PENDING, Instant.now());
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(oldAttempt));
+        when(payments.findActiveByBookingId(bookingId)).thenReturn(Optional.of(newerPending));
+        when(gateway.cancelPaymentIntent("pi_456")).thenReturn(true);
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CREATED)));
+
+        service.confirmPaymentSuccess("pi_123");
+
+        ArgumentCaptor<Payment> saved = ArgumentCaptor.forClass(Payment.class);
+        verify(payments, times(2)).save(saved.capture());
+        // Primero se libera el pendiente (el índice de V11 no admite dos activos) y después se registra el pago
+        assertEquals("pi_456", saved.getAllValues().get(0).stripePaymentIntentId());
+        // El pendiente no se rechazó: se canceló porque el cliente pagó el otro
+        assertEquals(PaymentStatus.CANCELED, saved.getAllValues().get(0).status());
+        assertEquals("pi_123", saved.getAllValues().get(1).stripePaymentIntentId());
+        assertEquals(PaymentStatus.PAID, saved.getAllValues().get(1).status());
+        verify(bookings).save(any());
+    }
+
+    @Test
+    void secondChargeForAnAlreadyPaidBooking_isNotRecordedAsASecondPaid() {
+        Payment oldAttempt = withStatus(pending, PaymentStatus.FAILED);
+        Payment alreadyPaid = new Payment(UUID.randomUUID(), bookingId, new BigDecimal("85000"), "COP",
+            "pi_456", PaymentStatus.PAID, Instant.now());
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(oldAttempt));
+        when(payments.findActiveByBookingId(bookingId)).thenReturn(Optional.of(alreadyPaid));
+
+        // No lanza error: Stripe reintentaría el webhook sin fin. Queda en el log para el reembolso
+        service.confirmPaymentSuccess("pi_123");
+
+        verify(payments, never()).save(any());
+        verify(gateway, never()).cancelPaymentIntent(any());
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void repeatedWebhookForTheActivePayment_doesNotTouchOtherPayments() {
+        Payment paid = withStatus(pending, PaymentStatus.PAID);
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(paid));
+        when(payments.findActiveByBookingId(bookingId)).thenReturn(Optional.of(paid));
+        when(bookings.findById(bookingId)).thenReturn(Optional.of(booking(BookingStatus.CONFIRMED)));
+
+        service.confirmPaymentSuccess("pi_123");
+
+        verify(gateway, never()).cancelPaymentIntent(any());
+        verify(payments).save(any());
+    }
+
+    private static Payment withStatus(Payment p, PaymentStatus status) {
+        return new Payment(p.id(), p.bookingId(), p.amount(), p.currency(), p.stripePaymentIntentId(), status, p.createdAt());
     }
 
     private void givenOwnPayment(Payment payment) {

@@ -17,6 +17,10 @@ import java.util.stream.Collectors;
 @Service
 public class AiRecommendationService implements GenerateRecommendationUseCase {
 
+    static final int MAX_HISTORY_MESSAGES = 10;
+    static final String EMPTY_CATALOG_MESSAGE =
+        "En este momento no hay mentorías disponibles con horarios libres para recomendar.";
+
     // Enlace markdown al detalle de una mentoría: [Título](/services/<id>)
     private static final Pattern OFFERING_LINK = Pattern.compile("\\[([^\\]]+)]\\(/services/([^)\\s]+)\\)");
 
@@ -30,8 +34,11 @@ public class AiRecommendationService implements GenerateRecommendationUseCase {
 
     @Override
     public String recommend(String message, List<ChatMessage> history) {
-        // Mismo criterio que el catálogo de HU-17: activas y con horarios futuros libres
+        // Mismo criterio que el catálogo de HU-17: activas, aprobadas y con horarios futuros libres
         List<Offering> catalog = offerings.findVisible();
+        if (catalog.isEmpty()) {
+            return EMPTY_CATALOG_MESSAGE;
+        }
 
         List<ChatMessage> conversation = new ArrayList<>(lastMessages(history));
         conversation.add(ChatMessage.user(message));

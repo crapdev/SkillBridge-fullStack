@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { ProviderOfferingsComponent } from './provider-offerings.component';
-import { Offering } from '../core/offering.service';
+import { Offering } from '../../core/offering.service';
 
 /** SCRUM-175 (HU-20): formulario de la ficha — temario dinámico, días, duración, nivel y aviso de comisión */
 describe('ProviderOfferingsComponent · ficha de la mentoría', () => {

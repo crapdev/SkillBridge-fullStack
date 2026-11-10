@@ -1,7 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { firstValueFrom, forkJoin } from 'rxjs';
-import type { Appearance, Stripe, StripeElements, StripePaymentElement } from '@stripe/stripe-js';
+import type { Appearance, Stripe, StripeElements, StripeError, StripePaymentElement } from '@stripe/stripe-js';
 import { Booking, BookingService } from '../../core/booking.service';
 import { Offering, OfferingService } from '../../core/offering.service';
 import { PaymentService } from '../../core/payment.service';
@@ -11,9 +11,12 @@ import { businessDateFormat } from '../../shared/business-time';
 type ViewState = 'loading' | 'notice' | 'form' | 'success';
 
 interface Notice {
-  tone: 'info' | 'error';
+  /** info: algo salió bien o no hay nada pendiente · warning: hay que volver a intentarlo · error: no se puede seguir */
+  tone: 'info' | 'warning' | 'error';
   title: string;
   message: string;
+  /** Muestra el botón para volver a cargar el formulario de pago */
+  canReload?: boolean;
 }
 
 /** Colores del rediseño aplicados al formulario de Stripe */
@@ -142,6 +145,7 @@ export class PaymentComponent implements OnInit, OnDestroy {
 
     if (error) {
       this.processing.set(false);
+      if (await this.handleOutdatedCharge(error)) return;
       // Errores de tarjeta y validación traen un mensaje pensado para el usuario
       const message = error.type === 'card_error' || error.type === 'validation_error'
         ? error.message ?? 'Revisa los datos de tu tarjeta.'
@@ -159,6 +163,53 @@ export class PaymentComponent implements OnInit, OnDestroy {
     } else {
       this.processing.set(false);
     }
+  }
+
+  /** Vuelve a pedir el cobro vigente de la reserva y monta un formulario nuevo */
+  async reloadPayment(): Promise<void> {
+    this.paymentElement?.destroy();
+    this.paymentElement = undefined;
+    this.elementReady.set(false);
+    this.formComplete.set(false);
+    this.formError.set('');
+    this.state.set('loading');
+    try {
+      await this.mountPaymentForm();
+    } catch (error) {
+      this.showNotice('error', 'No pudimos preparar el pago', this.problemDetail(error, 'Inténtalo de nuevo en unos minutos.'));
+    }
+  }
+
+  /**
+   * BUG-09: el cobro de este formulario ya no admite pagos porque se abrió el pago de la misma reserva en otra
+   * pestaña o ventana (se canceló o ya se pagó allí). Stripe lo rechaza sin cobrar; se explica qué pasó en vez
+   * de mostrar un error genérico.
+   *
+   * @return true si el error era ese caso y ya se mostró el aviso
+   */
+  private async handleOutdatedCharge(error: StripeError): Promise<boolean> {
+    if (error.code !== 'payment_intent_unexpected_state' || !error.payment_intent) return false;
+
+    const intent = error.payment_intent;
+    if (intent.status === 'succeeded') {
+      await this.syncWithBackend(intent.id);
+      this.showNotice('info', 'Esta reserva ya está pagada',
+        'El pago se hizo desde otra pestaña o ventana. No se te cobró otra vez.');
+      return true;
+    }
+    if (intent.status === 'processing') {
+      await this.syncWithBackend(intent.id);
+      this.showNotice('info', 'Tu pago se está procesando',
+        'Ya recibimos un pago para esta reserva desde otra pestaña o ventana; en un momento se confirmará. No se te cobró otra vez.');
+      return true;
+    }
+    if (intent.status === 'canceled') {
+      this.showNotice('warning', 'Este formulario de pago ya no está vigente',
+        'Abriste el pago de esta reserva en otra pestaña o ventana, así que este formulario quedó sin efecto. No se te hizo ningún cobro.',
+        true);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -212,8 +263,8 @@ export class PaymentComponent implements OnInit, OnDestroy {
     }
   }
 
-  private showNotice(tone: Notice['tone'], title: string, message: string): void {
-    this.notice.set({ tone, title, message });
+  private showNotice(tone: Notice['tone'], title: string, message: string, canReload = false): void {
+    this.notice.set({ tone, title, message, canReload });
     this.state.set('notice');
   }
 

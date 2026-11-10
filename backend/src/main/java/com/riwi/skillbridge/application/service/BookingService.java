@@ -12,7 +12,7 @@ import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
-import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,21 +26,25 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
     private final BookingEventPublisherPort eventPublisher;
     private final AvailabilitySlotRepositoryPort slotRepository;
     private final CompleteFinishedBookingsUseCase completion;
+    private final OfferingCachePort offeringCache;
 
     public BookingService(BookingRepositoryPort bookingRepository,
                           OfferingRepositoryPort offeringRepository,
                           UserAccountPort userAccountPort,
                           BookingEventPublisherPort eventPublisher, AvailabilitySlotRepositoryPort slotRepository,
-                          CompleteFinishedBookingsUseCase completion) {
+                          CompleteFinishedBookingsUseCase completion, OfferingCachePort offeringCache) {
         this.bookingRepository = bookingRepository;
         this.offeringRepository = offeringRepository;
         this.userAccountPort = userAccountPort;
         this.eventPublisher = eventPublisher;
         this.slotRepository = slotRepository;
         this.completion = completion;
+        this.offeringCache = offeringCache;
     }
 
     @Override
+    // BUG-08: la franja reservada y la reserva se guardan juntas; si la reserva falla, la franja no queda reservada
+    @Transactional
     public Booking create(UUID offeringId, Instant scheduledAt, String customerEmail) {
         if (scheduledAt.isBefore(Instant.now())) {
             throw new BusinessRuleException("La reserva debe programarse en una fecha futura");
@@ -62,11 +66,11 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
         AvailabilitySlot slot = slotRepository.findByOfferingIdAndScheduledAt(offeringId, scheduledAt)
             .orElseThrow(() -> new BusinessRuleException("El proveedor no tiene habilitado este horario"));
 
-        if (slot.reserved() || bookingRepository.existsByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
+        if (slot.reserved() || bookingRepository.existsActiveByOfferingIdAndScheduledAt(offeringId, scheduledAt)) {
             throw new BusinessRuleException("Este horario ya fue reservado por otro usuario");
         }
 
-        if (bookingRepository.existsByCustomerIdAndScheduledAt(customerId, scheduledAt)) {
+        if (bookingRepository.existsActiveByCustomerIdAndScheduledAt(customerId, scheduledAt)) {
             throw new BusinessRuleException("Ya tienes otra mentoría agendada en este mismo horario");
         }
 
@@ -87,6 +91,7 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
     }
 
     @Override
+    @Transactional
     public Booking cancelBooking(UUID bookingId, String customerEmail) {
         // 1. Obtener usuario autenticado
         UUID customerId = userAccountPort.findIdByEmail(customerEmail)
@@ -104,7 +109,17 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
         // 4. Ejecutar la lógica de dominio (retorna nueva reserva con estado actualizado)
         Booking cancelledBooking = booking.cancel(Instant.now());
 
-        // 5. Persistir la modificación, avisar (cliente y proveedor reciben la notificación) y retornar
+        // 5. BUG-06: liberar la franja en la misma transacción para que se pueda volver a reservar.
+        //    Si el proveedor ya la borró no hay nada que liberar. La mentoría puede volver al catálogo
+        //    (solo se muestran las que tienen un horario libre), así que se invalida la caché.
+        slotRepository.findByOfferingIdAndScheduledAt(booking.offeringId(), booking.scheduledAt())
+            .filter(AvailabilitySlot::reserved)
+            .ifPresent(slot -> {
+                slotRepository.save(new AvailabilitySlot(slot.id(), slot.offeringId(), slot.scheduledAt(), false));
+                offeringCache.evictActiveOfferings();
+            });
+
+        // 6. Persistir la modificación, avisar (cliente y proveedor reciben la notificación) y retornar
         Booking saved = bookingRepository.save(cancelledBooking);
         eventPublisher.bookingCancelled(saved);
         return saved;

@@ -3,8 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { ProviderOfferingsComponent } from './provider-offerings.component';
-import { Offering } from '../core/offering.service';
-import { REVIEW_ESTIMATE } from '../shared/offering-review';
+import { Offering } from '../../core/offering.service';
+import { REVIEW_ESTIMATE } from '../../shared/offering-review';
 
 /** SCRUM-181 (HU-21): estado de revisión, motivo de rechazo y aviso "sin horarios" en el panel del proveedor */
 describe('ProviderOfferingsComponent · revisión de mentorías', () => {
