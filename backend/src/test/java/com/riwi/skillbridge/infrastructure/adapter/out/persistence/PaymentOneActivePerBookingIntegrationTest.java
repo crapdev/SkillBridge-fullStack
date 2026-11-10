@@ -54,6 +54,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -193,6 +194,9 @@ class PaymentOneActivePerBookingIntegrationTest {
         createPaymentService.createPaymentIntent(bookingId, email);
 
         assertThat(paymentStatuses()).containsExactly("FAILED", "FAILED", "PENDING");
+        // Solo se cancela en Stripe el cobro del último intento rechazado: cada uno anterior ya se canceló al abrir el siguiente
+        verify(gateway).cancelPaymentIntent("pi_b");
+        verify(gateway, never()).cancelPaymentIntent("pi_a");
     }
 
     @Test

@@ -1,6 +1,6 @@
 -- BUG-09: una reserva solo puede tener un pago activo (PENDING o PAID).
 -- Antes, cada vez que el cliente abría la pantalla de pago se guardaba un PENDING nuevo y los anteriores
--- quedaban abandonados. Los FAILED no cuentan: después de un pago rechazado el cliente puede reintentar.
+-- quedaban abandonados. Los FAILED (rechazados) y CANCELED (reemplazados) no cuentan: el cliente puede reintentar.
 -- Los estados deben coincidir con PaymentPersistenceAdapter.ACTIVE_STATUSES.
 
 -- 1. Dos pagos PAID para la misma reserva son un cobro doble: alguien tiene que revisarlo (y reembolsar)
@@ -15,8 +15,8 @@ BEGIN
     END IF;
 END $$;
 
--- 2. Se deja un pago activo por reserva y los demás PENDING pasan a FAILED: primero el PAID y, si no hay,
---    el PENDING más reciente (el que el cliente abrió por última vez).
+-- 2. Se deja un pago activo por reserva y los demás PENDING pasan a CANCELED (no fueron rechazos, se abandonaron):
+--    primero el PAID y, si no hay, el PENDING más reciente (el que el cliente abrió por última vez).
 --    Antes de desplegar, revisa cuántos duplicados hay con:
 --      SELECT booking_id, COUNT(*) FROM payments
 --      WHERE status IN ('PENDING', 'PAID') GROUP BY booking_id HAVING COUNT(*) > 1;
@@ -32,7 +32,7 @@ WITH ranked AS (
     WHERE status IN ('PENDING', 'PAID')
 )
 UPDATE payments p
-SET status = 'FAILED'
+SET status = 'CANCELED'
 FROM ranked r
 WHERE p.id = r.id
   AND r.position > 1;

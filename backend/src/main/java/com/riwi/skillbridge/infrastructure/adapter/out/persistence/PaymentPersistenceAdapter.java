@@ -81,6 +81,12 @@ public class PaymentPersistenceAdapter implements PaymentPort {
     }
 
     @Override
+    public Optional<Payment> findLatestFailedByBookingId(UUID bookingId) {
+        return paymentRepository.findFirstByBooking_IdAndStatusOrderByCreatedAtDesc(bookingId, PaymentStatus.FAILED)
+            .map(this::mapToDomain);
+    }
+
+    @Override
     public Optional<Payment> findByStripeIntentId(String intentId) {
         return paymentRepository.findByStripePaymentIntentId(intentId)
             .map(this::mapToDomain);

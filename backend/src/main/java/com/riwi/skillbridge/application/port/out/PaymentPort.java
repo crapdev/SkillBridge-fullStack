@@ -18,4 +18,10 @@ public interface PaymentPort {
 
     /** BUG-09: el pago activo (PENDING o PAID) de la reserva. La base de datos garantiza que hay como máximo uno. */
     Optional<Payment> findActiveByBookingId(UUID bookingId);
+
+    /**
+     * BUG-09: el último pago FAILED de la reserva. Un cobro rechazado sigue aceptando otra tarjeta en la pasarela,
+     * así que hay que cancelarlo antes de abrir uno nuevo.
+     */
+    Optional<Payment> findLatestFailedByBookingId(UUID bookingId);
 }

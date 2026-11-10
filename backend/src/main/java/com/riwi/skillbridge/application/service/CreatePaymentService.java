@@ -78,6 +78,11 @@ public class CreatePaymentService implements CreatePaymentUseCase {
             if (reused.isPresent()) {
                 return reused.get();
             }
+        } else {
+            // Un cobro rechazado sigue aceptando otra tarjeta en Stripe (por ejemplo, desde otra pestaña): se cancela
+            // para que no queden dos cobros que se puedan pagar. Si el pago anterior vino de reuseOrRelease, su
+            // cobro ya quedó cancelado ahí.
+            paymentPort.findLatestFailedByBookingId(bookingId).ifPresent(this::cancelRejectedCharge);
         }
 
         // 5. Le pedimos a la pasarela que prepare el cobro
@@ -107,9 +112,19 @@ public class CreatePaymentService implements CreatePaymentUseCase {
     }
 
     /**
+     * Cancela en la pasarela el cobro de un intento rechazado. Si no se puede porque el cliente lo está pagando
+     * (reintentó con otra tarjeta en el mismo formulario), no se abre otro cobro: el webhook confirmará ese pago.
+     */
+    private void cancelRejectedCharge(Payment failed) {
+        if (!paymentGateway.cancelPaymentIntent(failed.stripePaymentIntentId())) {
+            throw new BusinessRuleException("Ya recibimos un pago para esta reserva; en un momento se confirmará");
+        }
+    }
+
+    /**
      * Decide qué hacer con el pago activo de la reserva.
      *
-     * @return el secreto del cobro existente si se puede seguir usando; vacío si se dejó como FAILED y hay que
+     * @return el secreto del cobro existente si se puede seguir usando; vacío si se dejó como CANCELED y hay que
      *     crear uno nuevo
      */
     private Optional<String> reuseOrRelease(Payment payment, BigDecimal amount) {
@@ -138,7 +153,7 @@ public class CreatePaymentService implements CreatePaymentUseCase {
         }
 
         paymentPort.save(new Payment(payment.id(), payment.bookingId(), payment.amount(), payment.currency(),
-            payment.stripePaymentIntentId(), PaymentStatus.FAILED, payment.createdAt()));
+            payment.stripePaymentIntentId(), PaymentStatus.CANCELED, payment.createdAt()));
         return Optional.empty();
     }
 }

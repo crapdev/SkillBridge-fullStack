@@ -14,4 +14,7 @@ public interface JpaPaymentRepository extends JpaRepository<PaymentEntity, UUID>
 
     // BUG-09: el índice uq_payments_active_booking garantiza que hay como máximo uno
     Optional<PaymentEntity> findFirstByBooking_IdAndStatusIn(UUID bookingId, Collection<PaymentStatus> statuses);
+
+    // BUG-09: el intento rechazado más reciente de la reserva
+    Optional<PaymentEntity> findFirstByBooking_IdAndStatusOrderByCreatedAtDesc(UUID bookingId, PaymentStatus status);
 }

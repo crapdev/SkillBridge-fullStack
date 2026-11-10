@@ -89,6 +89,26 @@ class CreatePaymentSinglePaymentTest {
             .extracting(Payment::status)
             .containsExactly(PaymentStatus.FAILED, PaymentStatus.PENDING);
         assertThat(retry).isNotEqualTo(gateway.secretOf(firstAttempt.stripePaymentIntentId()));
+        // El cobro rechazado seguía aceptando otra tarjeta en Stripe: se cancela para que solo quede uno pagable
+        assertThat(gateway.stateOf(firstAttempt.stripePaymentIntentId())).isEqualTo(PaymentGatewayPort.IntentState.CANCELED);
+        assertThat(gateway.stateOf(payments.forBooking(bookingId).get(1).stripePaymentIntentId()))
+            .isEqualTo(PaymentGatewayPort.IntentState.AWAITING_PAYMENT);
+    }
+
+    @Test
+    void rejectedChargeRetriedInTheOldTab_isBeingPaid_doesNotStartAnotherCharge() {
+        service.createPaymentIntent(bookingId, EMAIL);
+        Payment firstAttempt = payments.forBooking(bookingId).get(0);
+        payments.save(withStatus(firstAttempt, PaymentStatus.FAILED));
+        // El cliente reintentó con otra tarjeta en la pestaña vieja y Stripe lo está procesando
+        gateway.setState(firstAttempt.stripePaymentIntentId(), PaymentGatewayPort.IntentState.PROCESSING);
+
+        assertThatThrownBy(() -> service.createPaymentIntent(bookingId, EMAIL))
+            .isInstanceOf(BusinessRuleException.class)
+            .hasMessageContaining("Ya recibimos un pago");
+
+        assertThat(gateway.createdIntents()).isEqualTo(1);
+        assertThat(payments.forBooking(bookingId)).extracting(Payment::status).containsExactly(PaymentStatus.FAILED);
     }
 
     @Test
@@ -105,7 +125,8 @@ class CreatePaymentSinglePaymentTest {
         assertThat(payments.forBooking(bookingId))
             .extracting(Payment::status, Payment::amount)
             .containsExactly(
-                org.assertj.core.groups.Tuple.tuple(PaymentStatus.FAILED, PRICE),
+                // CANCELED y no FAILED: el cobro no se rechazó, se reemplazó por uno con el precio nuevo
+                org.assertj.core.groups.Tuple.tuple(PaymentStatus.CANCELED, PRICE),
                 org.assertj.core.groups.Tuple.tuple(PaymentStatus.PENDING, newPrice));
     }
 
@@ -119,7 +140,7 @@ class CreatePaymentSinglePaymentTest {
 
         assertThat(payments.forBooking(bookingId))
             .extracting(Payment::status)
-            .containsExactly(PaymentStatus.FAILED, PaymentStatus.PENDING);
+            .containsExactly(PaymentStatus.CANCELED, PaymentStatus.PENDING);
     }
 
     @Test
@@ -196,6 +217,12 @@ class CreatePaymentSinglePaymentTest {
         @Override
         public Optional<Payment> findActiveByBookingId(UUID bookingId) {
             return forBooking(bookingId).stream().filter(p -> ACTIVE.contains(p.status())).findFirst();
+        }
+
+        @Override
+        public Optional<Payment> findLatestFailedByBookingId(UUID bookingId) {
+            List<Payment> failed = forBooking(bookingId).stream().filter(p -> p.status() == PaymentStatus.FAILED).toList();
+            return failed.isEmpty() ? Optional.empty() : Optional.of(failed.get(failed.size() - 1));
         }
 
         List<Payment> forBooking(UUID bookingId) {

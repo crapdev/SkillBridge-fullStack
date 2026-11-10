@@ -75,7 +75,7 @@ class PaymentsMigrationV11Test {
     }
 
     @Test
-    void keepsThePaidOneOrTheNewestPendingAndFailsTheRest() {
+    void keepsThePaidOneOrTheNewestPendingAndCancelsTheRest() {
         UUID onlyPending = booking(3);
         payment(onlyPending, "pi_viejo", "PENDING", 30);
         payment(onlyPending, "pi_medio", "PENDING", 20);
@@ -89,13 +89,14 @@ class PaymentsMigrationV11Test {
 
         flyway("11").migrate();
 
-        assertThat(statusOf("pi_viejo")).isEqualTo("FAILED");
-        assertThat(statusOf("pi_medio")).isEqualTo("FAILED");
+        // Los abandonados pasan a CANCELED: no fueron rechazos
+        assertThat(statusOf("pi_viejo")).isEqualTo("CANCELED");
+        assertThat(statusOf("pi_medio")).isEqualTo("CANCELED");
         assertThat(statusOf("pi_nuevo")).as("el último que abrió el cliente").isEqualTo("PENDING");
         assertThat(statusOf("pi_pagado")).isEqualTo("PAID");
-        assertThat(statusOf("pi_pendiente_1")).isEqualTo("FAILED");
-        assertThat(statusOf("pi_pendiente_2")).isEqualTo("FAILED");
-        assertThat(statusOf("pi_rechazado")).isEqualTo("FAILED");
+        assertThat(statusOf("pi_pendiente_1")).isEqualTo("CANCELED");
+        assertThat(statusOf("pi_pendiente_2")).isEqualTo("CANCELED");
+        assertThat(statusOf("pi_rechazado")).as("un rechazo real sigue como FAILED").isEqualTo("FAILED");
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM pg_indexes WHERE indexname = 'uq_payments_active_booking'",
             Integer.class)).isEqualTo(1);
     }

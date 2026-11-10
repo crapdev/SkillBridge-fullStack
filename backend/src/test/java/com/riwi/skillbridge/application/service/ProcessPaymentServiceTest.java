@@ -133,6 +133,19 @@ class ProcessPaymentServiceTest {
         verifyNoInteractions(publisher);
     }
 
+    // BUG-09: los webhooks pueden llegar fuera de orden; el rechazo tardío de un cobro reemplazado no cambia nada
+    @Test
+    void lateFailureWebhookForACanceledPayment_isIgnored() {
+        Payment canceled = new Payment(pending.id(), bookingId, pending.amount(), "COP", "pi_123",
+            PaymentStatus.CANCELED, pending.createdAt());
+        when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(canceled));
+
+        service.markPaymentFailed("pi_123");
+
+        verify(payments, never()).save(any());
+        verifyNoInteractions(publisher);
+    }
+
     private Booking booking(BookingStatus status) {
         return new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(86400 * 3), status);
     }
@@ -201,7 +214,8 @@ class ProcessPaymentServiceTest {
         verify(payments, times(2)).save(saved.capture());
         // Primero se libera el pendiente (el índice de V11 no admite dos activos) y después se registra el pago
         assertEquals("pi_456", saved.getAllValues().get(0).stripePaymentIntentId());
-        assertEquals(PaymentStatus.FAILED, saved.getAllValues().get(0).status());
+        // El pendiente no se rechazó: se canceló porque el cliente pagó el otro
+        assertEquals(PaymentStatus.CANCELED, saved.getAllValues().get(0).status());
         assertEquals("pi_123", saved.getAllValues().get(1).stripePaymentIntentId());
         assertEquals(PaymentStatus.PAID, saved.getAllValues().get(1).status());
         verify(bookings).save(any());

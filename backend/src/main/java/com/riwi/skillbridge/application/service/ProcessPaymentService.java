@@ -89,7 +89,7 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
                     payment.bookingId(), other.stripePaymentIntentId(), stripeIntentId);
                 return;
             }
-            paymentPort.save(withStatus(other, PaymentStatus.FAILED));
+            paymentPort.save(withStatus(other, PaymentStatus.CANCELED));
         }
 
         // Creamos un nuevo record con el estado actualizado (los records son inmutables)
@@ -122,6 +122,12 @@ public class ProcessPaymentService implements ProcessPaymentUseCase, SyncPayment
     public void markPaymentFailed(String stripeIntentId) {
         Payment payment = paymentPort.findByStripeIntentId(stripeIntentId)
             .orElseThrow(() -> new IllegalArgumentException("Pago no encontrado: " + stripeIntentId));
+
+        // BUG-09: Stripe puede entregar los webhooks fuera de orden. El rechazo de un cobro que ya cancelamos
+        // (porque se reemplazó por otro) no cambia nada ni avisa al cliente de un fallo que ya no importa.
+        if (payment.status() == PaymentStatus.CANCELED) {
+            return;
+        }
 
         Payment updatedPayment = new Payment(
             payment.id(),
