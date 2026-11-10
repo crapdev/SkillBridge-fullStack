@@ -5,6 +5,7 @@ import com.riwi.skillbridge.domain.exception.AiProviderException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
+import com.riwi.skillbridge.domain.exception.SlotAlreadyTakenException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -24,6 +25,14 @@ public class GlobalExceptionHandler {
     ProblemDetail business(BusinessRuleException ex) {
         ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         p.setTitle("Business rule violation");
+        return p;
+    }
+
+    // BUG-08: otro cliente ganó la franja al mismo tiempo; 409 para que el frontend pida elegir otro horario
+    @ExceptionHandler(SlotAlreadyTakenException.class)
+    ProblemDetail slotAlreadyTaken(SlotAlreadyTakenException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        p.setTitle("Slot already taken");
         return p;
     }
 
