@@ -2,6 +2,7 @@ package com.riwi.skillbridge.infrastructure.adapter.out.payment;
 
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
+import com.stripe.exception.InvalidRequestException;
 import com.stripe.exception.StripeException;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.PaymentIntentCreateParams;
@@ -19,6 +20,8 @@ import java.util.UUID;
 public class StripePaymentGatewayAdapter implements PaymentGatewayPort {
 
     private static final Logger log = LoggerFactory.getLogger(StripePaymentGatewayAdapter.class);
+
+    private static final String RESOURCE_MISSING = "resource_missing";
 
     private final RequestOptions requestOptions;
 
@@ -59,6 +62,61 @@ public class StripePaymentGatewayAdapter implements PaymentGatewayPort {
             log.warn("No se pudo consultar el pago {} en Stripe: [{}] {}", paymentIntentId, ex.getCode(), ex.getMessage());
             throw new BusinessRuleException("No fue posible verificar el pago; inténtalo de nuevo");
         }
+    }
+
+    @Override
+    public ExistingPaymentIntent retrievePaymentIntent(String paymentIntentId) {
+        try {
+            com.stripe.model.PaymentIntent intent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId, requestOptions);
+            return new ExistingPaymentIntent(
+                new PaymentIntent(intent.getId(), intent.getClientSecret()), toIntentState(intent.getStatus()));
+        } catch (InvalidRequestException ex) {
+            if (RESOURCE_MISSING.equals(ex.getCode())) {
+                // Stripe ya no lo conoce (p. ej. se cambió de cuenta): no se puede pagar, se crea otro
+                log.warn("El pago {} no existe en Stripe; se tratará como cancelado", paymentIntentId);
+                return new ExistingPaymentIntent(new PaymentIntent(paymentIntentId, null), IntentState.CANCELED);
+            }
+            throw unavailable(paymentIntentId, ex);
+        } catch (StripeException ex) {
+            throw unavailable(paymentIntentId, ex);
+        }
+    }
+
+    @Override
+    public boolean cancelPaymentIntent(String paymentIntentId) {
+        try {
+            com.stripe.model.PaymentIntent intent = com.stripe.model.PaymentIntent.retrieve(paymentIntentId, requestOptions);
+            return switch (toIntentState(intent.getStatus())) {
+                case CANCELED -> true;
+                case SUCCEEDED, PROCESSING -> false;
+                case AWAITING_PAYMENT -> {
+                    intent.cancel(requestOptions);
+                    yield true;
+                }
+            };
+        } catch (InvalidRequestException ex) {
+            if (RESOURCE_MISSING.equals(ex.getCode())) {
+                return true;
+            }
+            throw unavailable(paymentIntentId, ex);
+        } catch (StripeException ex) {
+            throw unavailable(paymentIntentId, ex);
+        }
+    }
+
+    static IntentState toIntentState(String stripeStatus) {
+        return switch (stripeStatus) {
+            case "requires_payment_method", "requires_confirmation", "requires_action" -> IntentState.AWAITING_PAYMENT;
+            case "succeeded" -> IntentState.SUCCEEDED;
+            case "canceled" -> IntentState.CANCELED;
+            // processing, requires_capture: el cliente ya pagó y Stripe no ha terminado
+            default -> IntentState.PROCESSING;
+        };
+    }
+
+    private BusinessRuleException unavailable(String paymentIntentId, StripeException ex) {
+        log.warn("No se pudo consultar o cancelar el pago {} en Stripe: [{}] {}", paymentIntentId, ex.getCode(), ex.getMessage());
+        return new BusinessRuleException("No fue posible iniciar el pago; inténtalo de nuevo");
     }
 
     /**

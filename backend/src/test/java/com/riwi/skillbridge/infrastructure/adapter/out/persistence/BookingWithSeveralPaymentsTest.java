@@ -23,8 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Prueba de regresión: una reserva puede tener varios intentos de pago (abrir el checkout dos veces,
- * reintentar tras un rechazo). Con el antiguo @OneToOne, Hibernate fallaba con
+ * Prueba de regresión: una reserva puede tener varios intentos de pago (reintentar tras un rechazo). Con el antiguo @OneToOne, Hibernate fallaba con
  * "More than one row with the given identifier was found" y Mis reservas respondía 500.
  */
 @Testcontainers
@@ -61,10 +60,11 @@ class BookingWithSeveralPaymentsTest {
         jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, ?, ?)",
             bookingId, OFFERING_ID, customerId, Timestamp.from(Instant.now().plus(3, ChronoUnit.DAYS)), "CREATED");
 
-        // Dos intentos de pago para la misma reserva
-        for (String intent : List.of("pi_intento_1", "pi_intento_2")) {
+        // Dos intentos de pago para la misma reserva: uno rechazado y el reintento
+        // (BUG-09: dos PENDING ya no se permiten, solo puede haber un pago activo por reserva)
+        for (String[] attempt : List.of(new String[] {"pi_intento_1", "FAILED"}, new String[] {"pi_intento_2", "PENDING"})) {
             jdbc.update("INSERT INTO payments (id, booking_id, amount, currency, stripe_payment_intent_id, status) VALUES (?, ?, ?, ?, ?, ?)",
-                UUID.randomUUID(), bookingId, 85000, "COP", intent, "PENDING");
+                UUID.randomUUID(), bookingId, 85000, "COP", attempt[0], attempt[1]);
         }
         em.clear();
 

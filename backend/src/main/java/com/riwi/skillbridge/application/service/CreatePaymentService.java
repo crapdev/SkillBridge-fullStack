@@ -6,6 +6,7 @@ import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
+import com.riwi.skillbridge.domain.exception.ActivePaymentAlreadyExistsException;
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -69,20 +71,74 @@ public class CreatePaymentService implements CreatePaymentUseCase {
         // 3. El precio sale del catálogo, nunca del cliente
         BigDecimal amount = offering.price();
 
-        // 4. Le pedimos a la pasarela que prepare el cobro
+        // 4. BUG-09: si la reserva ya tiene un pago en curso, se reutiliza en lugar de crear otro
+        Optional<Payment> active = paymentPort.findActiveByBookingId(bookingId);
+        if (active.isPresent()) {
+            Optional<String> reused = reuseOrRelease(active.get(), amount);
+            if (reused.isPresent()) {
+                return reused.get();
+            }
+        }
+
+        // 5. Le pedimos a la pasarela que prepare el cobro
         PaymentGatewayPort.PaymentIntent intent = paymentGateway.createPaymentIntent(bookingId, amount, CURRENCY);
 
-        // 5. Guardamos el registro "PENDING"; el webhook lo marcará como pagado o fallido
-        paymentPort.save(new Payment(
-            null,
-            bookingId,
-            amount,
-            CURRENCY,
-            intent.id(),
-            PaymentStatus.PENDING,
-            clock.instant()
-        ));
+        // 6. Guardamos el registro "PENDING"; el webhook lo marcará como pagado o fallido
+        try {
+            paymentPort.save(new Payment(
+                null,
+                bookingId,
+                amount,
+                CURRENCY,
+                intent.id(),
+                PaymentStatus.PENDING,
+                clock.instant()
+            ));
+        } catch (ActivePaymentAlreadyExistsException e) {
+            // Otra petición de la misma reserva (doble clic, dos pestañas) guardó su pago primero:
+            // se cancela el cobro que acabamos de crear y se usa el que ganó
+            paymentGateway.cancelPaymentIntent(intent.id());
+            return paymentPort.findActiveByBookingId(bookingId)
+                .flatMap(winner -> reuseOrRelease(winner, amount))
+                .orElseThrow(() -> new BusinessRuleException("No fue posible iniciar el pago; inténtalo de nuevo"));
+        }
 
         return intent.clientSecret();
+    }
+
+    /**
+     * Decide qué hacer con el pago activo de la reserva.
+     *
+     * @return el secreto del cobro existente si se puede seguir usando; vacío si se dejó como FAILED y hay que
+     *     crear uno nuevo
+     */
+    private Optional<String> reuseOrRelease(Payment payment, BigDecimal amount) {
+        if (payment.status() == PaymentStatus.PAID) {
+            throw new BusinessRuleException("Esta reserva ya fue pagada");
+        }
+
+        PaymentGatewayPort.ExistingPaymentIntent existing =
+            paymentGateway.retrievePaymentIntent(payment.stripePaymentIntentId());
+        switch (existing.state()) {
+            case SUCCEEDED, PROCESSING ->
+                // Stripe ya recibió el pago y el webhook todavía no llega: no se debe cobrar otra vez
+                throw new BusinessRuleException("Ya recibimos un pago para esta reserva; en un momento se confirmará");
+            case AWAITING_PAYMENT -> {
+                if (payment.amount().compareTo(amount) == 0) {
+                    return Optional.of(existing.intent().clientSecret());
+                }
+                // El precio cambió desde que se abrió el pago: no se reutiliza un cobro por otro monto
+                if (!paymentGateway.cancelPaymentIntent(payment.stripePaymentIntentId())) {
+                    throw new BusinessRuleException("Ya recibimos un pago para esta reserva; en un momento se confirmará");
+                }
+            }
+            case CANCELED -> {
+                // Ya no admite pagos (lo canceló Stripe o se canceló al expirar): se libera para crear otro
+            }
+        }
+
+        paymentPort.save(new Payment(payment.id(), payment.bookingId(), payment.amount(), payment.currency(),
+            payment.stripePaymentIntentId(), PaymentStatus.FAILED, payment.createdAt()));
+        return Optional.empty();
     }
 }
