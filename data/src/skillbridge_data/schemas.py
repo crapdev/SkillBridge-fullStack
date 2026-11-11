@@ -80,8 +80,8 @@ PAYMENTS = StructType([
     StructField("created_at", TimestampType(), nullable=False),
 ])
 
-# Aún no existe en el backend: por ahora solo hay reseñas sintéticas.
-# Si se agrega la migración de reseñas, debe respetar estas columnas.
+# Tabla reviews del backend (migración V20, HU-27). La tabla también guarda la calificación del mentor
+# (mentor_rating, mentor_comment), que este contrato no exporta.
 REVIEWS = StructType([
     StructField("id", StringType(), nullable=False),
     StructField("booking_id", StringType(), nullable=False),

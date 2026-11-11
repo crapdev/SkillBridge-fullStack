@@ -5,6 +5,7 @@ import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.BookingC
 import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.OfferingCounts;
 import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.ProviderStats;
 import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.SlotCounts;
+import com.riwi.skillbridge.domain.model.RatingSummary;
 import com.riwi.skillbridge.infrastructure.config.SecurityConfiguration;
 import com.riwi.skillbridge.infrastructure.security.DatabaseUserDetailsService;
 import com.riwi.skillbridge.infrastructure.security.JwtAuthenticationFilter;
@@ -44,14 +45,18 @@ class ProviderStatsControllerTest {
     @WithMockUser(username = "laura@test.com", roles = "PROVIDER")
     void returnsTheStatsOfTheAuthenticatedProvider() throws Exception {
         when(stats.statsFor("laura@test.com")).thenReturn(new ProviderStats(
-                new OfferingCounts(4, 2, 1, 1, 1), new SlotCounts(5, 2), new BookingCounts(6, 2, 1, 1, 3, 1)));
+                new OfferingCounts(4, 2, 1, 1, 1), new SlotCounts(5, 2), new BookingCounts(6, 2, 1, 1, 3, 1),
+                new RatingSummary(4.7, 3)));
 
         mockMvc.perform(get("/api/provider/stats"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.offerings.pendingReview").value(1))
                 .andExpect(jsonPath("$.offerings.approvedWithoutFreeSlots").value(1))
                 .andExpect(jsonPath("$.slots.upcomingFree").value(5))
-                .andExpect(jsonPath("$.bookings.upcoming").value(2));
+                .andExpect(jsonPath("$.bookings.upcoming").value(2))
+                // HU-27: calificación promedio como mentor
+                .andExpect(jsonPath("$.rating.average").value(4.7))
+                .andExpect(jsonPath("$.rating.count").value(3));
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase;
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
+import com.riwi.skillbridge.application.port.out.ReviewRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
@@ -29,15 +30,17 @@ public class ProviderStatsService implements GetProviderStatsUseCase {
     private final AvailabilitySlotRepositoryPort slots;
     private final BookingRepositoryPort bookings;
     private final CompleteFinishedBookingsUseCase completion;
+    private final ReviewRepositoryPort reviews;
 
     public ProviderStatsService(UserAccountPort users, OfferingRepositoryPort offerings,
                                 AvailabilitySlotRepositoryPort slots, BookingRepositoryPort bookings,
-                                CompleteFinishedBookingsUseCase completion) {
+                                CompleteFinishedBookingsUseCase completion, ReviewRepositoryPort reviews) {
         this.users = users;
         this.offerings = offerings;
         this.slots = slots;
         this.bookings = bookings;
         this.completion = completion;
+        this.reviews = reviews;
     }
 
     @Override
@@ -55,7 +58,9 @@ public class ProviderStatsService implements GetProviderStatsUseCase {
         // BUG-05: el conteo de completadas no depende de que el proceso programado ya haya corrido
         List<Booking> received = completion.completeIfFinished(bookings.findByOfferingIds(upcomingSlots.keySet()));
 
-        return new ProviderStats(offeringCounts(own, upcomingSlots), slotCounts(upcomingSlots), bookingCounts(received, now));
+        return new ProviderStats(offeringCounts(own, upcomingSlots), slotCounts(upcomingSlots), bookingCounts(received, now),
+            // HU-27: calificación promedio que recibió como mentor
+            reviews.summarizeMentor(providerId));
     }
 
     private static OfferingCounts offeringCounts(List<Offering> own, Map<UUID, List<AvailabilitySlot>> upcomingSlots) {
