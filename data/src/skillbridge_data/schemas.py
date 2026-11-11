@@ -59,6 +59,9 @@ BOOKINGS = StructType([
     StructField("scheduled_at", TimestampType(), nullable=False),  # inicio; el fin es + duration_minutes
     StructField("status", StringType(), nullable=False),
     StructField("created_at", TimestampType(), nullable=False),
+    # BUG-10: precio con el que se hizo la reserva. Los ingresos y la regla "el pago coincide con el precio" (HU-48)
+    # se calculan con este valor, no con offerings.price (el proveedor puede cambiarlo después).
+    StructField("price", DecimalType(12, 2), nullable=False),
 ])
 
 AVAILABILITY_SLOTS = StructType([

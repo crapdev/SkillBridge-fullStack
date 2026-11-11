@@ -54,7 +54,7 @@ avanzar todo el equipo en paralelo sin pisarse. Si vas a tocar algo de `data/`, 
 |---|---|---|
 | `users` | id, role, status, created_at | `app_users` (sin password, name ni email) |
 | `offerings` | id, provider_id, title, category, price, level, duration_minutes, review_status, active, created_at | `offerings` |
-| `bookings` | id, offering_id, customer_id, scheduled_at, status, created_at | `bookings` |
+| `bookings` | id, offering_id, customer_id, scheduled_at, status, created_at, price | `bookings` |
 | `availability_slots` | id, offering_id, scheduled_at, reserved | `availability_slots` |
 | `payments` | id, booking_id, amount, currency, status, created_at | `payments` |
 | `reviews` | id, booking_id, rating, comment, created_at | **No existe en el backend**: solo sintética |
