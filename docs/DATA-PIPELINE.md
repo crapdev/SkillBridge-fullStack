@@ -59,7 +59,7 @@ avanzar todo el equipo en paralelo sin pisarse. Si vas a tocar algo de `data/`, 
 | `payments` | id, booking_id, amount, currency, status, created_at | `payments` |
 | `reviews` | id, booking_id, rating, comment, created_at | **No existe en el backend**: solo sintética |
 
-Valores permitidos (copiados de los enums de `domain/model`):
+Valores permitidos (copiados de los enums de `domain/model`). Desde V13 (BUG-11) la base rechaza cualquier otro valor en `bookings.status` y `payments.status`, y toda mentoría tiene `provider_id`: las 3 mentorías de ejemplo de V1 pertenecen a `proveedor.demo@skillbridge.dev`, así que ya no hay un grupo «sin proveedor» en las métricas por proveedor.
 
 - `BookingStatus`: `CREATED`, `CONFIRMED`, `CANCELLED`, `COMPLETED`
 - `Role`: `CUSTOMER`, `PROVIDER`, `ADMIN`

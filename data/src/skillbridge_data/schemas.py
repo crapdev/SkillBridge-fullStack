@@ -41,7 +41,7 @@ USERS = StructType([
 
 OFFERINGS = StructType([
     StructField("id", StringType(), nullable=False),
-    StructField("provider_id", StringType(), nullable=True),   # anulable en V2
+    StructField("provider_id", StringType(), nullable=False),  # obligatorio desde V13 (BUG-11)
     StructField("title", StringType(), nullable=False),
     StructField("category", StringType(), nullable=False),
     StructField("price", DecimalType(12, 2), nullable=False),
