@@ -147,7 +147,7 @@ class ProcessPaymentServiceTest {
     }
 
     private Booking booking(BookingStatus status) {
-        return new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(86400 * 3), status);
+        return new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(86400 * 3), status, new java.math.BigDecimal("85000"));
     }
 
     // ---- Verificación del pago contra la pasarela (cuando no llega el webhook) ----
@@ -259,6 +259,6 @@ class ProcessPaymentServiceTest {
         when(payments.findByStripeIntentId("pi_123")).thenReturn(Optional.of(payment));
         when(users.findIdByEmail(EMAIL)).thenReturn(Optional.of(customerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.now().plusSeconds(86400 * 3), BookingStatus.CREATED)));
+            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.now().plusSeconds(86400 * 3), BookingStatus.CREATED, new java.math.BigDecimal("85000"))));
     }
 }

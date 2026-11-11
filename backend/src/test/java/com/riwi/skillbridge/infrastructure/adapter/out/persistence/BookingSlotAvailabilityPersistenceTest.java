@@ -61,7 +61,7 @@ class BookingSlotAvailabilityPersistenceTest {
     }
 
     private void saved(BookingStatus status) {
-        adapter.save(new Booking(UUID.randomUUID(), OFFERING_ID, customerId, scheduledAt, status));
+        adapter.save(new Booking(UUID.randomUUID(), OFFERING_ID, customerId, scheduledAt, status, new java.math.BigDecimal("85000")));
     }
 
     @Test

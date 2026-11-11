@@ -76,7 +76,9 @@ public class BookingService implements CreateBookingUseCase, ListMyBookingsUseCa
 
         slotRepository.save(new AvailabilitySlot(slot.id(), slot.offeringId(), slot.scheduledAt(), true));
 
-        Booking booking = new Booking(UUID.randomUUID(), offeringId, customerId, scheduledAt, BookingStatus.CREATED);
+        // BUG-10: la reserva guarda el precio de este momento; si el proveedor lo cambia después, se cobra este
+        Booking booking = new Booking(UUID.randomUUID(), offeringId, customerId, scheduledAt, BookingStatus.CREATED,
+            offering.price());
         Booking saved = bookingRepository.save(booking);
         eventPublisher.bookingCreated(saved);
         return saved;

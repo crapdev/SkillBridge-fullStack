@@ -1,14 +1,27 @@
 package com.riwi.skillbridge.domain.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * @param price BUG-10: precio de la mentoría en el momento de reservar. Es lo que se cobra, aunque el proveedor
+ *              cambie después el precio de la mentoría.
+ */
 public record Booking(
         UUID id,
         UUID offeringId,
         UUID customerId,
         Instant scheduledAt,
-        BookingStatus status) {
+        BookingStatus status,
+        BigDecimal price) {
+
+    public Booking {
+        if (price == null || price.signum() < 0) {
+            throw new IllegalArgumentException("La reserva debe guardar un precio válido");
+        }
+    }
+
     // HU-09: Lógica de cancelación centralizada en el dominio
     public Booking cancel(Instant now) {
         if (this.status == BookingStatus.CANCELLED) {
@@ -29,7 +42,7 @@ public record Booking(
 
         // Retornamos una copia inmutable con el nuevo estado para respetar BUG-01 en
         // persistencia
-        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CANCELLED);
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CANCELLED, this.price);
     }
 
     // HU-15: solo se cobran las reservas que siguen pendientes
@@ -43,7 +56,7 @@ public record Booking(
             throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
                     "Solo se pueden confirmar reservas pendientes");
         }
-        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CONFIRMED);
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.CONFIRMED, this.price);
     }
 
     // BUG-05: la sesión termina a la hora agendada más la duración de la mentoría
@@ -66,6 +79,6 @@ public record Booking(
             throw new com.riwi.skillbridge.domain.exception.BusinessRuleException(
                     "La sesión todavía no ha terminado");
         }
-        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.COMPLETED);
+        return new Booking(this.id, this.offeringId, this.customerId, this.scheduledAt, BookingStatus.COMPLETED, this.price);
     }
 }
