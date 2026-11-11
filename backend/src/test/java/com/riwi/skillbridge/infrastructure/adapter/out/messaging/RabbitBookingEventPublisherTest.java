@@ -20,7 +20,7 @@ class RabbitBookingEventPublisherTest {
     private final RabbitTemplate rabbitTemplate = mock(RabbitTemplate.class);
     private final RabbitBookingEventPublisher publisher = new RabbitBookingEventPublisher(rabbitTemplate);
     private final Booking booking = new Booking(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-            Instant.now().plusSeconds(86400), BookingStatus.CREATED);
+            Instant.now().plusSeconds(86400), BookingStatus.CREATED, new java.math.BigDecimal("85000"));
 
     @Test
     void eachEventUsesItsRoutingKey() {

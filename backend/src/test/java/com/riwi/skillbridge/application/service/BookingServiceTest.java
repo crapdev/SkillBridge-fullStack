@@ -85,7 +85,7 @@ class BookingServiceTest {
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
         
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -109,7 +109,7 @@ class BookingServiceTest {
         UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID hackerId = UUID.randomUUID();
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), ownerId, Instant.now().plusSeconds(3600), com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), ownerId, Instant.now().plusSeconds(3600), com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
         
         when(users.findIdByEmail("hacker@example.com")).thenReturn(Optional.of(hackerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -132,7 +132,7 @@ class BookingServiceTest {
         UUID userId = UUID.randomUUID();
         // Reserva en 12 horas (dentro del límite prohibido de 24 horas)
         Instant scheduledAt = Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
         
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -161,7 +161,7 @@ class BookingServiceTest {
         UUID userId = UUID.randomUUID();
         UUID slotId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, offeringId, userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, offeringId, userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
         AvailabilitySlot reservedSlot = new AvailabilitySlot(slotId, offeringId, scheduledAt, true);
 
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
@@ -190,7 +190,7 @@ class BookingServiceTest {
         UUID offeringId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, offeringId, userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, offeringId, userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
 
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -215,7 +215,7 @@ class BookingServiceTest {
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(12, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
 
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -238,7 +238,7 @@ class BookingServiceTest {
         UUID bookingId = UUID.randomUUID();
         UUID hackerId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CREATED, new java.math.BigDecimal("85000"));
 
         when(users.findIdByEmail("hacker@example.com")).thenReturn(Optional.of(hackerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));
@@ -261,7 +261,7 @@ class BookingServiceTest {
         UUID bookingId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Instant scheduledAt = Instant.now().plus(48, java.time.temporal.ChronoUnit.HOURS);
-        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED);
+        Booking existing = new Booking(bookingId, UUID.randomUUID(), userId, scheduledAt, com.riwi.skillbridge.domain.model.BookingStatus.CANCELLED, new java.math.BigDecimal("85000"));
 
         when(users.findIdByEmail("user@example.com")).thenReturn(Optional.of(userId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(existing));

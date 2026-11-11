@@ -119,7 +119,7 @@ class PaymentOneActivePerBookingIntegrationTest {
         jdbc.update("INSERT INTO app_users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)",
             customerId, "Cliente", email, "hash-no-importa", "CUSTOMER");
         bookingId = UUID.randomUUID();
-        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, ?, 'CREATED')",
+        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status, price) VALUES (?, ?, ?, ?, 'CREATED', 85000)",
             bookingId, OFFERING_ID, customerId, Timestamp.from(Instant.now().plus(5, ChronoUnit.DAYS)));
 
         when(users.findIdByEmail(email)).thenReturn(Optional.of(customerId));

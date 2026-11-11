@@ -57,7 +57,7 @@ class BookingWithSeveralPaymentsTest {
             customerId, "Tester", "tester-pagos@test.com", "hash-no-importa", "CUSTOMER");
 
         UUID bookingId = UUID.randomUUID();
-        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, ?, ?)",
+        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status, price) VALUES (?, ?, ?, ?, ?, 85000)",
             bookingId, OFFERING_ID, customerId, Timestamp.from(Instant.now().plus(3, ChronoUnit.DAYS)), "CREATED");
 
         // Dos intentos de pago para la misma reserva: uno rechazado y el reintento

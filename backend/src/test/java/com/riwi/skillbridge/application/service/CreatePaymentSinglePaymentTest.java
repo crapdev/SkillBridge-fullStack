@@ -1,7 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
-import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
@@ -9,7 +8,6 @@ import com.riwi.skillbridge.domain.exception.ActivePaymentAlreadyExistsException
 import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
-import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.domain.model.Payment;
 import com.riwi.skillbridge.domain.model.PaymentStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,11 +43,10 @@ class CreatePaymentSinglePaymentTest {
     private final InMemoryPayments payments = new InMemoryPayments();
     private final SimulatedGateway gateway = new SimulatedGateway();
     private final BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
-    private final OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
     private final UserAccountPort users = mock(UserAccountPort.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-10T15:00:00Z"), ZoneOffset.UTC);
     private final CreatePaymentService service =
-        new CreatePaymentService(payments, gateway, bookings, offerings, users, clock);
+        new CreatePaymentService(payments, gateway, bookings, users, clock);
 
     private final UUID customerId = UUID.randomUUID();
     private final UUID bookingId = UUID.randomUUID();
@@ -59,9 +56,7 @@ class CreatePaymentSinglePaymentTest {
     void setUp() {
         when(users.findIdByEmail(EMAIL)).thenReturn(Optional.of(customerId));
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, offeringId, customerId, Instant.parse("2026-11-20T15:00:00Z"), BookingStatus.CREATED)));
-        when(offerings.findById(offeringId)).thenReturn(Optional.of(
-            new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", PRICE, true)));
+            new Booking(bookingId, offeringId, customerId, Instant.parse("2026-11-20T15:00:00Z"), BookingStatus.CREATED, PRICE)));
     }
 
     @Test
@@ -111,13 +106,13 @@ class CreatePaymentSinglePaymentTest {
         assertThat(payments.forBooking(bookingId)).extracting(Payment::status).containsExactly(PaymentStatus.FAILED);
     }
 
+    // Antes de BUG-10 el pago cobraba el precio actual de la mentoría: un cobro abierto en ese entonces puede tener
+    // otro monto que el precio guardado en la reserva. No se reutiliza: se cancela y se cobra el de la reserva.
     @Test
-    void priceChangedSinceThePaymentWasOpened_cancelsTheOldChargeAndStartsANewOne() {
-        service.createPaymentIntent(bookingId, EMAIL);
-        String oldIntent = payments.forBooking(bookingId).get(0).stripePaymentIntentId();
-        BigDecimal newPrice = new BigDecimal("120000");
-        when(offerings.findById(offeringId)).thenReturn(Optional.of(
-            new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", newPrice, true)));
+    void openChargeFromBeforeBug10WithAnotherAmount_isReplacedByTheBookingPrice() {
+        BigDecimal oldCatalogPrice = new BigDecimal("120000");
+        String oldIntent = gateway.createPaymentIntent(bookingId, oldCatalogPrice, "COP").id();
+        payments.save(new Payment(null, bookingId, oldCatalogPrice, "COP", oldIntent, PaymentStatus.PENDING, clock.instant()));
 
         service.createPaymentIntent(bookingId, EMAIL);
 
@@ -125,9 +120,9 @@ class CreatePaymentSinglePaymentTest {
         assertThat(payments.forBooking(bookingId))
             .extracting(Payment::status, Payment::amount)
             .containsExactly(
-                // CANCELED y no FAILED: el cobro no se rechazó, se reemplazó por uno con el precio nuevo
-                org.assertj.core.groups.Tuple.tuple(PaymentStatus.CANCELED, PRICE),
-                org.assertj.core.groups.Tuple.tuple(PaymentStatus.PENDING, newPrice));
+                // CANCELED y no FAILED: el cobro no se rechazó, se reemplazó por uno con el precio de la reserva
+                org.assertj.core.groups.Tuple.tuple(PaymentStatus.CANCELED, oldCatalogPrice),
+                org.assertj.core.groups.Tuple.tuple(PaymentStatus.PENDING, PRICE));
     }
 
     @Test

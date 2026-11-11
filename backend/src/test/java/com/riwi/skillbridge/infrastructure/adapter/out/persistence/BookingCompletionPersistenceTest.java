@@ -59,7 +59,7 @@ class BookingCompletionPersistenceTest {
     }
 
     private Booking saved(Instant scheduledAt, BookingStatus status) {
-        return adapter.save(new Booking(UUID.randomUUID(), OFFERING_ID, customerId, scheduledAt, status));
+        return adapter.save(new Booking(UUID.randomUUID(), OFFERING_ID, customerId, scheduledAt, status, new java.math.BigDecimal("85000")));
     }
 
     private String statusOf(UUID id) {

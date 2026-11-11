@@ -62,7 +62,7 @@ class ProviderStatsServiceTest {
     }
 
     private Booking booking(Offering o, Instant at, BookingStatus status) {
-        return new Booking(UUID.randomUUID(), o.id(), UUID.randomUUID(), at, status);
+        return new Booking(UUID.randomUUID(), o.id(), UUID.randomUUID(), at, status, new java.math.BigDecimal("85000"));
     }
 
     @BeforeEach
