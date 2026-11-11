@@ -5,6 +5,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { AvailabilitySlot, Offering, OfferingService } from '../../core/offering.service';
+import { OfferingReviews, ReviewService } from '../../core/review.service';
+import { RatingStarsComponent } from '../../shared/rating-stars/rating-stars.component';
 import { RevealDirective } from '../../shared/reveal.directive';
 import { formatDays, formatDuration, formatTimeRange, levelLabel } from '../../shared/offering-format';
 import { SERVICE_CONTENT, categoryKey } from './service-content';
@@ -13,6 +15,7 @@ import { businessDateFormat } from '../../shared/business-time';
 /** Cuántos horarios próximos se muestran en el detalle; el resto se ve al reservar */
 const MAX_UPCOMING_SLOTS = 6;
 const slotDayFormat = businessDateFormat({ weekday: 'long', day: 'numeric', month: 'long' });
+const reviewDateFormat = businessDateFormat({ day: 'numeric', month: 'long', year: 'numeric' });
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 type DetailState =
@@ -23,13 +26,14 @@ type DetailState =
 
 @Component({
   standalone: true,
-  imports: [CurrencyPipe, RouterLink, RevealDirective],
+  imports: [CurrencyPipe, RouterLink, RevealDirective, RatingStarsComponent],
   templateUrl: './service-detail.component.html',
   styleUrls: ['./service-detail.component.css']
 })
 export class ServiceDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly offerings = inject(OfferingService);
+  private readonly reviewService = inject(ReviewService);
   readonly auth = inject(AuthService);
 
   readonly includes = [
@@ -69,6 +73,18 @@ export class ServiceDetailComponent {
       )
     ),
     { initialValue: { status: 'loading' } as DetailState }
+  );
+
+  // HU-27: calificaciones aparte del detalle. Si fallan, el detalle se muestra igual sin la sección de opiniones
+  readonly reviews = toSignal(
+    this.route.paramMap.pipe(
+      map(params => params.get('id') ?? ''),
+      switchMap(id => this.reviewService.offeringReviews(id).pipe(
+        catchError(() => of(null)),
+        startWith<OfferingReviews | null>(null)
+      ))
+    ),
+    { initialValue: null }
   );
 
   readonly offering = computed(() => {
@@ -111,6 +127,9 @@ export class ServiceDetailComponent {
 
   // El visitante crea su cuenta y vuelve directo al formulario de reserva de este servicio
   readonly bookingUrl = computed(() => `/book?offering=${this.offering()?.id ?? ''}`);
+
+  reviewDate(iso: string): string { return reviewDateFormat.format(new Date(iso)); }
+  stars(n: number): string { return '★'.repeat(n) + '☆'.repeat(5 - n); }
 
   categoryOf(offering: Offering) { return categoryKey(offering.category); }
   iconOf(offering: Offering) { return SERVICE_CONTENT[categoryKey(offering.category)].icon; }

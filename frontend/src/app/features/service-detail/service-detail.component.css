@@ -461,6 +461,42 @@
 /* =========================================
    RESPONSIVE
 ========================================= */
+/* =========================================
+   OPINIONES (HU-27)
+========================================= */
+.hero-rating { display: inline-flex; margin: -6px 0 16px; text-decoration: none; }
+.hero-rating:hover { opacity: 0.85; }
+.scores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 720px; margin-bottom: 28px; }
+.score {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.score__label { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.score small { color: var(--muted); font-size: 0.78rem; }
+.opinions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.opinion { padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.opinion__head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.opinion__head strong { display: block; color: var(--ink); font-size: 0.92rem; }
+.opinion__head small { color: var(--muted); font-size: 0.78rem; }
+.opinion__avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cat-soft);
+  color: var(--cat);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.opinion p { margin: 6px 0 0; color: #334155; line-height: 1.55; font-size: 0.92rem; }
+.opinion__stars { color: #f59e0b; letter-spacing: 1px; margin-right: 4px; }
+.opinion__tag { margin-right: 6px; padding: 2px 8px; border-radius: 999px; background: #f1f5f9; color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+
 @media (max-width: 900px) {
   .detail-hero__grid { grid-template-columns: 1fr; gap: 36px; }
   .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -470,6 +506,7 @@
   .detail-hero { padding: 32px 0 48px; }
   .detail-section { padding: 52px 0; }
   .topics { grid-template-columns: 1fr; }
+  .scores, .opinions { grid-template-columns: 1fr; }
   .steps { grid-template-columns: 1fr; gap: 28px; }
   .steps::before {
     top: 22px;

@@ -30,3 +30,7 @@
   .list__actions { width: 100%; }
   .list__actions .adm-btn { flex: 1; }
 }
+
+/* HU-27: tarjeta de calificación */
+.kpi-of { font-size: 1rem; font-weight: 600; color: var(--adm-muted); }
+.adm-kpi__icon--star { background: #fffbeb; color: #f59e0b; }

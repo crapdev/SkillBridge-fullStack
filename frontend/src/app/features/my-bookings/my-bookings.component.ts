@@ -3,6 +3,8 @@ import { RouterLink } from '@angular/router';
 import { forkJoin, of, catchError } from 'rxjs';
 import { Booking, BookingService, BookingStatus } from '../../core/booking.service';
 import { Offering, OfferingService } from '../../core/offering.service';
+import { Review, ReviewService } from '../../core/review.service';
+import { ReviewFormComponent } from './review-form.component';
 import { AlertService } from '../../shared/alert.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 import { SERVICE_CONTENT, categoryKey } from '../service-detail/service-content';
@@ -33,7 +35,7 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 @Component({
   selector: 'app-my-bookings',
   standalone: true,
-  imports: [RouterLink, RevealDirective],
+  imports: [RouterLink, RevealDirective, ReviewFormComponent],
   templateUrl: './my-bookings.component.html',
   styleUrls: ['./my-bookings.component.css']
 })
@@ -41,12 +43,16 @@ export class MyBookingsComponent implements OnInit {
   private readonly bookingService = inject(BookingService);
   private readonly offeringService = inject(OfferingService);
   private readonly alerts = inject(AlertService);
+  private readonly reviewService = inject(ReviewService);
 
   readonly status = signal<LoadStatus>('loading');
   readonly bookings = signal<Booking[]>([]);
   readonly offerings = signal(new Map<string, Offering>());
   readonly tab = signal<Tab>('upcoming');
   readonly cancelingIds = signal(new Set<string>());
+  // HU-27: calificaciones ya enviadas (por reserva) y la reserva cuyo formulario está abierto
+  readonly reviews = signal(new Map<string, Review>());
+  readonly reviewing = signal<string | null>(null);
   readonly skeletons = [1, 2, 3];
 
   readonly tabs: { id: Tab; label: string }[] = [
@@ -84,11 +90,15 @@ export class MyBookingsComponent implements OnInit {
     // Si el catálogo falla, las reservas se muestran igual con un título genérico
     forkJoin({
       bookings: this.bookingService.getMyBookings(),
-      offerings: this.offeringService.list().pipe(catchError(() => of([] as Offering[])))
+      offerings: this.offeringService.list().pipe(catchError(() => of([] as Offering[]))),
+      // Si fallan, no se ofrece calificar (null): mejor que ofrecerlo y que el backend responda "ya calificaste"
+      reviews: this.reviewService.myReviews().pipe(catchError(() => of(null)))
     }).subscribe({
-      next: ({ bookings, offerings }) => {
+      next: ({ bookings, offerings, reviews }) => {
         this.bookings.set(bookings);
         this.offerings.set(new Map(offerings.map(o => [o.id, o])));
+        this.reviewsLoaded = reviews !== null;
+        this.reviews.set(new Map((reviews ?? []).map(r => [r.bookingId, r])));
         // Si no hay próximas, se abre directamente la pestaña con contenido
         if (!this.groups().upcoming.length && bookings.length) this.tab.set('all');
         this.status.set('ready');
@@ -118,6 +128,35 @@ export class MyBookingsComponent implements OnInit {
         this.stopCanceling(booking.id);
         this.alerts.error('No se pudo cancelar', e?.error?.detail || 'Ocurrió un error al cancelar la reserva.');
       }
+    });
+  }
+
+  // ---- HU-27: calificar ----
+
+  private reviewsLoaded = false;
+
+  /** Solo una reserva completada y sin calificación (el backend también lo valida) */
+  canReview(b: Booking): boolean {
+    return this.reviewsLoaded && b.status === 'COMPLETED' && !this.reviews().has(b.id);
+  }
+  reviewOf(b: Booking): Review | undefined { return this.reviews().get(b.id); }
+  stars(n: number): string { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+
+  openReview(b: Booking): void { this.reviewing.set(b.id); }
+  closeReview(): void { this.reviewing.set(null); }
+
+  onReviewSaved(review: Review): void {
+    this.reviews.update(map => new Map(map).set(review.bookingId, review));
+    this.reviewing.set(null);
+    this.alerts.success('¡Gracias por calificar!', 'Tu calificación ya ayuda a otros clientes a elegir.');
+  }
+
+  /** Ya estaba calificada (por ejemplo, desde otra pestaña): se recarga para mostrar la calificación */
+  onAlreadyRated(): void {
+    this.reviewing.set(null);
+    this.alerts.error('Ya calificaste esta mentoría', 'Cada reserva se puede calificar una sola vez.');
+    this.reviewService.myReviews().subscribe({
+      next: list => this.reviews.set(new Map(list.map(r => [r.bookingId, r])))
     });
   }
 

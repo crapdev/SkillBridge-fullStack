@@ -69,6 +69,11 @@ public record Booking(
         return this.status == BookingStatus.CONFIRMED && !now.isBefore(endsAt(durationMinutes));
     }
 
+    // HU-27: solo una reserva completada (la sesión ya ocurrió) se puede calificar
+    public boolean isCompleted() {
+        return this.status == BookingStatus.COMPLETED;
+    }
+
     // BUG-05: la sesión ya ocurrió; desde aquí se puede calificar (HU-27)
     public Booking complete(Instant now, int durationMinutes) {
         if (this.status != BookingStatus.CONFIRMED) {
