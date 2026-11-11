@@ -19,10 +19,12 @@ describe('PaymentComponent · formulario de pago que quedó sin efecto', () => {
   let sync: jasmine.Spy;
 
   const booking: Booking = {
-    id: 'b-1', offeringId: 'o-1', customerId: 'c-1', scheduledAt: '2030-01-07T15:00:00Z', status: 'CREATED'
+    id: 'b-1', offeringId: 'o-1', customerId: 'c-1', scheduledAt: '2030-01-07T15:00:00Z', status: 'CREATED',
+    price: 100000
   };
   const offering: Offering = {
-    id: 'o-1', title: 'Kubernetes', description: 'Primeros pasos', category: 'CLOUD', price: 85000, active: true,
+    // BUG-10: el proveedor subió el precio después de que el cliente reservó a 100.000
+    id: 'o-1', title: 'Kubernetes', description: 'Primeros pasos', category: 'CLOUD', price: 120000, active: true,
     syllabus: [], durationMinutes: 60, level: 'BASICO', workingDays: ['MONDAY']
   };
 
@@ -99,6 +101,12 @@ describe('PaymentComponent · formulario de pago que quedó sin efecto', () => {
     expect(sync).toHaveBeenCalledWith('pi_1');
     expect(text()).toContain('Esta reserva ya está pagada');
     expect(text()).toContain('No se te cobró otra vez');
+  });
+
+  it('muestra el precio guardado en la reserva, no el precio actual de la mentoría (BUG-10)', () => {
+    const payButton = el.querySelector('.btn-pay')?.textContent ?? '';
+    expect(payButton).toContain('100.000');
+    expect(text()).not.toContain('120.000');
   });
 
   it('un rechazo de tarjeta sigue mostrando el mensaje de Stripe en el formulario', async () => {

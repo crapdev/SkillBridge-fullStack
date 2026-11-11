@@ -11,6 +11,7 @@ export interface Booking {
   customerId: string;  // UUID del backend
   scheduledAt: string; // Instant serializado a string
   status: BookingStatus;
+  price: number;       // BUG-10: precio con el que se hizo la reserva (es lo que se cobra)
 }
 
 @Injectable({
