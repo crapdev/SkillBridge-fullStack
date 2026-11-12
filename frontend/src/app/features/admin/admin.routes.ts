@@ -8,6 +8,8 @@ import { adminMockInterceptor } from './data/admin-mock.interceptor';
 import { AdminUsersService } from './data/admin-users.service';
 import { AdminOfferingsService } from './data/admin-offerings.service';
 import { OfferingReviewListComponent } from './offerings/offering-review-list.component';
+import { AnalyticsComponent } from './analytics/analytics.component';
+import { AdminAnalyticsService } from './data/admin-analytics.service';
 
 const usersRoutes = (path: string, role: 'PROVIDER' | 'CUSTOMER', title: string): Routes => [
   { path, component: UserListComponent, data: { role }, title: `${title} · SkillBridge Admin` },
@@ -21,7 +23,7 @@ export const ADMIN_ROUTES: Routes = [
     component: AdminLayoutComponent,
     // HttpClient propio del panel: el mock (solo desarrollo) intercepta primero y el resto de
     // peticiones sigue al HttpClient raíz, que añade el token con authInterceptor
-    providers: [provideHttpClient(withInterceptors([adminMockInterceptor]), withRequestsMadeViaParent()), AdminUsersService, AdminOfferingsService],
+    providers: [provideHttpClient(withInterceptors([adminMockInterceptor]), withRequestsMadeViaParent()), AdminUsersService, AdminOfferingsService, AdminAnalyticsService],
     children: [
       { path: '', component: DashboardComponent, title: 'Dashboard · SkillBridge Admin' },
       { path: 'usuarios/nuevo', component: UserFormComponent, title: 'Nuevo usuario · SkillBridge Admin' },
@@ -31,6 +33,8 @@ export const ADMIN_ROUTES: Routes = [
       ...usersRoutes('clientes', 'CUSTOMER', 'Clientes'),
       // HU-21: mentorías que esperan la revisión del administrador
       { path: 'mentorias', component: OfferingReviewListComponent, title: 'Mentorías · SkillBridge Admin' },
+      // Resultados del pipeline de PySpark (data/)
+      { path: 'analitica', component: AnalyticsComponent, title: 'Analítica · SkillBridge Admin' },
       { path: '**', redirectTo: '' }
     ]
   }

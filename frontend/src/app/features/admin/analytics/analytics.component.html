@@ -1,0 +1,346 @@
+<ol class="adm-crumbs" aria-label="Ruta">
+  <li>Administración</li>
+  <li aria-current="page">Analítica de datos</li>
+</ol>
+<div class="adm-page-head">
+  <div>
+    <h1>Analítica de datos</h1>
+    <p>Resultados del pipeline de PySpark sobre las reservas de la plataforma, ya validados y limpios.</p>
+  </div>
+  @if (data(); as d) {
+    <dl class="meta">
+      <div><dt>Motor</dt><dd>PySpark {{ d.sparkVersion }}</dd></div>
+      <div><dt>Fuente</dt><dd>{{ d.source }}</dd></div>
+      <div><dt>Ejecución</dt><dd>{{ d.generatedAt.slice(0, 10) }}</dd></div>
+    </dl>
+  }
+</div>
+
+<!-- Filtros: una sola fila que aplica a todo lo de abajo -->
+<div class="filters" role="group" aria-label="Filtros de la analítica">
+  <div class="seg" role="radiogroup" aria-label="Conjunto de datos">
+    <button type="button" role="radio" [attr.aria-checked]="dataset() === 'snapshot'"
+            [class.on]="dataset() === 'snapshot'" (click)="setDataset('snapshot')">Snapshot simulado</button>
+    <button type="button" role="radio" [attr.aria-checked]="dataset() === 'fixtures'"
+            [class.on]="dataset() === 'fixtures'" (click)="setDataset('fixtures')">Fixtures de prueba</button>
+  </div>
+  <label class="threshold">
+    <span>Umbral de alerta <strong>{{ threshold() }} %</strong></span>
+    <input type="range" min="5" max="40" step="1" [value]="threshold()"
+           (input)="setThreshold($any($event.target).value)" aria-describedby="threshold-hint" />
+  </label>
+  <small id="threshold-hint" class="filters__hint">Proveedores con una tasa de cancelación mayor al umbral quedan en alerta.</small>
+</div>
+
+@if (error()) {
+  <div class="adm-notice adm-notice--error state" role="alert">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+    <div>
+      <strong>{{ error() }}</strong>
+      <p>El backend todavía no expone <code>/api/admin/analytics</code>. Activa «Datos simulados» en la barra superior para ver los resultados.</p>
+      <button type="button" class="adm-btn adm-btn--outline" (click)="retry()">Reintentar</button>
+    </div>
+  </div>
+} @else if (!data()) {
+  <section class="adm-kpis" aria-label="Cargando indicadores">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <article class="adm-card adm-kpi"><span class="adm-skeleton" style="width:60%"></span><span class="adm-skeleton kpi-skel"></span></article>
+    }
+  </section>
+  <div class="adm-card skel-chart"><span class="adm-skeleton"></span><span class="adm-skeleton"></span><span class="adm-skeleton"></span></div>
+} @else {
+  <div class="body" [class.body--loading]="loading()" [attr.aria-busy]="loading()">
+
+    <!-- Cómo llegan los datos hasta aquí -->
+    <section class="adm-card pipeline" aria-labelledby="pipeline-title">
+      <h2 id="pipeline-title" class="adm-sr-only">Recorrido de los datos</h2>
+      <ol>
+        <li><span class="step">1</span><div><strong>Extracción</strong><small>{{ data()!.source }}</small></div></li>
+        <li><span class="step">2</span><div><strong>Contrato</strong><small>schemas.py tipa cada columna</small></div></li>
+        <li><span class="step">3</span><div><strong>Calidad</strong><small>quality/ detecta filas con defectos</small></div></li>
+        <li><span class="step">4</span><div><strong>Métricas</strong><small>metrics/ con join y groupBy</small></div></li>
+        <li><span class="step step--end">5</span><div><strong>Panel admin</strong><small>esta vista</small></div></li>
+      </ol>
+    </section>
+
+    <!-- Indicadores -->
+    <section class="adm-kpis" aria-label="Indicadores">
+      <article class="adm-card adm-kpi">
+        <span class="adm-kpi__label">Reservas analizadas</span>
+        <span class="adm-kpi__value">{{ totalReservas() }}</span>
+        <span class="adm-kpi__hint">de {{ providers().length }} proveedores</span>
+      </article>
+      <article class="adm-card adm-kpi">
+        <span class="adm-kpi__label">Tasa de cancelación global</span>
+        <span class="adm-kpi__value">{{ global().tasa | number: '1.2-2' }} %</span>
+        <span class="adm-kpi__hint">{{ global().canceladas }} de {{ global().reservas }} reservas canceladas</span>
+      </article>
+      <article class="adm-card adm-kpi">
+        <span class="adm-kpi__label">Proveedores en alerta</span>
+        <span class="adm-kpi__value">{{ alerts().length }} <small class="of">/ {{ providers().length }}</small></span>
+        @if (alerts().length) {
+          <span class="adm-kpi__hint"><span class="adm-chip adm-chip--danger">Tasa mayor al {{ threshold() }} %</span></span>
+        } @else {
+          <span class="adm-kpi__hint"><span class="adm-chip adm-chip--ok">Todos bajo el umbral</span></span>
+        }
+      </article>
+      <article class="adm-card adm-kpi">
+        <span class="adm-kpi__label">Calidad de datos</span>
+        <span class="adm-kpi__value">{{ cleanTables() }} <small class="of">/ {{ data()!.completitud.length }}</small></span>
+        <span class="adm-kpi__hint">tablas sin campos obligatorios vacíos</span>
+      </article>
+    </section>
+
+    <div class="grid">
+      <!-- HU-46: tasa de cancelación por proveedor -->
+      <section class="adm-card panel panel--wide" aria-labelledby="tasa-title">
+        <header class="panel__head">
+          <div>
+            <h2 id="tasa-title">Tasa de cancelación por proveedor <span class="tag">HU-46</span></h2>
+            <p>Porcentaje de reservas canceladas de cada proveedor. Elige uno para ver cómo se calcula.</p>
+          </div>
+          <div class="panel__tools">
+            <label class="adm-sr-only" for="sort">Ordenar por</label>
+            <select id="sort" class="select" [value]="sort()" (change)="setSort($any($event.target).value)">
+              <option value="tasa">Mayor tasa</option>
+              <option value="reservas">Más reservas</option>
+              <option value="nombre">Nombre</option>
+            </select>
+            <button type="button" class="adm-btn adm-btn--outline toggle" [attr.aria-pressed]="tableTasa()"
+                    (click)="tableTasa.set(!tableTasa())">{{ tableTasa() ? 'Ver gráfica' : 'Ver DataFrame' }}</button>
+          </div>
+        </header>
+
+        @if (!tableTasa()) {
+          <div class="bars" role="group" aria-label="Tasa de cancelación por proveedor">
+            @for (p of providers(); track p.provider_id) {
+              <button type="button" class="bar-row" [class.sel]="selected()?.provider_id === p.provider_id"
+                      [class.alert]="inAlert(p)" (click)="selectedId.set(p.provider_id)"
+                      [attr.aria-pressed]="selected()?.provider_id === p.provider_id"
+                      [attr.aria-label]="p.provider_name + ': ' + p.tasa_cancelacion + ' %, ' + p.canceladas + ' de ' + p.reservas + ' reservas canceladas' + (inAlert(p) ? ', en alerta' : '')">
+                <span class="bar-row__name">
+                  @if (inAlert(p)) {
+                    <svg class="warn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4m0 4h.01"/></svg>
+                  }
+                  <span class="bar-row__text">{{ p.provider_name }}</span>
+                </span>
+                <span class="bar-row__track">
+                  <span class="bar" [style.width.%]="barWidth(p)"></span>
+                  <span class="bar-row__value" [style.left.%]="barWidth(p)">{{ p.tasa_cancelacion | number: '1.0-2' }} %</span>
+                  <span class="tip" aria-hidden="true">
+                    <strong>{{ p.tasa_cancelacion | number: '1.2-2' }} %</strong>
+                    <span>{{ p.canceladas }} de {{ p.reservas }} reservas canceladas</span>
+                  </span>
+                </span>
+              </button>
+            }
+            <!-- Umbral y eje comparten la escala de las barras -->
+            <div class="axis" aria-hidden="true">
+              <span class="axis__spacer"></span>
+              <span class="axis__scale">
+                @for (t of ticks(); track t) {
+                  <span class="axis__tick" [style.left.%]="position(t)">{{ t }} %</span>
+                }
+              </span>
+            </div>
+            <div class="overlay" aria-hidden="true">
+              <span class="axis__spacer"></span>
+              <span class="overlay__scale">
+                @for (t of ticks(); track t) {
+                  <span class="grid-line" [style.left.%]="position(t)"></span>
+                }
+                <span class="limit" [style.left.%]="position(threshold())"><span>Umbral {{ threshold() }} %</span></span>
+              </span>
+            </div>
+          </div>
+          <ul class="legend" aria-label="Leyenda">
+            <li><span class="sw sw--ok"></span>Dentro del umbral</li>
+            <li><span class="sw sw--alert"></span>En alerta (tasa &gt; {{ threshold() }} %)</li>
+          </ul>
+        } @else {
+          <div class="table-wrap">
+            <table class="df">
+              <caption>tasa_cancelacion(bookings, offerings)</caption>
+              <thead><tr><th>provider_id</th><th>nombre</th><th class="num">reservas</th><th class="num">canceladas</th><th class="num">tasa_cancelacion</th></tr></thead>
+              <tbody>
+                @for (p of providers(); track p.provider_id) {
+                  <tr [class.alert]="inAlert(p)">
+                    <td><code [title]="p.provider_id">{{ shortId(p.provider_id) }}</code></td>
+                    <td>{{ p.provider_name }}</td>
+                    <td class="num">{{ p.reservas }}</td>
+                    <td class="num">{{ p.canceladas }}</td>
+                    <td class="num">{{ p.tasa_cancelacion | number: '1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <!-- Detalle del cálculo -->
+      <aside class="adm-card panel detail" aria-labelledby="detail-title" aria-live="polite">
+        @if (selected(); as p) {
+          <header>
+            <span class="eyebrow">Detalle del cálculo</span>
+            <h2 id="detail-title">{{ p.provider_name }}</h2>
+            <code class="mono" [title]="p.provider_id">{{ p.provider_id }}</code>
+          </header>
+          <div class="detail__figures">
+            <div><span>Reservas</span><strong>{{ p.reservas }}</strong></div>
+            <div><span>Canceladas</span><strong>{{ p.canceladas }}</strong></div>
+            <div><span>Tasa</span><strong>{{ p.tasa_cancelacion | number: '1.2-2' }} %</strong></div>
+          </div>
+          <p class="formula">
+            <span>canceladas ÷ reservas × 100</span>
+            <strong>{{ p.canceladas }} ÷ {{ p.reservas }} × 100 = {{ p.tasa_cancelacion | number: '1.2-2' }} %</strong>
+          </p>
+          @if (inAlert(p)) {
+            <p class="verdict verdict--alert">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4m0 4h.01"/></svg>
+              En alerta: supera el umbral de {{ threshold() }} % por {{ p.tasa_cancelacion - threshold() | number: '1.0-2' }} puntos.
+            </p>
+          } @else {
+            <p class="verdict verdict--ok">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+              Dentro del umbral de {{ threshold() }} %.
+            </p>
+          }
+          <p class="compare">Promedio de la plataforma: <strong>{{ global().tasa | number: '1.2-2' }} %</strong></p>
+
+          <details class="code">
+            <summary>Cómo lo calcula Spark</summary>
+            <ol>
+              <li><code>join</code> de <em>bookings</em> con <em>offerings</em> por <code>offering_id</code> para saber el proveedor de cada reserva.</li>
+              <li><code>groupBy("provider_id")</code> agrupa las reservas de cada proveedor.</li>
+              <li><code>count</code> cuenta todas y <code>sum(status == "CANCELLED")</code> las canceladas.</li>
+              <li>La tasa se redondea a 2 decimales con <code>F.round</code>.</li>
+            </ol>
+            <pre><code>(bookings.join(offerings_clean, on="offering_id")
+  .groupBy("provider_id")
+  .agg(F.count("*").alias("reservas"),
+       F.sum((F.col("status") == "CANCELLED")
+             .cast("int")).alias("canceladas"))
+  .withColumn("tasa_cancelacion",
+       F.round(F.col("canceladas") / F.col("reservas") * 100, 2)))</code></pre>
+          </details>
+        }
+      </aside>
+    </div>
+
+    <div class="grid grid--even">
+      <!-- Reservas por estado -->
+      <section class="adm-card panel" aria-labelledby="estado-title">
+        <header class="panel__head">
+          <div>
+            <h2 id="estado-title">Reservas por estado</h2>
+            <p>Cómo se reparten las {{ totalReservas() }} reservas. Elige un estado para resaltarlo.</p>
+          </div>
+          <div class="panel__tools">
+            <button type="button" class="adm-btn adm-btn--outline toggle" [attr.aria-pressed]="tableEstado()"
+                    (click)="tableEstado.set(!tableEstado())">{{ tableEstado() ? 'Ver gráfica' : 'Ver DataFrame' }}</button>
+          </div>
+        </header>
+
+        @if (!tableEstado()) {
+          <div class="stack" role="img" [attr.aria-label]="'Reservas por estado sobre ' + totalReservas() + ' reservas'">
+            @for (e of estados(); track e.status) {
+              <span class="stack__seg" [style.flex-grow]="e.reservas" [style.background]="statusColors[e.status]"
+                    [class.dim]="focusStatus() && focusStatus() !== e.status">
+                <span class="tip">
+                  <strong>{{ e.reservas }} · {{ e.pct | number: '1.0-1' }} %</strong>
+                  <span>{{ statusLabels[e.status] }}</span>
+                </span>
+              </span>
+            }
+          </div>
+          <ul class="states">
+            @for (e of estados(); track e.status) {
+              <li>
+                <button type="button" [class.dim]="focusStatus() && focusStatus() !== e.status"
+                        [attr.aria-pressed]="focusStatus() === e.status" (click)="toggleStatus(e.status)">
+                  <span class="sw" [style.background]="statusColors[e.status]"></span>
+                  <span class="states__label">{{ statusLabels[e.status] }} <code>{{ e.status }}</code></span>
+                  <strong>{{ e.reservas }}</strong>
+                  <span class="states__pct">{{ e.pct | number: '1.0-1' }} %</span>
+                </button>
+              </li>
+            }
+          </ul>
+          <p class="note">Las canceladas de esta gráfica son las mismas que suma la tasa global: {{ global().canceladas }}.</p>
+        } @else {
+          <div class="table-wrap">
+            <table class="df">
+              <caption>reservas_por_estado(bookings)</caption>
+              <thead><tr><th>status</th><th class="num">reservas</th></tr></thead>
+              <tbody>
+                @for (e of data()!.reservasPorEstado; track e.status) {
+                  <tr><td><code>{{ e.status }}</code></td><td class="num">{{ e.reservas }}</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+
+      <!-- Calidad de datos -->
+      <section class="adm-card panel" aria-labelledby="calidad-title">
+        <header class="panel__head">
+          <div>
+            <h2 id="calidad-title">Calidad de datos</h2>
+            <p>Regla de completitud: cada tabla se revisa antes de calcular las métricas.</p>
+          </div>
+        </header>
+        <div class="table-wrap">
+          <table class="df df--quality">
+            <thead><tr><th>Tabla</th><th class="num">Filas</th><th class="num">Columnas</th><th>Resultado</th></tr></thead>
+            <tbody>
+              @for (t of data()!.completitud; track t.tabla) {
+                <tr>
+                  <td><code>{{ t.tabla }}</code></td>
+                  <td class="num">{{ t.filas }}</td>
+                  <td class="num" [title]="t.columnas.join(', ')">{{ t.columnas.length }}</td>
+                  <td>
+                    @if (t.filas_con_nulos === 0) {
+                      <span class="adm-chip adm-chip--ok">Sin nulos</span>
+                    } @else {
+                      <span class="adm-chip adm-chip--danger">{{ t.filas_con_nulos }} filas con nulos</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="note"><code>filas_con_nulos(df, columnas)</code> devuelve las filas que incumplen la regla: 0 filas significa datos limpios.</p>
+      </section>
+    </div>
+
+    <!-- Lo que viene en el backlog de datos -->
+    <section class="adm-card panel upcoming" aria-labelledby="next-title">
+      <header class="panel__head">
+        <div>
+          <h2 id="next-title">Próximas métricas</h2>
+          <p>Siguen el mismo patrón: una función de PySpark con su prueba antes de llegar a este panel.</p>
+        </div>
+      </header>
+      <ul>
+        @for (m of data()!.proximas; track m.title) {
+          <li>
+            <div class="upcoming__top">
+              @if (m.state === 'EN_DESARROLLO') {
+                <span class="adm-chip adm-chip--info">En desarrollo</span>
+              } @else {
+                <span class="adm-chip adm-chip--off">Próximamente</span>
+              }
+              <code>{{ m.technique }}</code>
+            </div>
+            <strong>{{ m.title }}</strong>
+            <p>{{ m.description }}</p>
+            <small>{{ m.reference }}</small>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+}

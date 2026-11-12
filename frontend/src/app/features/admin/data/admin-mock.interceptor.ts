@@ -2,6 +2,7 @@ import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from 
 import { Observable, delay, of, switchMap, throwError, timer } from 'rxjs';
 import { adminMockEnabled } from '../admin.config';
 import { OFFERINGS_URL, handleOfferings } from './admin-offerings.mock';
+import { ANALYTICS_URL, handleAnalytics } from './admin-analytics.mock';
 import { AccountStatus, AdminUser, CreateUserRequest, ManagedRole, Page, RoleStats, UpdateUserRequest, UserStats } from './admin-user.model';
 
 /**
@@ -13,6 +14,9 @@ export const adminMockInterceptor: HttpInterceptorFn = (req, next) => {
   // Revisión de mentorías (HU-21): sus datos simulados viven en admin-offerings.mock.ts
   const offerings = req.url.match(OFFERINGS_URL);
   if (offerings && adminMockEnabled()) return handleOfferings(req, offerings);
+
+  // Resultados del pipeline de PySpark: sus datos simulados viven en admin-analytics.mock.ts
+  if (ANALYTICS_URL.test(req.url) && adminMockEnabled()) return handleAnalytics(req);
 
   const match = req.url.match(/\/admin\/users(?:\/([^/?]+))?(?:\/(status))?$/);
   if (!match || !adminMockEnabled()) return next(req);
