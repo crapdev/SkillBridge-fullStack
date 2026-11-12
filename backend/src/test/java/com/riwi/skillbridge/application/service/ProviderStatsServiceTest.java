@@ -5,12 +5,14 @@ import com.riwi.skillbridge.application.port.in.GetProviderStatsUseCase.Provider
 import com.riwi.skillbridge.application.port.out.AvailabilitySlotRepositoryPort;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
+import com.riwi.skillbridge.application.port.out.ReviewRepositoryPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.model.AvailabilitySlot;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
 import com.riwi.skillbridge.domain.model.Offering;
+import com.riwi.skillbridge.domain.model.RatingSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +43,7 @@ class ProviderStatsServiceTest {
     @Mock private AvailabilitySlotRepositoryPort slots;
     @Mock private BookingRepositoryPort bookings;
     @Mock private CompleteFinishedBookingsUseCase completion;
+    @Mock private ReviewRepositoryPort reviews;
 
     @InjectMocks private ProviderStatsService service;
 
@@ -62,7 +65,7 @@ class ProviderStatsServiceTest {
     }
 
     private Booking booking(Offering o, Instant at, BookingStatus status) {
-        return new Booking(UUID.randomUUID(), o.id(), UUID.randomUUID(), at, status);
+        return new Booking(UUID.randomUUID(), o.id(), UUID.randomUUID(), at, status, new java.math.BigDecimal("85000"));
     }
 
     @BeforeEach
@@ -129,10 +132,21 @@ class ProviderStatsServiceTest {
     }
 
     @Test
+    void includesTheAverageRatingReceivedAsMentor() {
+        // HU-27: el proveedor ve en su dashboard su calificación promedio
+        when(reviews.summarizeMentor(providerId)).thenReturn(new RatingSummary(4.5, 8));
+
+        RatingSummary rating = service.statsFor("laura@test.com").rating();
+
+        assertEquals(4.5, rating.average());
+        assertEquals(8, rating.count());
+    }
+
+    @Test
     void unknownProviderFails() {
         when(users.findIdByEmail(anyString())).thenReturn(Optional.empty());
 
         assertThrows(DomainNotFoundException.class, () -> service.statsFor("nadie@test.com"));
-        verifyNoInteractions(offerings, bookings);
+        verifyNoInteractions(offerings, bookings, reviews);
     }
 }

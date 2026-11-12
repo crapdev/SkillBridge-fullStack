@@ -109,6 +109,27 @@
       <span class="adm-kpi__value">—</span>
     }
   </article>
+
+  <!-- HU-27: calificación promedio que recibió como mentor -->
+  <article class="adm-card adm-kpi">
+    <span class="adm-kpi__label">Tu calificación</span>
+    <span class="adm-kpi__icon adm-kpi__icon--star" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>
+    </span>
+    @if (stats(); as s) {
+      @if (s.rating.count > 0) {
+        <span class="adm-kpi__value">{{ average(s.rating.average) }} <span class="kpi-of">/ 5</span></span>
+        <span class="adm-kpi__hint">Promedio de {{ ratingCount(s.rating.count) }} como mentor</span>
+      } @else {
+        <span class="adm-kpi__value">—</span>
+        <span class="adm-kpi__hint">Aún no tienes calificaciones: los clientes califican al completar la sesión</span>
+      }
+    } @else if (!statsError()) {
+      <span class="adm-skeleton kpi-skel"></span><span class="adm-skeleton" style="width:60%"></span>
+    } @else {
+      <span class="adm-kpi__value">—</span>
+    }
+  </article>
 </section>
 
 <!-- MIS MENTORÍAS: acceso a editar y a gestionar horarios -->

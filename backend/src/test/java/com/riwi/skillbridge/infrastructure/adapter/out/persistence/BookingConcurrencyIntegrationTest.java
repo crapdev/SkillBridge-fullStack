@@ -179,7 +179,7 @@ class BookingConcurrencyIntegrationTest {
         // Otra petición ya guardó su reserva, pero esta no la vio (la revisión pasó antes de que la otra guardara)
         String winner = newCustomer();
         UUID winnerId = users.findIdByEmail(winner).orElseThrow();
-        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, ?, 'CREATED')",
+        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status, price) VALUES (?, ?, ?, ?, 'CREATED', 85000)",
             UUID.randomUUID(), OFFERING_ID, winnerId, java.sql.Timestamp.from(scheduledAt));
         doReturn(false).when(bookings).existsActiveByOfferingIdAndScheduledAt(any(), any());
         doReturn(false).when(bookings).existsActiveByCustomerIdAndScheduledAt(any(), any());

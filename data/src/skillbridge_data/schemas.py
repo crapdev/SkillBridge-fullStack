@@ -41,7 +41,7 @@ USERS = StructType([
 
 OFFERINGS = StructType([
     StructField("id", StringType(), nullable=False),
-    StructField("provider_id", StringType(), nullable=True),   # anulable en V2
+    StructField("provider_id", StringType(), nullable=False),  # obligatorio desde V13 (BUG-11)
     StructField("title", StringType(), nullable=False),
     StructField("category", StringType(), nullable=False),
     StructField("price", DecimalType(12, 2), nullable=False),
@@ -59,6 +59,9 @@ BOOKINGS = StructType([
     StructField("scheduled_at", TimestampType(), nullable=False),  # inicio; el fin es + duration_minutes
     StructField("status", StringType(), nullable=False),
     StructField("created_at", TimestampType(), nullable=False),
+    # BUG-10: precio con el que se hizo la reserva. Los ingresos y la regla "el pago coincide con el precio" (HU-48)
+    # se calculan con este valor, no con offerings.price (el proveedor puede cambiarlo después).
+    StructField("price", DecimalType(12, 2), nullable=False),
 ])
 
 AVAILABILITY_SLOTS = StructType([
@@ -77,8 +80,8 @@ PAYMENTS = StructType([
     StructField("created_at", TimestampType(), nullable=False),
 ])
 
-# Aún no existe en el backend: por ahora solo hay reseñas sintéticas.
-# Si se agrega la migración de reseñas, debe respetar estas columnas.
+# Tabla reviews del backend (migración V20, HU-27). La tabla también guarda la calificación del mentor
+# (mentor_rating, mentor_comment), que este contrato no exporta.
 REVIEWS = StructType([
     StructField("id", StringType(), nullable=False),
     StructField("booking_id", StringType(), nullable=False),
