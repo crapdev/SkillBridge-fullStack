@@ -25,6 +25,7 @@ export class RegistrationController {
   }
 
   @Post('verify')
+  @HttpCode(HttpStatus.OK) // sin esto Nest responde 201 y el frontend distingue cliente (200) de proveedor (202)
   async verify(
     @Body() dto: VerifyDto,
     @Res({ passthrough: true }) res: Response
