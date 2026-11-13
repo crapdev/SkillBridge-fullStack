@@ -4,6 +4,8 @@ import * as Joi from 'joi';
 import { EmailModule } from './modules/email/email.module';
 import { BookingEventsModule } from './modules/booking-events/booking-events.module';
 import { HealthModule } from './modules/health/health.module';
+import { DatabaseModule } from './modules/database/database.module';
+import { VerificationModule } from './modules/verification/verification.module';
 
 @Module({
   imports: [
@@ -23,12 +25,15 @@ import { HealthModule } from './modules/health/health.module';
         MAILPIT_HOST: Joi.string().default('localhost'),
         MAILPIT_PORT: Joi.number().default(1025),
         BREVO_API_KEY: Joi.string().allow('').optional(),
-        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200')
+        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200'),
+        DATABASE_URL: Joi.string().uri({ scheme: ['postgres', 'postgresql'] }).required()
       })
     }),
     EmailModule,
     BookingEventsModule,
-    HealthModule
+    HealthModule,
+    DatabaseModule,
+    VerificationModule
   ]
 })
 export class AppModule {}
