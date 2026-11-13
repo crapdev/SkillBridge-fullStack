@@ -15,15 +15,19 @@
 
   <main class="auth-main">
     <section class="auth-card" aria-labelledby="auth-title">
-      @if (providerRequestMessage) {
-      <!-- Solicitud de proveedor enviada: la cuenta queda pendiente hasta que un admin la apruebe -->
+      @if (sent) {
+      <!-- Registro recibido (HU #39): la cuenta no existe hasta que se abra el enlace del correo -->
       <div class="request-sent" role="status">
-          <span class="request-sent__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
-          </span>
-        <h1 id="auth-title">¡Solicitud enviada!</h1>
-        <p>{{ providerRequestMessage }}</p>
-        <p class="request-sent__email">Registramos tu solicitud con <strong>{{ email }}</strong>.</p>
+        <span class="request-sent__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>
+        </span>
+        <h1 id="auth-title">Revisa tu correo</h1>
+        <p>{{ sent.message }}</p>
+        <p class="request-sent__email">Enviamos el enlace a <strong>{{ sent.email }}</strong>.</p>
+        @if (sentAsProvider) {
+        <p class="request-sent__email">Después de verificarlo, un administrador revisará tu perfil antes de que puedas iniciar sesión.</p>
+        }
+        <ng-container [ngTemplateOutlet]="resendBlock" />
         <div class="request-sent__actions">
           <a routerLink="/" class="submit submit--ghost">Volver al inicio</a>
           <button type="button" class="submit" (click)="backToLogin()">Ir a iniciar sesión</button>
@@ -132,6 +136,14 @@
           }
         </div>
 
+        <!-- Login con 401 y cuenta pendiente: el usuario aún no abrió el enlace del correo (HU #39) -->
+        @if (unverified) {
+        <div class="alert alert--warning" role="alert">
+          <p><strong>Tu correo no está verificado.</strong> Abre el enlace que te enviamos a {{ email }} para activar tu cuenta.</p>
+          <ng-container [ngTemplateOutlet]="resendBlock" />
+        </div>
+        }
+
         @if (error) { <p class="alert" role="alert">{{ error }}</p> }
 
           @if (error) { <p class="alert" role="alert">{{ error }}</p> }
@@ -166,6 +178,20 @@
         Tu contraseña se guarda cifrada con BCrypt y nunca se comparte.
       </p>
       }
+
+      <!-- Reenvío del enlace: se usa en "Revisa tu correo" y en el aviso de correo sin verificar -->
+      <ng-template #resendBlock>
+        <p class="resend">
+          ¿No te llegó?
+          <button type="button" class="link" (click)="resend()" [disabled]="resending || resendCooldown > 0">
+            @if (resending) { Enviando… }
+            @else if (resendCooldown > 0) { Reenviar en {{ resendCooldown }} s }
+            @else { Reenviar enlace }
+          </button>
+        </p>
+        @if (resendNotice) { <p class="hint" role="status">{{ resendNotice }}</p> }
+        @if (resendError) { <p class="hint hint--error" role="alert">{{ resendError }}</p> }
+      </ng-template>
     </section>
   </main>
 
