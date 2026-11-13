@@ -4,7 +4,8 @@ Base path: `/api`
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/auth/register` | Public | Register CUSTOMER and return JWT |
+| ~~POST~~ | ~~`/auth/register`~~ | — | **Removed (HU #39).** Replaced by `POST /verification/register` (see "Verificación de correo") |
+| POST | `/verification/register` | Public | Register CUSTOMER pending email verification (served by `email-service`) |
 | POST | `/auth/login` | Public | Login and return JWT |
 | GET | `/offerings` | Public | Active catalog (paged); each item includes the offering profile (HU-20) |
 | GET | `/offerings/{id}` | Public | Offering detail with syllabus, duration, level and working days |
@@ -88,6 +89,72 @@ nombre. `404` si la mentoría no es visible en el catálogo.
 ### Dashboard del proveedor
 
 `GET /api/provider/stats` incluye `rating: { average, count }`: su calificación promedio como mentor.
+
+## Verificación de correo (HU #39)
+
+Los atiende el microservicio NestJS `email-service` (no Spring Boot), bajo `/api/verification`. Son públicos. La cuenta
+sin verificar vive en `email.pending_registrations`, no en `app_users`. Flujo completo en
+[`AUTHENTICATION.md`](AUTHENTICATION.md#3-verificación-de-correo-hu-39).
+
+`POST /api/auth/register` y `POST /api/auth/register/provider` **fueron eliminados**; los reemplazan
+`/api/verification/register` y `/api/verification/register/provider`.
+
+Los errores usan `ProblemDetail`: `detail` con el mensaje y, cuando aplica, `reason`.
+
+### Registrar cliente o proveedor
+
+`POST /api/verification/register` (cliente) · `POST /api/verification/register/provider` (proveedor)
+
+```json
+{ "name": "Ada Lovelace", "email": "ada@example.com", "password": "Password123" }
+```
+
+| Campo | Regla |
+|---|---|
+| `name`, `email` | Obligatorios; `email` con formato válido |
+| `password` | 8 a 72 caracteres |
+
+**Respuestas:** `202` `{ "email": "ada@example.com", "message": "..." }`, sin sesión y con un correo con el enlace
+(válido 24 h) · `400` validación · `422` el correo ya está en `app_users`.
+
+Si el correo ya estaba pendiente, el registro se reemplaza y el correo se reenvía (`202`).
+
+### Verificar el correo
+
+`POST /api/verification/verify`
+
+```json
+{ "token": "<token del enlace>" }
+```
+
+**Respuestas:**
+- Cliente: `200` `{ "email": "ada@example.com", "name": "Ada Lovelace", "role": "CUSTOMER" }` + cookie `sb_token`
+  (la misma que emite `/auth/login`).
+- Proveedor: `202` `{ "status": "PENDING_APPROVAL", "message": "..." }`, sin cookie. Un admin debe aprobarlo.
+- `400` `{ "detail": "...", "reason": "TOKEN_EXPIRED" }`. `reason`: `TOKEN_EXPIRED` (pasaron 24 h), `TOKEN_USED` (ya
+  verificado) o `TOKEN_INVALID`.
+
+### Reenviar el enlace
+
+`POST /api/verification/resend`
+
+```json
+{ "email": "ada@example.com" }
+```
+
+**Respuestas:** `202` siempre con el mismo mensaje, exista o no el correo (no revela qué correos están registrados) ·
+`429` más de 3 solicitudes en 15 min. El enlace nuevo invalida el anterior.
+
+### Estado de una cuenta (login)
+
+`POST /api/verification/status` · el login lo usa tras un `401` para saber si la cuenta está pendiente.
+
+```json
+{ "email": "ada@example.com", "password": "Password123" }
+```
+
+**Respuesta:** `200` `{ "pending": true }` solo si el correo y la contraseña coinciden con un registro pendiente;
+en cualquier otro caso `{ "pending": false }`.
 
 ## Mentorías del proveedor (contrato HU-20)
 
