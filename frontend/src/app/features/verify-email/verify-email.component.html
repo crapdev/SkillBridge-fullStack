@@ -1,0 +1,96 @@
+<div class="auth-page">
+  <header class="auth-top">
+    <a routerLink="/" class="auth-brand" aria-label="SkillBridge, ir al inicio">
+      <span class="auth-brand__logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="12" cy="12" r="2.4" /><circle cx="5" cy="6" r="1.6" /><circle cx="19" cy="6" r="1.6" />
+          <circle cx="5" cy="18" r="1.6" /><circle cx="19" cy="18" r="1.6" />
+          <path d="M6.3 7l3.9 3.4M17.7 7l-3.9 3.4M6.3 17l3.9-3.4M17.7 17l-3.9-3.4" />
+        </svg>
+      </span>
+      SkillBridge
+    </a>
+    <a routerLink="/" class="auth-back"><span aria-hidden="true">←</span> Volver al inicio</a>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card" aria-labelledby="verify-title" aria-live="polite">
+      @switch (state) {
+      @case ('verifying') {
+      <div class="request-sent" role="status">
+        <span class="spinner spinner--dark" aria-hidden="true"></span>
+        <h1 id="verify-title">Verificando tu correo…</h1>
+        <p>Esto solo toma un momento.</p>
+      </div>
+      }
+
+      @case ('provider') {
+      <div class="request-sent" role="status">
+        <span class="request-sent__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </span>
+        <h1 id="verify-title">¡Correo verificado!</h1>
+        <p>{{ providerMessage }}</p>
+        <div class="request-sent__actions">
+          <a routerLink="/" class="submit submit--ghost">Volver al inicio</a>
+          <a routerLink="/login" class="submit">Ir a iniciar sesión</a>
+        </div>
+      </div>
+      }
+
+      @case ('used') {
+      <div class="request-sent" role="status">
+        <span class="request-sent__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>
+        </span>
+        <h1 id="verify-title">Tu correo ya estaba verificado</h1>
+        <p>Este enlace ya se usó. Inicia sesión con tu correo y contraseña.</p>
+        <a routerLink="/login" class="submit">Ir a iniciar sesión</a>
+      </div>
+      }
+
+      @case ('failed') {
+      <div class="request-sent" role="alert">
+        <h1 id="verify-title">No pudimos verificar tu correo</h1>
+        <p>Hubo un problema de conexión. Tu enlace sigue sirviendo: inténtalo de nuevo.</p>
+        <button type="button" class="submit" (click)="verify()">Reintentar</button>
+      </div>
+      }
+
+      <!-- expired e invalid: el enlace no sirve y se ofrece pedir otro -->
+      @default {
+      <h1 id="verify-title">{{ state === 'expired' ? 'El enlace venció' : 'El enlace no es válido' }}</h1>
+      <p class="auth-lead">
+        {{ state === 'expired'
+          ? 'Los enlaces de verificación duran 24 horas. Pide uno nuevo con el correo con el que te registraste.'
+          : 'Puede que esté incompleto o que hayas pedido otro después. Pide uno nuevo con el correo con el que te registraste.' }}
+      </p>
+
+      @if (resendNotice) {
+      <p class="verify-notice" role="status">{{ resendNotice }}</p>
+      } @else {
+      <form #f="ngForm" (ngSubmit)="resend(f)" novalidate>
+        <div class="field">
+          <label for="email">Correo electrónico</label>
+          <div class="input">
+            <input id="email" type="email" name="email" [(ngModel)]="email" #emailCtrl="ngModel" required email
+                   autocomplete="email" placeholder="nombre@correo.com"
+                   [attr.aria-invalid]="emailCtrl.invalid && emailCtrl.touched">
+          </div>
+          @if (emailCtrl.invalid && emailCtrl.touched) { <p class="hint hint--error">Ingresa un correo válido.</p> }
+        </div>
+        @if (resendError) { <p class="alert" role="alert">{{ resendError }}</p> }
+        <button type="submit" class="submit" [disabled]="resending">
+          @if (resending) { <span class="spinner" aria-hidden="true"></span> Enviando… } @else { Enviar enlace nuevo }
+        </button>
+      </form>
+      }
+
+      <p class="auth-switch">
+        ¿Ya verificaste tu correo? <a routerLink="/login" class="link">Inicia sesión ›</a>
+      </p>
+      }
+      }
+    </section>
+  </main>
+</div>
