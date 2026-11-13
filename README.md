@@ -462,8 +462,10 @@ TTL offerings:active
 
 ## 8.2 Registrar usuario
 
+El registro lo atiende el microservicio `email-service` (NestJS, puerto 3000) y **no abre sesión**: la cuenta queda pendiente hasta verificar el correo (HU #39).
+
 ```bash
-curl -c cookies.txt -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:3000/api/verification/register \
   -H 'Content-Type: application/json' \
   -d '{
     "name":"Ada Lovelace",
@@ -472,13 +474,21 @@ curl -c cookies.txt -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
+Responde `202 {"email": "ada@example.com", "message": "..."}` y envía un correo con el enlace de verificación. En local, ábrelo en Mailpit (http://localhost:8025) y copia el `token` del enlace `/verificar-correo?token=...`:
+
+```bash
+curl -c cookies.txt -X POST http://localhost:3000/api/verification/verify \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"<token del enlace>"}'
+```
+
 Obtendrás el usuario de la sesión:
 
 ```json
 { "email": "ada@example.com", "name": "Ada Lovelace", "role": "CUSTOMER" }
 ```
 
-El JWT **no** viene en el cuerpo: llega en la cookie HttpOnly `sb_token`, que `-c cookies.txt` guarda. Detalles en [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).
+El JWT **no** viene en el cuerpo: llega en la cookie HttpOnly `sb_token`, que `-c cookies.txt` guarda. Es la misma cookie que emite `/api/auth/login` de Spring Boot. Detalles en [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md#3-verificación-de-correo-hu-39).
 
 También puedes hacerlo desde la interfaz Angular.
 
