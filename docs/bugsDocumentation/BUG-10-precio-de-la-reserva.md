@@ -28,7 +28,7 @@ Juntos: cualquier cambio de precio afectaba a las reservas que todavía no se ha
 
 | Capa | Cambio |
 |---|---|
-| Base de datos (`V12__bookings_price.sql`) | `bookings.price NUMERIC(12,2) NOT NULL` con `CHECK (price >= 0)`. Llena las reservas existentes (ver 3.1) |
+| Base de datos (`V11__bookings_price.sql`) | `bookings.price NUMERIC(12,2) NOT NULL` con `CHECK (price >= 0)`. Llena las reservas existentes (ver 3.1) |
 | Dominio (`Booking`) | Nuevo campo `price`. El record no admite un precio nulo o negativo, y `cancel()`, `confirm()` y `complete()` lo conservan |
 | Persistencia (`BookingEntity` / `BookingPersistenceAdapter`) | Columna `price` con `updatable = false`: guardar una cancelación o una confirmación **no puede** cambiar el precio. El mapeo entidad → dominio quedó en un solo `toDomain` |
 | Reserva (`BookingService.create`) | Copia `offering.price()` en la reserva |
@@ -40,7 +40,7 @@ La lógica de BUG-09 que reemplaza un cobro abierto por otro monto se mantiene. 
 
 ### 3.1 Reservas que ya existían
 
-V12 llena `price` así:
+V11 llena `price` así:
 
 1. Si la reserva tiene un pago `PAID`, **ese monto**: es lo que de verdad se cobró, aunque el proveedor haya cambiado el precio después. BUG-09 garantiza que hay como máximo uno.
 2. Si no, el precio actual de la mentoría. Un pago `FAILED` o `CANCELED` no cuenta: no es lo que se cobró.
@@ -69,7 +69,7 @@ paymentGatewayPort.createPaymentIntent(<reserva>, 120000, ...)
 | Prueba | Qué demuestra |
 |---|---|
 | `BookingPriceTest` (3) | Reservar a 100.000, subir a 120.000 y pagar cobra 100.000; la reserva guardada conserva 100.000; cancelar o confirmar no cambia el precio |
-| `BookingsPriceMigrationV12Test` (2, PostgreSQL real) | Una reserva pagada a 100.000 conserva ese precio aunque la mentoría hoy valga 120.000; una con solo un pago `FAILED` o sin pagos toma el precio actual; después de V12, una reserva sin precio se rechaza |
+| `BookingsPriceMigrationV11Test` (2, PostgreSQL real) | Una reserva pagada a 100.000 conserva ese precio aunque la mentoría hoy valga 120.000; una con solo un pago `FAILED` o sin pagos toma el precio actual; después de V11, una reserva sin precio se rechaza |
 | `CreatePaymentServiceTest` | Se cobra el precio de la reserva |
 | `CreatePaymentSinglePaymentTest` | Un cobro abierto antes de BUG-10 por otro monto se cancela (`CANCELED`) y se cobra el precio de la reserva |
 | `payment.component.spec.ts` (frontend) | Con la mentoría a 120.000 y la reserva a 100.000, el botón dice *Pagar $ 100.000* |
@@ -83,7 +83,7 @@ paymentGatewayPort.createPaymentIntent(<reserva>, 120000, ...)
 - **HU-48:** la regla *"el pago coincide con el precio"* compara `payments.amount` con **`bookings.price`**, no con `offerings.price`.
 - **HU-44 / HU-50 (ingresos):** el precio de una reserva es `bookings.price`, incluso para las que todavía no se pagaron.
 - **HU-19 / HU-20:** editar el precio de una mentoría solo afecta a las reservas **nuevas**. Si alguna vez se quiere avisar al proveedor, esa es la regla que hay que explicarle.
-- **Antes de desplegar:** V12 no se detiene en ningún caso, pero si quieres ver cuántas reservas tomarán el precio actual de la mentoría por no estar pagadas:
+- **Antes de desplegar:** V11 no se detiene en ningún caso, pero si quieres ver cuántas reservas tomarán el precio actual de la mentoría por no estar pagadas:
 
   ```sql
   SELECT COUNT(id) FROM bookings b

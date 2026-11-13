@@ -39,7 +39,7 @@ guarda la reserva de A
 
 | Capa | Cambio |
 |---|---|
-| Base de datos (`V10__bookings_active_slot_unique.sql`) | `CREATE UNIQUE INDEX uq_bookings_active_slot ON bookings (offering_id, scheduled_at) WHERE status <> 'CANCELLED'`. Es parcial: una reserva cancelada no bloquea, igual que en BUG-07 |
+| Base de datos (`V9__bookings_active_slot_unique.sql`) | `CREATE UNIQUE INDEX uq_bookings_active_slot ON bookings (offering_id, scheduled_at) WHERE status <> 'CANCELLED'`. Es parcial: una reserva cancelada no bloquea, igual que en BUG-07 |
 | Servicio (`BookingService.create`) | `@Transactional`: la franja reservada y la reserva se guardan juntas o no se guarda ninguna |
 | Persistencia (`BookingPersistenceAdapter.save`) | `saveAndFlush` para que el índice falle en ese momento y no al confirmar la transacción. Si falla por `uq_bookings_active_slot`, lanza `SlotAlreadyTakenException`. Cualquier otro error de integridad se deja pasar igual |
 | Dominio | `SlotAlreadyTakenException`: "Este horario acaba de ser apartado por otro usuario. Elige otro horario." |

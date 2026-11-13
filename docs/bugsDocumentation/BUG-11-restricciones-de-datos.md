@@ -2,7 +2,7 @@
 
 Jira: [SCRUM-387](https://calborparra.atlassian.net/browse/SCRUM-387) · Relacionado: HU-37 (estados nuevos), HU-44, HU-46, HU-47, HU-49
 
-> **Respuesta corta:** desde V13 la base de datos ya no acepta datos imposibles. Las 3 mentorías de ejemplo de V1 pertenecen al proveedor de ejemplo `proveedor.demo@skillbridge.dev`, `offerings.provider_id` es obligatorio y `bookings.status` / `payments.status` solo admiten los estados que existen en el dominio.
+> **Respuesta corta:** desde V12 la base de datos ya no acepta datos imposibles. Las 3 mentorías de ejemplo de V1 pertenecen al proveedor de ejemplo `proveedor.demo@skillbridge.dev`, `offerings.provider_id` es obligatorio y `bookings.status` / `payments.status` solo admiten los estados que existen en el dominio.
 
 ## 1. Reporte
 
@@ -21,11 +21,11 @@ Jira: [SCRUM-387](https://calborparra.atlassian.net/browse/SCRUM-387) · Relacio
 
 **¿Afectaba a la aplicación?** No a los usuarios: el catálogo exige un proveedor con cuenta activa, así que esas mentorías no se veían, y nadie podía publicarles horarios. El problema está **en los datos**: tenían reservas de antes de que existieran los horarios (9 en la base local de desarrollo). En las métricas por proveedor (HU-44, HU-46, HU-47 y HU-49) esas reservas caían en un grupo **«sin proveedor»**. Y un error en el código o un `UPDATE` a mano podía dejar un estado inventado que ningún reporte sabría interpretar.
 
-## 3. Solución: `V13__data_constraints.sql`
+## 3. Solución: `V12__data_constraints.sql`
 
 | Parte | Cambio |
 |---|---|
-| Proveedor de las mentorías de ejemplo | Se asignan a `proveedor.demo@skillbridge.dev`, el proveedor de ejemplo que ya crea V5. Si alguien lo borró, se vuelve a crear **sin acceso**: su contraseña no es un hash BCrypt, así que nadie puede iniciar sesión con esa cuenta |
+| Proveedor de las mentorías de ejemplo | Se asignan a `proveedor.demo@skillbridge.dev`, el proveedor de ejemplo que ya crea V4. Si alguien lo borró, se vuelve a crear **sin acceso**: su contraseña no es un hash BCrypt, así que nadie puede iniciar sesión con esa cuenta |
 | Salvaguarda | Si ese correo existe pero no es `PROVIDER`, la migración se detiene con un mensaje claro en lugar de asignarle mentorías a otra cuenta |
 | `offerings.provider_id` | Pasa a `NOT NULL`. Desde HU-19 toda mentoría la crea un proveedor (`ProviderOfferingService`), así que no rompe nada |
 | `chk_bookings_status` | `CREATED`, `CONFIRMED`, `CANCELLED`, `COMPLETED` (`BookingStatus`) |
@@ -38,7 +38,7 @@ Jira: [SCRUM-387](https://calborparra.atlassian.net/browse/SCRUM-387) · Relacio
 
 ### 4.1 Test que demuestra el fallo antes de corregirlo
 
-`DataConstraintsMigrationTest` parte de una base vacía y aplica todas las migraciones (PostgreSQL 17 con Testcontainers). Antes de V13:
+`DataConstraintsMigrationTest` parte de una base vacía y aplica todas las migraciones (PostgreSQL 17 con Testcontainers). Antes de V12:
 
 ```text
 [ERROR] sampleOfferingsBelongToTheDemoProvider:83 [mentorías sin proveedor]
@@ -57,7 +57,7 @@ La base guardaba una reserva `PAGADA`, un pago `APROBADO` y una mentoría sin du
 | Prueba | Qué demuestra |
 |---|---|
 | `sampleOfferingsBelongToTheDemoProvider` | Ninguna mentoría queda sin proveedor y las 3 de ejemplo son de `proveedor.demo@skillbridge.dev` |
-| `theExistingDemoProviderFromV5IsReused` | Se usa la cuenta que creó V5; no se duplica |
+| `theExistingDemoProviderFromV4IsReused` | Se usa la cuenta que creó V4; no se duplica |
 | `ifTheDemoProviderWasDeleted_itIsRecreatedWithoutAccess` | Si la cuenta no existe, se crea sin una contraseña válida |
 | `anOfferingWithoutProviderIsRejected` | Insertar una mentoría sin `provider_id` falla |
 | `anInventedBookingStatusIsRejected` | Una reserva `PAGADA` falla |
@@ -69,7 +69,7 @@ La base guardaba una reserva `PAGADA`, un pago `APROBADO` y una mentoría sin du
 
 ## 5. Antes de desplegar
 
-V13 **se detiene** si producción tiene estados inventados (el `CHECK` no se puede crear) o si `proveedor.demo@skillbridge.dev` dejó de ser `PROVIDER`. Para saberlo antes, en Neon:
+V12 **se detiene** si producción tiene estados inventados (el `CHECK` no se puede crear) o si `proveedor.demo@skillbridge.dev` dejó de ser `PROVIDER`. Para saberlo antes, en Neon:
 
 ```sql
 SELECT 'bookings' AS tabla, status, COUNT(id) FROM bookings
@@ -81,7 +81,7 @@ WHERE status NOT IN ('PENDING','PAID','FAILED','CANCELED') GROUP BY status;
 SELECT email, role, status FROM app_users WHERE email = 'proveedor.demo@skillbridge.dev';
 ```
 
-Si la primera consulta no devuelve filas y la segunda muestra `PROVIDER`, V13 se aplica sin problemas.
+Si la primera consulta no devuelve filas y la segunda muestra `PROVIDER`, V12 se aplica sin problemas.
 
 ## 6. Para las siguientes historias
 

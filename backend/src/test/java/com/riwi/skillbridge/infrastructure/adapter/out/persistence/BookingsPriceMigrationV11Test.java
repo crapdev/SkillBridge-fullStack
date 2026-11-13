@@ -20,11 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * BUG-10: V12 agrega bookings.price y lo llena para las reservas que ya existían.
- * Aplica las migraciones hasta V11, siembra reservas como las que había antes del arreglo y después aplica V12.
+ * BUG-10: V11 agrega bookings.price y lo llena para las reservas que ya existían.
+ * Aplica las migraciones hasta V10, siembra reservas como las que había antes del arreglo y después aplica V11.
  */
 @Testcontainers
-class BookingsPriceMigrationV12Test {
+class BookingsPriceMigrationV11Test {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine")
@@ -45,7 +45,7 @@ class BookingsPriceMigrationV12Test {
             POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbc = new JdbcTemplate(ds);
         jdbc.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
-        flyway("11").migrate();
+        flyway("10").migrate();
 
         // El proveedor ya cambió el precio de la mentoría: hoy vale 120.000
         jdbc.update("UPDATE offerings SET price = ? WHERE id = ?", CURRENT_PRICE, OFFERING_ID);
@@ -89,7 +89,7 @@ class BookingsPriceMigrationV12Test {
         payment(onlyRejected, "100000", "FAILED");
         UUID neverPaid = booking("CREATED", 5);
 
-        flyway("12").migrate();
+        flyway("11").migrate();
 
         assertThat(priceOf(paidBefore)).as("lo que de verdad se cobró").isEqualByComparingTo("100000");
         assertThat(priceOf(onlyRejected)).isEqualByComparingTo(CURRENT_PRICE);
@@ -98,10 +98,10 @@ class BookingsPriceMigrationV12Test {
 
     @Test
     void afterTheMigrationEveryBookingMustHaveAPrice() {
-        flyway("12").migrate();
+        flyway("11").migrate();
 
         assertThatThrownBy(() -> booking("CREATED", 3))
-            .as("price es obligatorio desde V12")
+            .as("price es obligatorio desde V11")
             .isInstanceOf(DataIntegrityViolationException.class);
     }
 }

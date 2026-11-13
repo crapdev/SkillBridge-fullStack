@@ -59,7 +59,7 @@ Esto es obligatorio desde HU-29: la sesión es una cookie `SameSite=Strict` con 
 
    `PORT` lo pone Render; Spring lo lee con `server.port: ${PORT:8080}`.
 
-4. Deploy. Flyway aplica las migraciones al arrancar. Comprueba:
+4. Antes de publicar cambios de esquema, sigue la [verificación de migraciones Flyway](bugsDocumentation/BUG-13-secuencia-migraciones-flyway.md). Flyway aplica las migraciones al arrancar. Comprueba:
 
    ```text
    https://<backend>.onrender.com/actuator/health

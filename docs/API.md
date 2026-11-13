@@ -46,7 +46,7 @@ Permite a un cliente autenticado cancelar una reserva propia.
 
 ## Calificaciones (HU-27)
 
-Tabla `reviews` (migración `V20__reviews.sql`). Cada reserva se califica **una sola vez** y califica dos cosas:
+Tabla `reviews` (migración `V13__reviews.sql`). Cada reserva se califica **una sola vez** y califica dos cosas:
 la mentoría (`rating`, `comment`) y el mentor (`mentorRating`, `mentorComment`).
 
 ### Calificar una reserva

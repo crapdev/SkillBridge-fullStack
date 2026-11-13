@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * BUG-09: V11 limpia los pagos duplicados que ya existían antes de crear el índice único.
- * Aplica las migraciones hasta V10, siembra datos sucios como los que dejaba el bug y después aplica V11.
+ * BUG-09: V10 limpia los pagos duplicados que ya existían antes de crear el índice único.
+ * Aplica las migraciones hasta V9, siembra datos sucios como los que dejaba el bug y después aplica V10.
  */
 @Testcontainers
-class PaymentsMigrationV11Test {
+class PaymentsMigrationV10Test {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine")
@@ -42,7 +42,7 @@ class PaymentsMigrationV11Test {
             POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbc = new JdbcTemplate(ds);
         jdbc.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
-        flyway("10").migrate();
+        flyway("9").migrate();
 
         customerId = UUID.randomUUID();
         jdbc.update("INSERT INTO app_users (id, name, email, password, role) VALUES (?, ?, ?, ?, 'CUSTOMER')",
@@ -87,7 +87,7 @@ class PaymentsMigrationV11Test {
         payment(paid, "pi_pendiente_2", "PENDING", 10);
         payment(paid, "pi_rechazado", "FAILED", 5);
 
-        flyway("11").migrate();
+        flyway("10").migrate();
 
         // Los abandonados pasan a CANCELED: no fueron rechazos
         assertThat(statusOf("pi_viejo")).isEqualTo("CANCELED");
@@ -108,7 +108,7 @@ class PaymentsMigrationV11Test {
         payment(doubleCharged, "pi_pago_2", "PAID", 10);
 
         // Un cobro doble necesita revisión (y reembolso): la migración no decide cuál de los dos pagos vale
-        assertThatThrownBy(() -> flyway("11").migrate())
+        assertThatThrownBy(() -> flyway("10").migrate())
             .isInstanceOf(FlywayException.class)
             .hasMessageContaining("más de un pago PAID");
         assertThat(statusOf("pi_pago_1")).isEqualTo("PAID");

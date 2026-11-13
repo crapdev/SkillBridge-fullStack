@@ -32,7 +32,7 @@ POST /api/payments/intent  →  Stripe: crear PaymentIntent  →  INSERT payment
 
 | Capa | Cambio |
 |---|---|
-| Base de datos (`V11__payments_one_active_per_booking.sql`) | `CREATE UNIQUE INDEX uq_payments_active_booking ON payments (booking_id) WHERE status IN ('PENDING', 'PAID')`. Antes de crearlo, limpia los duplicados que ya existían (ver 3.2) |
+| Base de datos (`V10__payments_one_active_per_booking.sql`) | `CREATE UNIQUE INDEX uq_payments_active_booking ON payments (booking_id) WHERE status IN ('PENDING', 'PAID')`. Antes de crearlo, limpia los duplicados que ya existían (ver 3.2) |
 | Servicio (`CreatePaymentService`) | Antes de crear un cobro busca el pago activo de la reserva y decide qué hacer con él. Si no hay activo pero sí un intento `FAILED`, cancela su cobro en Stripe (ver 3.1) |
 | Pasarela (`PaymentGatewayPort` / `StripePaymentGatewayAdapter`) | Dos operaciones nuevas: `retrievePaymentIntent` (estado del cobro y su secreto para reutilizarlo) y `cancelPaymentIntent` (cancela un cobro que ya no se va a usar; devuelve `false` si ya se pagó) |
 | Persistencia (`PaymentPersistenceAdapter`) | `findActiveByBookingId` y `findLatestFailedByBookingId`. `save` usa `saveAndFlush` y, si falla por `uq_payments_active_booking`, lanza `ActivePaymentAlreadyExistsException` |
@@ -56,12 +56,12 @@ POST /api/payments/intent  →  Stripe: crear PaymentIntent  →  INSERT payment
 
 ### 3.2 Datos que ya existían
 
-El índice no se puede crear si ya hay duplicados. V11:
+El índice no se puede crear si ya hay duplicados. V10:
 
 1. **Se detiene** si alguna reserva tiene dos pagos `PAID`. Eso es un cobro doble: hay que revisarlo y reembolsar a mano. La migración no decide cuál de los dos vale.
 2. Deja **un pago activo por reserva**: el `PAID` si existe y, si no, el `PENDING` más reciente (el último que abrió el cliente). Los demás `PENDING` pasan a `CANCELED` (se abandonaron, no se rechazaron).
 
-- En la base local de desarrollo (revisada el 2026-11-10) había 4 pagos y **1 reserva con dos pagos activos** (el bug); ningún `PAID` doble, así que V11 la limpia sin detenerse.
+- En la base local de desarrollo (revisada el 2026-11-10) había 4 pagos y **1 reserva con dos pagos activos** (el bug); ningún `PAID` doble, así que V10 la limpia sin detenerse.
 - **Antes de desplegar en producción**, revisa los duplicados con:
 
   ```sql
@@ -70,7 +70,7 @@ El índice no se puede crear si ya hay duplicados. V11:
   GROUP BY booking_id HAVING COUNT(*) > 1;
   ```
 
-- Los PaymentIntent de los pagos que V11 pasa a `CANCELED` siguen abiertos en Stripe. Solo se podrían pagar desde una pestaña vieja que siga abierta, y en ese caso el webhook lo resuelve (3.3). Si se quieren cerrar, se pueden cancelar desde el panel de Stripe.
+- Los PaymentIntent de los pagos que V10 pasa a `CANCELED` siguen abiertos en Stripe. Solo se podrían pagar desde una pestaña vieja que siga abierta, y en ese caso el webhook lo resuelve (3.3). Si se quieren cerrar, se pueden cancelar desde el panel de Stripe.
 
 ### 3.3 El webhook con el índice nuevo
 
@@ -88,7 +88,7 @@ Con la cancelación del cobro `FAILED` (3.1), este caso queda casi cerrado: al a
 | Estado | Qué significa | Quién lo pone |
 |---|---|---|
 | `FAILED` | La pasarela **rechazó** el pago (tarjeta sin fondos, datos inválidos) | El webhook `payment_intent.payment_failed` o `syncPayment` |
-| `CANCELED` | El cobro **se reemplazó o se abandonó**: el cliente abrió otro, cambió el precio, Stripe lo canceló o pagó otro intento | `CreatePaymentService`, el webhook de un pago exitoso (3.3) y V11 al limpiar duplicados |
+| `CANCELED` | El cobro **se reemplazó o se abandonó**: el cliente abrió otro, cambió el precio, Stripe lo canceló o pagó otro intento | `CreatePaymentService`, el webhook de un pago exitoso (3.3) y V10 al limpiar duplicados |
 
 Así un reporte de *pagos rechazados* cuenta solo los rechazos reales. Ninguno de los dos cuenta para el índice único. La base no restringe los valores de `status` (`VARCHAR`), así que el estado nuevo no necesita migración. El contrato de datos (`schemas.py`), los fixtures y `DATA-PIPELINE.md` se actualizaron en este mismo PR.
 
@@ -124,7 +124,7 @@ El caso adicional (*después de un pago FAILED, volver a pagar funciona*) ya pas
 |---|---|
 | `CreatePaymentSinglePaymentTest` (8) | Abrir el pago dos veces deja 1 registro y el mismo secreto; reintentar tras `FAILED` crea uno nuevo y **cancela el cobro rechazado**; si ese cobro se está pagando desde la pestaña vieja, no se crea otro; si cambió el precio el viejo queda `CANCELED`; si Stripe lo canceló queda `CANCELED` y se crea otro; si Stripe ya cobró o la reserva está `PAID` no se cobra otra vez; en una carrera, el perdedor cancela su cobro y usa el del ganador |
 | `PaymentOneActivePerBookingIntegrationTest` (5, PostgreSQL real) | Abrir el pago 3 veces deja 1 fila `PENDING`; la base rechaza un segundo `PENDING` y un segundo `PAID`; los `FAILED` no bloquean el reintento y se cancela el cobro del último; **5 peticiones simultáneas** (con `CyclicBarrier` para forzar la carrera) dejan 1 pago, las 5 reciben el mismo secreto y se cancelan los otros 4 cobros |
-| `PaymentsMigrationV11Test` (2) | V11 deja el `PAID` o el `PENDING` más reciente y pasa el resto a `CANCELED` (un `FAILED` que ya existía se queda como está); con un cobro doble (`PAID` + `PAID`) se detiene sin tocar los datos |
+| `PaymentsMigrationV10Test` (2) | V10 deja el `PAID` o el `PENDING` más reciente y pasa el resto a `CANCELED` (un `FAILED` que ya existía se queda como está); con un cobro doble (`PAID` + `PAID`) se detiene sin tocar los datos |
 | `ProcessPaymentServiceTest` (+4) | El webhook de un intento viejo pasa el pendiente a `CANCELED` y registra el pago; un rechazo que llega tarde para un pago `CANCELED` se ignora; un segundo cobro de una reserva ya pagada no se guarda como otro `PAID` |
 | `StripePaymentGatewayAdapterTest` (+1) | Traducción de los estados de Stripe a `IntentState` |
 | `payment.component.spec.ts` (frontend, 3) | Un formulario cuyo cobro se canceló muestra el aviso y el botón para recargar, que vuelve a pedir el cobro; si ya se pagó en otra pestaña, se sincroniza y se informa; un rechazo de tarjeta sigue mostrando el mensaje de Stripe |

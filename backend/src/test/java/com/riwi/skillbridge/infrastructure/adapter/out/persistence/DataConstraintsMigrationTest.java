@@ -88,8 +88,8 @@ class DataConstraintsMigrationTest {
     }
 
     @Test
-    void theExistingDemoProviderFromV5IsReused() {
-        flyway("12").migrate();
+    void theExistingDemoProviderFromV4IsReused() {
+        flyway("11").migrate();
         UUID demoId = jdbc.queryForObject("SELECT id FROM app_users WHERE email = ?", UUID.class, DEMO_PROVIDER);
 
         flyway("latest").migrate();
@@ -102,7 +102,7 @@ class DataConstraintsMigrationTest {
 
     @Test
     void ifTheDemoProviderWasDeleted_itIsRecreatedWithoutAccess() {
-        flyway("12").migrate();
+        flyway("11").migrate();
         jdbc.update("DELETE FROM app_users WHERE email = ?", DEMO_PROVIDER);
 
         flyway("latest").migrate();
