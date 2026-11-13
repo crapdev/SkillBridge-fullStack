@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailModule } from '../email/email.module';
 import { AppUser } from './entities/app-user.entity';
 import { PendingRegistration } from './entities/pending-registration.entity';
 import { VerificationResendRequest } from './entities/verification-resend-request.entity';
 import { RegistrationController } from './registration.controller';
 import { RegistrationService } from './registration.service';
-import { StubVerificationMailer } from './stub-verification-mailer.adapter';
+import { VerificationMailer } from './verification.mailer';
 import { VerificationMailerPort } from './verification-mailer.port';
+import { VerificationSupportController } from './verification-support.controller';
+import { VerificationSupportService } from './verification-support.service';
 
 @Module({
   imports: [
@@ -16,14 +19,16 @@ import { VerificationMailerPort } from './verification-mailer.port';
       VerificationResendRequest,
       AppUser
     ]),
-    ConfigModule
+    ConfigModule,
+    EmailModule
   ],
-  controllers: [RegistrationController],
+  controllers: [RegistrationController, VerificationSupportController],
   providers: [
     RegistrationService,
+    VerificationSupportService,
     {
       provide: VerificationMailerPort,
-      useClass: StubVerificationMailer
+      useClass: VerificationMailer
     }
   ],
   exports: [TypeOrmModule, VerificationMailerPort, RegistrationService]
