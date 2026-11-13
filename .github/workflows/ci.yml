@@ -84,6 +84,30 @@ jobs:
           grep -q 'src="env.js"' src/index.html || { echo "::error::src/index.html no carga env.js"; exit 1; }
 
 
+  email-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: email-service  # los comandos corren dentro de email-service/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm ci --no-audit --no-fund                      # instala versiones exactas de package-lock.json
+
+      - name: Build
+        run: npm run build                                    # compila TypeScript con nest build (falla si hay errores de tipos)
+
+      - name: Test
+        run: npm test -- --passWithNoTests                    # corre Jest; no falla mientras aún no haya tests
+
+
   data:
     runs-on: ubuntu-latest
     defaults:
