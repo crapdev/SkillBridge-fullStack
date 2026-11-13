@@ -28,7 +28,7 @@ import { VerificationModule } from './modules/verification/verification.module';
         FRONTEND_URL: Joi.string().uri().default('http://localhost:4200'),
         DATABASE_URL: Joi.string().default('postgres://skillbridge:skillbridge_dev@localhost:5432/skillbridge'),
         DATABASE_SSL: Joi.string().valid('true', 'false').default('false'),
-        JWT_SECRET: Joi.string().default('404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970'),
+        JWT_SECRET: Joi.string().required(), // sin valor por defecto: el de desarrollo está en el repo y no debe firmar cookies en producción
         JWT_EXPIRATION: Joi.number().default(28800000),
         AUTH_COOKIE_SECURE: Joi.string().valid('true', 'false').default('false')
       })
