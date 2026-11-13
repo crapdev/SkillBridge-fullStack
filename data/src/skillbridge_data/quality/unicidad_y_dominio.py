@@ -38,7 +38,7 @@ def ids_duplicados(df: DataFrame) -> DataFrame:
 
 
 def estados_invalidos(bookings: DataFrame) -> DataFrame:
-    """Identifica reservas con estados no permitidos.
+    """Identifica reservas con estados no permitidos o nulos.
 
     Estados permitidos definidos en schemas.BOOKING_STATUSES:
         'CREATED', 'CONFIRMED', 'CANCELLED', 'COMPLETED'
@@ -47,12 +47,14 @@ def estados_invalidos(bookings: DataFrame) -> DataFrame:
         bookings: DataFrame de reservas (debe tener columna 'status')
     
     Retorna:
-        DataFrame con las filas cuyo status no está en el dominio permitido.
+        DataFrame con las filas cuyo status no está en el dominio permitido o es nulo.
     """
     # Convertir la tupla a lista para que Spark la acepte en isin()
     estados_permitidos = list(BOOKING_STATUSES)
     
-    # Filtrar filas donde status no está en los estados permitidos
+    # Filtrar filas donde:
+    # 1. status no está en los estados permitidos, O
+    # 2. status es nulo
     return bookings.where(
-        ~F.col("status").isin(estados_permitidos)
+        (~F.col("status").isin(estados_permitidos)) | (F.col("status").isNull())
     )

@@ -51,11 +51,12 @@ def test_detecta_id_duplicado(tables):
 @pytest.mark.quality
 def test_detecta_estado_invalido(tables):
     """Comprobar que estados_invalidos detecta un estado no permitido inyectado."""
-    # Crear un defecto en memoria: cambiar el estado de la reserva ...0002 a "PAGADA"
+    # Crear un defecto en memoria: cambiar el estado de la reserva c0000000-0000-0000-0000-000000000002 a "PAGADA"
+    uuid_completo = "c0000000-0000-0000-0000-000000000002"
     con_defecto = tables["bookings"].withColumn(
         "status",
         F.when(
-            F.col("id").endswith("0002"),
+            F.col("id") == uuid_completo,
             F.lit("PAGADA")  # Estado no permitido (no está en BOOKING_STATUSES)
         ).otherwise(F.col("status"))
     )
@@ -65,5 +66,26 @@ def test_detecta_estado_invalido(tables):
     
     # Verificar que detecta la fila dañada
     assert invalidos.count() == 1
-    assert invalidos.first()["id"].endswith("0002")
+    assert invalidos.first()["id"] == uuid_completo
     assert invalidos.first()["status"] == "PAGADA"
+
+
+@pytest.mark.quality
+def test_detecta_estado_nulo(tables):
+    """Comprobar que estados_invalidos detecta una reserva con status nulo."""
+    # Crear un defecto en memoria: establecer status nulo para la reserva c0000000-0000-0000-0000-000000000003
+    uuid_completo = "c0000000-0000-0000-0000-000000000003"
+    con_defecto = tables["bookings"].withColumn(
+        "status",
+        F.when(
+            F.col("id") == uuid_completo,
+            F.lit(None)  # Estado nulo
+        ).otherwise(F.col("status"))
+    )
+    
+    # Ejecutar la regla
+    invalidos = estados_invalidos(con_defecto)
+    
+    # Verificar que detecta la fila con status nulo
+    assert invalidos.count() == 1
+    assert invalidos.first()["id"] == uuid_completo
