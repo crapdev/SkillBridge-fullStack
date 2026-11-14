@@ -28,7 +28,11 @@ import { HealthModule } from './modules/health/health.module';
         MAILPIT_HOST: Joi.string().default('localhost'),
         MAILPIT_PORT: Joi.number().default(1025),
         BREVO_API_KEY: Joi.string().allow('').optional(),
-        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200')
+        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200'),
+        // Contexto de reservas (endpoint interno de Java, pendiente). Sin URL el consumidor no arranca.
+        BOOKING_CONTEXT_URL: Joi.string().uri({ scheme: ['http', 'https'] }).allow('').optional(),
+        INTERNAL_API_TOKEN: Joi.string().allow('').optional(),
+        BOOKING_CONTEXT_TIMEOUT_MS: Joi.number().integer().min(100).default(5000)
       })
     }),
     EmailModule,
