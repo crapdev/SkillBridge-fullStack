@@ -32,7 +32,11 @@ import { HealthModule } from './modules/health/health.module';
         // Contexto de reservas (endpoint interno de Java, pendiente). Sin URL el consumidor no arranca.
         BOOKING_CONTEXT_URL: Joi.string().uri({ scheme: ['http', 'https'] }).allow('').optional(),
         INTERNAL_API_TOKEN: Joi.string().allow('').optional(),
-        BOOKING_CONTEXT_TIMEOUT_MS: Joi.number().integer().min(100).default(5000)
+        BOOKING_CONTEXT_TIMEOUT_MS: Joi.number().integer().min(100).default(5000),
+        DATABASE_URL: Joi.string().default('postgres://skillbridge:skillbridge_dev@localhost:5432/skillbridge'),
+        DATABASE_SSL: Joi.string().valid('true', 'false').default('false'),
+        // Tiempo que un envío queda reservado (PROCESSING) antes de que otro intento pueda retomarlo
+        BOOKING_EMAIL_LEASE_SECONDS: Joi.number().integer().min(10).default(120)
       })
     }),
     EmailModule,
