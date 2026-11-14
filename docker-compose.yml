@@ -38,6 +38,8 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
+      # AMQP solo en localhost: el email-service ejecutado fuera de Docker (npm run start:dev) se conecta aquí
+      - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]

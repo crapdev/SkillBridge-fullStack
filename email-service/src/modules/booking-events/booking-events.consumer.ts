@@ -56,6 +56,7 @@ export class BookingEventsConsumer implements OnApplicationBootstrap, OnModuleDe
       setup: async (ch: Channel) => {
         this.generation++;
         await setupBookingEmailTopology(ch, this.cfg);
+        this.logger.log(`Topología declarada; consumiendo ${this.cfg.queue}`);
       }
     });
     const { consumerTag } = await this.channel.consume(this.cfg.queue, (msg) => this.onMessage(msg), {
@@ -63,7 +64,8 @@ export class BookingEventsConsumer implements OnApplicationBootstrap, OnModuleDe
       prefetch: this.cfg.prefetch
     });
     this.consumerTag = consumerTag;
-    this.logger.log(`Consumiendo ${this.cfg.queue} (prefetch=${this.cfg.prefetch}, intentos=${this.cfg.maxAttempts})`);
+    // consume() solo registra el consumidor: empieza a recibir cuando la conexión está lista (y tras cada reconexión)
+    this.logger.log(`Consumidor registrado en ${this.cfg.queue} (prefetch=${this.cfg.prefetch}, intentos=${this.cfg.maxAttempts})`);
   }
 
   async onModuleDestroy(): Promise<void> {
