@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
+import { DatabaseModule } from './database/database.module';
 import { EmailModule } from './modules/email/email.module';
 import { BookingEventsModule } from './modules/booking-events/booking-events.module';
 import { HealthModule } from './modules/health/health.module';
@@ -39,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
         BOOKING_EMAIL_LEASE_SECONDS: Joi.number().integer().min(10).default(120)
       })
     }),
+    DatabaseModule,
     EmailModule,
     BookingEventsModule,
     HealthModule
