@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { LoginComponent } from './features/login/login.component';
+import { VerifyEmailComponent } from './features/verify-email/verify-email.component';
 import { AiComponent } from './features/ai/ai.component';
 import { BookingComponent } from './features/booking/booking.component';
 import { MyBookingsComponent } from './features/my-bookings/my-bookings.component';
@@ -17,6 +18,8 @@ const title = 'SkillBridge AI';
 export const routes: Routes = [
   { path: '', component: HomeComponent, title },
   { path: 'login', component: LoginComponent, canActivate: [guestGuard], title },
+  // Destino del enlace del correo de verificación (HU #39): solo para quien aún no tiene sesión
+  { path: 'verificar-correo', component: VerifyEmailComponent, canActivate: [guestGuard], title },
   { path: 'servicios', component: ServicesComponent, title },
   { path: 'services/:id', component: ServiceDetailComponent, title },
   { path: 'sobre-nosotros', component: AboutComponent, title },

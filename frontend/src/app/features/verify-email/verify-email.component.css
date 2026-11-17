@@ -1,0 +1,6 @@
+/* La base viene de login.component.css; aquí solo lo propio de esta pantalla */
+
+/* El spinner del login es blanco porque va dentro del botón; sobre la tarjeta blanca se usa en azul */
+.spinner--dark { width: 32px; height: 32px; border-width: 3px; border-color: #dbeafe; border-top-color: var(--primary); }
+
+.verify-notice { margin: 0; padding: 12px 14px; border-radius: 6px; background: #eff6ff; color: #1e40af; font-size: .9rem; line-height: 1.5; }

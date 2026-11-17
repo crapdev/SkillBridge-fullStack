@@ -11,7 +11,9 @@ RUN npm run build
 
 FROM nginx:stable-alpine
 ENV BACKEND_URL=http://backend:8080
-ENV NGINX_ENVSUBST_FILTER=BACKEND_URL
+ENV EMAIL_SERVICE_URL=http://email-service:3000
+# Solo se sustituyen estas variables en la plantilla; las de nginx ($host, $email_service...) se respetan
+ENV NGINX_ENVSUBST_FILTER=BACKEND_URL|EMAIL_SERVICE_URL
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist/skillbridge-ai/browser /usr/share/nginx/html
 EXPOSE 80
