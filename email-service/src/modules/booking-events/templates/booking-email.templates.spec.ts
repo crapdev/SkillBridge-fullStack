@@ -1,5 +1,5 @@
 import { BookingEmailData, hasBookingTemplate, renderBookingEmail } from './booking-email.templates';
-import { formatCop, maskEmail } from './template-helpers';
+import { formatCop, maskEmail } from '../../email/templates/template-helpers';
 
 const data = (overrides: Partial<BookingEmailData> = {}): BookingEmailData => ({
   recipientName: 'Ana',
