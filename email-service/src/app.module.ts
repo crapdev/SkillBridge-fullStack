@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import * as Joi from 'joi';
-import { EmailModule } from './modules/email/email.module';
+import { DatabaseModule } from './database/database.module';
 import { BookingEventsModule } from './modules/booking-events/booking-events.module';
+import { EmailModule } from './modules/email/email.module';
 import { HealthModule } from './modules/health/health.module';
+import { VerificationModule } from './modules/verification/verification.module';
 
 @Module({
   imports: [
@@ -19,13 +21,20 @@ import { HealthModule } from './modules/health/health.module';
         RABBITMQ_EMAIL_QUEUE: Joi.string().default('booking.emails.queue'),
         RABBITMQ_EMAIL_DLQ: Joi.string().default('booking.emails.dlq'),
         MAIL_PROVIDER: Joi.string().valid('fake', 'mailpit', 'brevo').default('fake'),
-        MAIL_FROM: Joi.string().email().default('no-reply@skillbridge.local'),
+        MAIL_FROM: Joi.string().email({ tlds: false }).default('no-reply@skillbridge.local'),
         MAILPIT_HOST: Joi.string().default('localhost'),
         MAILPIT_PORT: Joi.number().default(1025),
         BREVO_API_KEY: Joi.string().allow('').optional(),
-        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200')
+        FRONTEND_URL: Joi.string().uri().default('http://localhost:4200'),
+        DATABASE_URL: Joi.string().default('postgres://skillbridge:skillbridge_dev@localhost:5432/skillbridge'),
+        DATABASE_SSL: Joi.string().valid('true', 'false').default('false'),
+        JWT_SECRET: Joi.string().required(), // sin valor por defecto: el de desarrollo está en el repo y no debe firmar cookies en producción
+        JWT_EXPIRATION: Joi.number().default(28800000),
+        AUTH_COOKIE_SECURE: Joi.string().valid('true', 'false').default('false')
       })
     }),
+    DatabaseModule,
+    VerificationModule,
     EmailModule,
     BookingEventsModule,
     HealthModule

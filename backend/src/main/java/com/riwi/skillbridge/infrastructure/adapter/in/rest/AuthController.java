@@ -1,14 +1,19 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest;
 
 import com.riwi.skillbridge.application.port.in.AuthUseCase;
-import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.*;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.LoginRequest;
+import com.riwi.skillbridge.infrastructure.adapter.in.rest.dto.SessionUserResponse;
 import com.riwi.skillbridge.infrastructure.security.AuthCookies;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,21 +24,6 @@ public class AuthController {
     public AuthController(AuthUseCase auth, AuthCookies cookies) {
         this.auth = auth;
         this.cookies = cookies;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<SessionUserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        String token = auth.register(request.name(), request.email(), request.password());
-        return session(HttpStatus.CREATED, token, request.email());
-    }
-
-    // 202: la solicitud queda registrada pero la cuenta no se puede usar hasta que un admin la apruebe
-    @PostMapping("/register/provider")
-    @ResponseStatus(HttpStatus.ACCEPTED)
-    public ProviderRegistrationResponse registerProvider(@Valid @RequestBody RegisterRequest request) {
-        auth.registerProvider(request.name(), request.email(), request.password());
-        return new ProviderRegistrationResponse("PENDING_APPROVAL",
-                "Tu solicitud fue enviada. Podrás iniciar sesión cuando un administrador apruebe tu cuenta.");
     }
 
     @PostMapping("/login")
