@@ -78,7 +78,7 @@
     } @else {
       <div class="services-grid">
         @for (offering of offerings.slice(0, previewSize); track offering.id) {
-          <app-service-card [offering]="offering" appReveal [revealDelay]="$index * 100" />
+          <app-service-card [offering]="offering" [rating]="ratings.get(offering.id)" appReveal [revealDelay]="$index * 100" />
         }
       </div>
     }

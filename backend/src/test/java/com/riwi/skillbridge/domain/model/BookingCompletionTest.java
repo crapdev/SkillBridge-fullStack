@@ -20,7 +20,7 @@ class BookingCompletionTest {
     private static final int DURATION = 60;
 
     private static Booking booking(BookingStatus status) {
-        return new Booking(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), SCHEDULED_AT, status);
+        return new Booking(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), SCHEDULED_AT, status, new java.math.BigDecimal("85000"));
     }
 
     private static Instant at(String instant) {

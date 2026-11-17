@@ -36,6 +36,14 @@ public class GlobalExceptionHandler {
         return p;
     }
 
+    // HU-27: la reserva ya tiene calificación; 409 para que el frontend la muestre como ya calificada
+    @ExceptionHandler(com.riwi.skillbridge.domain.exception.ReviewAlreadyExistsException.class)
+    ProblemDetail reviewAlreadyExists(com.riwi.skillbridge.domain.exception.ReviewAlreadyExistsException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        p.setTitle("Review already exists");
+        return p;
+    }
+
     // Cuota agotada → 429 para que el cliente espere; configuración o caída → 503
     @ExceptionHandler(AiProviderException.class)
     ProblemDetail aiProvider(AiProviderException ex) {

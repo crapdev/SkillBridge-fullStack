@@ -54,7 +54,7 @@ class PaymentCreatedAtTest {
         jdbc.update("INSERT INTO app_users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)",
             customerId, "Tester", "tester-fecha@test.com", "hash", "CUSTOMER");
         UUID bookingId = UUID.randomUUID();
-        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, ?, ?)",
+        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status, price) VALUES (?, ?, ?, ?, ?, 85000)",
             bookingId, OFFERING_ID, customerId, Timestamp.from(PAGO_NOCTURNO.plusSeconds(86400)), "CREATED");
 
         adapter.save(new Payment(null, bookingId, new BigDecimal("85000"), "COP",

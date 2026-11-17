@@ -33,7 +33,7 @@ class RecordBookingNotificationServiceTest {
     private final UUID bookingId = UUID.randomUUID();
     // 2030-10-10 15:00 UTC = jueves 10 de octubre a las 10:00 en Colombia
     private final Booking booking = new Booking(bookingId, offeringId, customerId,
-            Instant.parse("2030-10-10T15:00:00Z"), BookingStatus.CREATED);
+            Instant.parse("2030-10-10T15:00:00Z"), BookingStatus.CREATED, new java.math.BigDecimal("85000"));
     // "Ahora" fijo: 19/10/2026 23:30 en Colombia
     private static final Instant NOW = Instant.parse("2026-10-20T04:30:00Z");
     private final BusinessTime businessTime =

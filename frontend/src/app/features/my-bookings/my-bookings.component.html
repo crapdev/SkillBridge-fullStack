@@ -125,7 +125,25 @@
                     } @else if (tooLateToCancel(b)) {
                       <span class="item__note">Ya no se puede cancelar (menos de 24 h)</span>
                     }
+                    <!-- HU-27: calificar una reserva completada, una sola vez -->
+                    @if (reviewOf(b); as r) {
+                      <span class="rated" [title]="'Mentoría ' + r.rating + '/5 · Mentor ' + r.mentorRating + '/5'">
+                        <span class="rated__stars" aria-hidden="true">{{ stars(r.rating) }}</span>
+                        <span>Calificada</span>
+                      </span>
+                    } @else if (canReview(b) && reviewing() !== b.id) {
+                      <button type="button" class="rate" (click)="openReview(b)">
+                        <span aria-hidden="true">★</span> Calificar
+                      </button>
+                    }
                   </div>
+
+                  @if (reviewing() === b.id) {
+                    <div class="item__review">
+                      <app-review-form [bookingId]="b.id" (saved)="onReviewSaved($event)"
+                                       (cancelled)="closeReview()" (alreadyRated)="onAlreadyRated()" />
+                    </div>
+                  }
                 </li>
               }
             </ul>

@@ -1,11 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Offering, OfferingService } from '../../core/offering.service';
+import { RatingSummary, ReviewService } from '../../core/review.service';
 import { RevealDirective } from '../../shared/reveal.directive';
 import { ServiceCardComponent } from '../../shared/service-card/service-card.component';
 
 const PAGE_SIZE = 6;
-const SORT_OPTIONS = ['relevancia', 'precio-asc', 'precio-desc'] as const;
+const SORT_OPTIONS = ['relevancia', 'mejor-calificadas', 'precio-asc', 'precio-desc'] as const;
 type SortOption = typeof SORT_OPTIONS[number];
 type LoadStatus = 'loading' | 'ready' | 'error';
 
@@ -20,12 +21,15 @@ const normalize = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036
 })
 export class ServicesComponent {
   private readonly offeringService = inject(OfferingService);
+  private readonly reviewService = inject(ReviewService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
   readonly skeletons = [1, 2, 3, 4, 5, 6];
   readonly status = signal<LoadStatus>('loading');
   readonly offerings = signal<Offering[]>([]);
+  // HU-27: promedio por mentoría; si la consulta falla, las tarjetas se muestran sin calificación
+  readonly ratings = signal(new Map<string, RatingSummary>());
 
   // Los filtros viven en la URL (?q=&categoria=&orden=&pagina=) para poder compartir o recargar la búsqueda
   readonly query = signal(this.route.snapshot.queryParamMap.get('q') ?? '');
@@ -46,6 +50,12 @@ export class ServicesComponent {
       (!cat || o.category === cat) &&
       (!q || normalize(`${o.title} ${o.description} ${o.category}`).includes(q)));
 
+    if (this.sort() === 'mejor-calificadas') {
+      // Mejor promedio primero; a igual promedio, la que tiene más calificaciones. Las que no tienen van al final
+      const score = (o: Offering) => this.ratings().get(o.id);
+      return [...list].sort((a, b) =>
+        (score(b)?.average ?? -1) - (score(a)?.average ?? -1) || (score(b)?.count ?? 0) - (score(a)?.count ?? 0));
+    }
     if (this.sort() === 'precio-asc') return [...list].sort((a, b) => a.price - b.price);
     if (this.sort() === 'precio-desc') return [...list].sort((a, b) => b.price - a.price);
     return list;
@@ -94,10 +104,21 @@ export class ServicesComponent {
     this.status.set('loading');
     this.offeringService.list().subscribe({
       next: list => {
-        this.offerings.set(list.filter(o => o.active));
+        const visible = list.filter(o => o.active);
+        this.offerings.set(visible);
         this.status.set('ready');
+        this.loadRatings(visible.map(o => o.id));
       },
       error: () => this.status.set('error')
+    });
+  }
+
+  ratingOf(offering: Offering): RatingSummary | undefined { return this.ratings().get(offering.id); }
+
+  private loadRatings(ids: string[]): void {
+    this.reviewService.ratings(ids).subscribe({
+      next: list => this.ratings.set(new Map(list.map(r => [r.offeringId, r]))),
+      error: () => this.ratings.set(new Map())
     });
   }
 

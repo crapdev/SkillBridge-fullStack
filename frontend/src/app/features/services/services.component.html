@@ -36,6 +36,7 @@
         <span>Ordenar</span>
         <select [value]="sort()" (change)="setSort($any($event.target).value)">
           <option value="relevancia">Relevancia</option>
+          <option value="mejor-calificadas">Mejor calificadas</option>
           <option value="precio-asc">Precio: menor a mayor</option>
           <option value="precio-desc">Precio: mayor a menor</option>
         </select>
@@ -87,7 +88,7 @@
     @if (filtered().length) {
     <div class="grid">
       @for (offering of paginatedOfferings(); track offering.id; let i = $index) {
-      <app-service-card [offering]="offering" appReveal [revealDelay]="(i % 6) * 60" />
+      <app-service-card [offering]="offering" [rating]="ratingOf(offering)" appReveal [revealDelay]="(i % 6) * 60" />
       }
     </div>
 

@@ -15,7 +15,8 @@ describe('ProviderDashboardComponent', () => {
   const stats: ProviderStats = {
     offerings: { total: 3, approved: 1, pendingReview: 1, rejected: 1, approvedWithoutFreeSlots: 1 },
     slots: { upcomingFree: 4, upcomingReserved: 2 },
-    bookings: { total: 5, upcoming: 2, pendingPayment: 1, confirmed: 1, completed: 3, cancelled: 0 }
+    bookings: { total: 5, upcoming: 2, pendingPayment: 1, confirmed: 1, completed: 3, cancelled: 0 },
+    rating: { average: 4.7, count: 3 }
   };
   const base = {
     description: 'Spring Boot', category: 'BACKEND', price: 85000, active: true,
@@ -39,8 +40,8 @@ describe('ProviderDashboardComponent', () => {
 
   afterEach(() => http.verify());
 
-  const flush = (offerings: Offering[] = [approved, pending, rejected]) => {
-    http.expectOne('/api/provider/stats').flush(stats);
+  const flush = (offerings: Offering[] = [approved, pending, rejected], current: ProviderStats = stats) => {
+    http.expectOne('/api/provider/stats').flush(current);
     http.expectOne('/api/provider/offerings').flush(offerings);
     fixture.detectChanges();
   };
@@ -49,7 +50,7 @@ describe('ProviderDashboardComponent', () => {
   it('muestra los indicadores de mentorías, horarios y reservas', () => {
     flush();
     const values = Array.from(el.querySelectorAll('.adm-kpi__value')).map(v => v.textContent?.trim());
-    expect(values).toEqual(['3', '4', '2', '2']);
+    expect(values).toEqual(['3', '4', '2', '2', '4,7 / 5']);
     expect(text('.adm-kpis')).toContain('1 aprobadas · 1 en revisión · 1 rechazadas');
   });
 
@@ -84,5 +85,18 @@ describe('ProviderDashboardComponent', () => {
     (el.querySelector('[role=alert] button') as HTMLButtonElement).click();
     flush();
     expect(el.querySelector('[role=alert]')).toBeNull();
+  });
+
+  // ---- HU-27 (SCRUM-209/210): calificación promedio como mentor ----
+
+  it('muestra su calificación promedio como mentor', () => {
+    flush();
+    expect(text('.adm-kpis')).toContain('Tu calificación');
+    expect(text('.adm-kpis')).toContain('Promedio de 3 calificaciones como mentor');
+  });
+
+  it('sin calificaciones explica que los clientes califican al completar la sesión', () => {
+    flush(undefined, { ...stats, rating: { average: null, count: 0 } });
+    expect(text('.adm-kpis')).toContain('Aún no tienes calificaciones');
   });
 });

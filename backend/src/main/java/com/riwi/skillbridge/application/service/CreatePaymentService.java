@@ -2,7 +2,6 @@ package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.in.CreatePaymentUseCase;
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
-import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
@@ -11,7 +10,6 @@ import com.riwi.skillbridge.domain.exception.BusinessRuleException;
 import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.Booking;
-import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.domain.model.Payment;
 import com.riwi.skillbridge.domain.model.PaymentStatus;
 import org.springframework.stereotype.Service;
@@ -29,20 +27,17 @@ public class CreatePaymentService implements CreatePaymentUseCase {
     private final PaymentPort paymentPort;
     private final PaymentGatewayPort paymentGateway;
     private final BookingRepositoryPort bookingRepositoryPort;
-    private final OfferingRepositoryPort offeringRepositoryPort;
     private final UserAccountPort userAccountPort;
     private final Clock clock;
 
     public CreatePaymentService(PaymentPort paymentPort,
                                 PaymentGatewayPort paymentGateway,
                                 BookingRepositoryPort bookingRepositoryPort,
-                                OfferingRepositoryPort offeringRepositoryPort,
                                 UserAccountPort userAccountPort,
                                 Clock clock) {
         this.paymentPort = paymentPort;
         this.paymentGateway = paymentGateway;
         this.bookingRepositoryPort = bookingRepositoryPort;
-        this.offeringRepositoryPort = offeringRepositoryPort;
         this.userAccountPort = userAccountPort;
         this.clock = clock;
     }
@@ -64,14 +59,11 @@ public class CreatePaymentService implements CreatePaymentUseCase {
             throw new BusinessRuleException("Esta reserva ya no está pendiente de pago");
         }
 
-        // 2. Buscamos la mentoría (Offering) usando el ID que venía en la reserva
-        Offering offering = offeringRepositoryPort.findById(booking.offeringId())
-            .orElseThrow(() -> new DomainNotFoundException("Mentoría no encontrada"));
+        // 2. BUG-10: se cobra el precio guardado al reservar, no el precio actual de la mentoría (el proveedor
+        //    puede editarlo después). Nunca sale del cliente.
+        BigDecimal amount = booking.price();
 
-        // 3. El precio sale del catálogo, nunca del cliente
-        BigDecimal amount = offering.price();
-
-        // 4. BUG-09: si la reserva ya tiene un pago en curso, se reutiliza en lugar de crear otro
+        // 3. BUG-09: si la reserva ya tiene un pago en curso, se reutiliza en lugar de crear otro
         Optional<Payment> active = paymentPort.findActiveByBookingId(bookingId);
         if (active.isPresent()) {
             Optional<String> reused = reuseOrRelease(active.get(), amount);
@@ -85,10 +77,10 @@ public class CreatePaymentService implements CreatePaymentUseCase {
             paymentPort.findLatestFailedByBookingId(bookingId).ifPresent(this::cancelRejectedCharge);
         }
 
-        // 5. Le pedimos a la pasarela que prepare el cobro
+        // 4. Le pedimos a la pasarela que prepare el cobro
         PaymentGatewayPort.PaymentIntent intent = paymentGateway.createPaymentIntent(bookingId, amount, CURRENCY);
 
-        // 6. Guardamos el registro "PENDING"; el webhook lo marcará como pagado o fallido
+        // 5. Guardamos el registro "PENDING"; el webhook lo marcará como pagado o fallido
         try {
             paymentPort.save(new Payment(
                 null,
@@ -142,7 +134,8 @@ public class CreatePaymentService implements CreatePaymentUseCase {
                 if (payment.amount().compareTo(amount) == 0) {
                     return Optional.of(existing.intent().clientSecret());
                 }
-                // El precio cambió desde que se abrió el pago: no se reutiliza un cobro por otro monto
+                // El monto del cobro abierto no coincide con el precio de la reserva (pagos creados antes de BUG-10,
+                // cuando se cobraba el precio actual de la mentoría): no se reutiliza un cobro por otro monto
                 if (!paymentGateway.cancelPaymentIntent(payment.stripePaymentIntentId())) {
                     throw new BusinessRuleException("Ya recibimos un pago para esta reserva; en un momento se confirmará");
                 }

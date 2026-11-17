@@ -1,7 +1,6 @@
 package com.riwi.skillbridge.application.service;
 
 import com.riwi.skillbridge.application.port.out.BookingRepositoryPort;
-import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.application.port.out.PaymentGatewayPort;
 import com.riwi.skillbridge.application.port.out.PaymentPort;
 import com.riwi.skillbridge.application.port.out.UserAccountPort;
@@ -10,7 +9,6 @@ import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.UnauthorizedActionException;
 import com.riwi.skillbridge.domain.model.Booking;
 import com.riwi.skillbridge.domain.model.BookingStatus;
-import com.riwi.skillbridge.domain.model.Offering;
 import com.riwi.skillbridge.domain.model.Payment;
 import com.riwi.skillbridge.domain.model.PaymentStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,11 +32,10 @@ class CreatePaymentServiceTest {
     private final PaymentPort payments = mock(PaymentPort.class);
     private final PaymentGatewayPort gateway = mock(PaymentGatewayPort.class);
     private final BookingRepositoryPort bookings = mock(BookingRepositoryPort.class);
-    private final OfferingRepositoryPort offerings = mock(OfferingRepositoryPort.class);
     private final UserAccountPort users = mock(UserAccountPort.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-10-20T04:30:00Z"), ZoneOffset.UTC);
     private final CreatePaymentService service =
-        new CreatePaymentService(payments, gateway, bookings, offerings, users, clock);
+        new CreatePaymentService(payments, gateway, bookings, users, clock);
 
     private static final String EMAIL = "cliente@example.com";
     private final UUID customerId = UUID.randomUUID();
@@ -48,16 +45,14 @@ class CreatePaymentServiceTest {
         when(users.findIdByEmail(EMAIL)).thenReturn(Optional.of(customerId));
     }
 
+    // BUG-10: se cobra el precio guardado en la reserva
     @Test
-    void shouldChargeCatalogPriceAndSavePendingPayment() {
+    void shouldChargeTheBookingPriceAndSavePendingPayment() {
         UUID bookingId = UUID.randomUUID();
-        UUID offeringId = UUID.randomUUID();
         BigDecimal price = new BigDecimal("85000");
 
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, offeringId, customerId, Instant.now().plusSeconds(3600), BookingStatus.CREATED)));
-        when(offerings.findById(offeringId)).thenReturn(Optional.of(
-            new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", price, true)));
+            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.now().plusSeconds(3600), BookingStatus.CREATED, price)));
         when(gateway.createPaymentIntent(bookingId, price, "COP"))
             .thenReturn(new PaymentGatewayPort.PaymentIntent("pi_123", "pi_123_secret"));
 
@@ -87,7 +82,7 @@ class CreatePaymentServiceTest {
     void shouldRejectPayingSomeoneElsesBooking() {
         UUID bookingId = UUID.randomUUID();
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(3600), BookingStatus.CREATED)));
+            new Booking(bookingId, UUID.randomUUID(), UUID.randomUUID(), Instant.now().plusSeconds(3600), BookingStatus.CREATED, new BigDecimal("85000"))));
 
         assertThrows(UnauthorizedActionException.class, () -> service.createPaymentIntent(bookingId, EMAIL));
 
@@ -98,7 +93,7 @@ class CreatePaymentServiceTest {
     void shouldRejectPayingABookingThatIsNotPending() {
         UUID bookingId = UUID.randomUUID();
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.now().plusSeconds(3600), BookingStatus.CANCELLED)));
+            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.now().plusSeconds(3600), BookingStatus.CANCELLED, new BigDecimal("85000"))));
 
         assertThrows(BusinessRuleException.class, () -> service.createPaymentIntent(bookingId, EMAIL));
 
@@ -108,12 +103,9 @@ class CreatePaymentServiceTest {
     @Test
     void shouldStampPaymentWithInjectedClock() {
         UUID bookingId = UUID.randomUUID();
-        UUID offeringId = UUID.randomUUID();
         BigDecimal price = new BigDecimal("85000");
         when(bookings.findById(bookingId)).thenReturn(Optional.of(
-            new Booking(bookingId, offeringId, customerId, Instant.parse("2026-10-25T15:00:00Z"), BookingStatus.CREATED)));
-        when(offerings.findById(offeringId)).thenReturn(Optional.of(
-            new Offering(offeringId, UUID.randomUUID(), "Java", "Mentoría", "BACKEND", price, true)));
+            new Booking(bookingId, UUID.randomUUID(), customerId, Instant.parse("2026-10-25T15:00:00Z"), BookingStatus.CREATED, price)));
         when(gateway.createPaymentIntent(bookingId, price, "COP"))
             .thenReturn(new PaymentGatewayPort.PaymentIntent("pi_123", "pi_123_secret"));
 

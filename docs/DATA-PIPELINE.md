@@ -54,12 +54,12 @@ avanzar todo el equipo en paralelo sin pisarse. Si vas a tocar algo de `data/`, 
 |---|---|---|
 | `users` | id, role, status, created_at | `app_users` (sin password, name ni email) |
 | `offerings` | id, provider_id, title, category, price, level, duration_minutes, review_status, active, created_at | `offerings` |
-| `bookings` | id, offering_id, customer_id, scheduled_at, status, created_at | `bookings` |
+| `bookings` | id, offering_id, customer_id, scheduled_at, status, created_at, price | `bookings` |
 | `availability_slots` | id, offering_id, scheduled_at, reserved | `availability_slots` |
 | `payments` | id, booking_id, amount, currency, status, created_at | `payments` |
-| `reviews` | id, booking_id, rating, comment, created_at | **No existe en el backend**: solo sintética |
+| `reviews` | id, booking_id, rating, comment, created_at | `reviews` (V20, HU-27). Sin `mentor_rating` ni `mentor_comment` |
 
-Valores permitidos (copiados de los enums de `domain/model`):
+Valores permitidos (copiados de los enums de `domain/model`). Desde V13 (BUG-11) la base rechaza cualquier otro valor en `bookings.status` y `payments.status`, y toda mentoría tiene `provider_id`: las 3 mentorías de ejemplo de V1 pertenecen a `proveedor.demo@skillbridge.dev`, así que ya no hay un grupo «sin proveedor» en las métricas por proveedor.
 
 - `BookingStatus`: `CREATED`, `CONFIRMED`, `CANCELLED`, `COMPLETED`
 - `Role`: `CUSTOMER`, `PROVIDER`, `ADMIN`
@@ -67,7 +67,7 @@ Valores permitidos (copiados de los enums de `domain/model`):
 - `OfferingLevel`: `BASICO`, `INTERMEDIO`, `AVANZADO`
 - `OfferingReviewStatus`: `PENDING_REVIEW`, `APPROVED`, `REJECTED`
 - `PaymentStatus`: `PENDING`, `PAID`, `FAILED` (rechazado por la pasarela), `CANCELED` (reemplazado o abandonado, BUG-09). Una reserva tiene como máximo un pago `PENDING` o `PAID`
-- Calificación de reseña: 1 a 5
+- Calificación de reseña: 1 a 5 (desde V20 la base lo exige con `CHECK`; una reserva tiene como máximo una reseña)
 
 > **Regla:** si una migración Flyway o un enum cambia, `schemas.py` y los fixtures se actualizan **en el mismo PR**.
 

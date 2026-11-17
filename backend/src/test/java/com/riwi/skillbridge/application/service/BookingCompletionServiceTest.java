@@ -41,7 +41,7 @@ class BookingCompletionServiceTest {
         BigDecimal.TEN, true, List.of(), 90, OfferingLevel.BASICO, EnumSet.allOf(DayOfWeek.class));
 
     private Booking booking(Instant scheduledAt, BookingStatus status) {
-        return new Booking(UUID.randomUUID(), offering.id(), UUID.randomUUID(), scheduledAt, status);
+        return new Booking(UUID.randomUUID(), offering.id(), UUID.randomUUID(), scheduledAt, status, new java.math.BigDecimal("85000"));
     }
 
     @BeforeEach

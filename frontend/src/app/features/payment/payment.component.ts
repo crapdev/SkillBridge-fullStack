@@ -114,8 +114,9 @@ export class PaymentComponent implements OnInit, OnDestroy {
     this.paymentElement?.destroy();
   }
 
+  /** BUG-10: el precio guardado en la reserva, que es el que se cobra (la mentoría pudo cambiar de precio después) */
   price(): string {
-    const amount = this.offering()?.price;
+    const amount = this.booking()?.price;
     return amount == null ? '' : this.currency.format(amount);
   }
 

@@ -113,6 +113,8 @@
 .card-content h3 a { transition: color 0.15s; }
 .card-content h3 a:hover { color: #2563eb; }
 
+.card-rating { margin: -2px 0 8px; }
+
 .description {
   margin: 0;
   color: #64748b;

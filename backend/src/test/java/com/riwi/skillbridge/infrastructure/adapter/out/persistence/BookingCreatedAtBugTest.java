@@ -63,7 +63,7 @@ class BookingCreatedAtBugTest {
         Instant scheduledAt = Instant.now().plus(7, ChronoUnit.DAYS);
 
         // 2. Primer guardado: es la creación de la reserva (INSERT)
-        adapter.save(new Booking(bookingId, OFFERING_ID, customerId, scheduledAt, BookingStatus.CREATED));
+        adapter.save(new Booking(bookingId, OFFERING_ID, customerId, scheduledAt, BookingStatus.CREATED, new java.math.BigDecimal("85000")));
         em.flush();
         em.clear(); // simula que el segundo guardado llega después, en otra operación
 
@@ -76,7 +76,7 @@ class BookingCreatedAtBugTest {
         Thread.sleep(200);
 
         // 4. Segundo guardado del MISMO id con otro estado: lo que haría "cancelar" (UPDATE)
-        adapter.save(new Booking(bookingId, OFFERING_ID, customerId, scheduledAt, BookingStatus.CANCELLED));
+        adapter.save(new Booking(bookingId, OFFERING_ID, customerId, scheduledAt, BookingStatus.CANCELLED, new java.math.BigDecimal("85000")));
         em.flush();
         em.clear();
 

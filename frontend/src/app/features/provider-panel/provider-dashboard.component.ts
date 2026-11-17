@@ -5,6 +5,7 @@ import { Offering, OfferingService } from '../../core/offering.service';
 import { ProviderStats, ProviderStatsService } from './provider-stats.service';
 import { REVIEW_ESTIMATE, REVIEW_STATUS, reviewStatusOf } from '../../shared/offering-review';
 import { formatPrice } from '../../shared/offering-format';
+import { formatAverage, ratingCountText } from '../../core/review.service';
 
 /** Mentorías que se muestran en el resumen; la lista completa está en /provider/offerings */
 const OFFERINGS_PREVIEW = 6;
@@ -39,6 +40,8 @@ export class ProviderDashboardComponent {
   /** Mismos colores que el panel de administración (clases adm-chip--*) */
   protected readonly chip = (o: Offering) => `adm-chip--${this.status(o).tone}`;
   protected readonly price = (o: Offering) => formatPrice(o.price);
+  protected readonly average = formatAverage;
+  protected readonly ratingCount = ratingCountText;
   protected readonly plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
   constructor() { this.load(); }

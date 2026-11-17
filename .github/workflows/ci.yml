@@ -75,6 +75,14 @@ jobs:
       - name: Build
         run: npm run build                                    # compila Angular para producción
 
+      - name: Verify runtime config (env.js)
+        # El navegador lee API_URL y la clave de Stripe de env.js; si el build no lo publica, los pagos quedan "no disponibles"
+        run: |
+          ENV_JS=dist/skillbridge-ai/browser/env.js
+          test -f "$ENV_JS" || { echo "::error::Falta $ENV_JS en el build"; exit 1; }
+          grep -q '"STRIPE_PUBLISHABLE_KEY"' "$ENV_JS" || { echo "::error::$ENV_JS no tiene STRIPE_PUBLISHABLE_KEY (¿lo generó scripts/generate-env.mjs?)"; exit 1; }
+          grep -q 'src="env.js"' src/index.html || { echo "::error::src/index.html no carga env.js"; exit 1; }
+
 
   data:
     runs-on: ubuntu-latest

@@ -5,6 +5,9 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { of } from 'rxjs';
 import { ServiceDetailComponent } from './service-detail.component';
 import { Offering } from '../../core/offering.service';
+import { OfferingReviews } from '../../core/review.service';
+
+const NO_REVIEWS: OfferingReviews = { offering: { average: null, count: 0 }, mentor: { average: null, count: 0 }, recent: [] };
 
 /** SCRUM-175 (HU-20): el detalle muestra el temario real, la ficha y los horarios con hora de fin */
 describe('ServiceDetailComponent · ficha de la mentoría', () => {
@@ -40,7 +43,9 @@ describe('ServiceDetailComponent · ficha de la mentoría', () => {
 
   afterEach(() => http.verify());
 
-  function respond(slots: { id: string; offeringId: string; scheduledAt: string; reserved: boolean }[]) {
+  function respond(slots: { id: string; offeringId: string; scheduledAt: string; reserved: boolean }[],
+                   reviews: OfferingReviews = NO_REVIEWS) {
+    http.expectOne('/api/offerings/o-1/reviews').flush(reviews);
     http.expectOne('/api/offerings/o-1').flush(offering);
     http.expectOne(r => r.url === '/api/offerings' && r.params.has('size')).flush({ content: [] });
     http.expectOne('/api/offerings/o-1/slots').flush(slots);
@@ -77,5 +82,47 @@ describe('ServiceDetailComponent · ficha de la mentoría', () => {
   it('avisa cuando no hay horarios disponibles', () => {
     respond([]);
     expect(text()).toContain('Por ahora no hay horarios disponibles');
+  });
+
+  // ---- HU-27 (SCRUM-210): promedios y comentarios ----
+
+  it('muestra el promedio de la mentoría y del mentor con la cantidad de calificaciones', () => {
+    respond([], {
+      offering: { average: 4.5, count: 2 },
+      mentor: { average: 4.8, count: 10 },
+      recent: []
+    });
+
+    const scores = Array.from(el.querySelectorAll('.score')).map(s => (s.textContent ?? '').replace(/\s+/g, ' '));
+    expect(scores[0]).toContain('La mentoría');
+    expect(scores[0]).toContain('4,5');
+    expect(scores[0]).toContain('(2 calificaciones)');
+    expect(scores[1]).toContain('El mentor');
+    expect(scores[1]).toContain('4,8');
+    expect(scores[1]).toContain('(10 calificaciones)');
+    expect(el.querySelector('.hero-rating')?.textContent).toContain('4,5');
+  });
+
+  it('muestra los comentarios más recientes con el primer nombre de quien calificó', () => {
+    respond([], {
+      offering: { average: 5, count: 1 },
+      mentor: { average: 4, count: 1 },
+      recent: [{ rating: 5, comment: 'Muy clara', mentorRating: 4, mentorComment: 'Paciente', authorName: 'Ana',
+                 createdAt: '2026-11-01T15:00:00Z' }]
+    });
+
+    const opinion = (el.querySelector('.opinion')?.textContent ?? '').replace(/\s+/g, ' ');
+    expect(opinion).toContain('Ana');
+    expect(opinion).toContain('Muy clara');
+    expect(opinion).toContain('Sobre el mentor');
+    expect(opinion).toContain('Paciente');
+  });
+
+  it('sin calificaciones lo indica en lugar de mostrar 0 estrellas', () => {
+    respond([]);
+
+    expect(text()).toContain('Aún sin calificaciones');
+    expect(text()).toContain('Todavía no hay comentarios sobre esta mentoría');
+    expect(el.querySelector('.stars')).toBeNull();
   });
 });

@@ -44,6 +44,51 @@ Permite a un cliente autenticado cancelar una reserva propia.
 - `404 Not Found`: La reserva con el ID indicado no existe.
 - `422 Unprocessable Entity`: Violación de regla de negocio (ej: ya cancelada, completada, o fuera del margen de 24 horas).
 
+## Calificaciones (HU-27)
+
+Tabla `reviews` (migración `V20__reviews.sql`). Cada reserva se califica **una sola vez** y califica dos cosas:
+la mentoría (`rating`, `comment`) y el mentor (`mentorRating`, `mentorComment`).
+
+### Calificar una reserva
+
+`POST /api/bookings/{id}/review` · rol `CUSTOMER`
+
+```json
+{ "rating": 5, "comment": "Muy clara", "mentorRating": 4, "mentorComment": "Puntual" }
+```
+
+| Campo | Regla |
+|---|---|
+| `rating`, `mentorRating` | Obligatorios, de 1 a 5 |
+| `comment`, `mentorComment` | Opcionales, máx. 500 caracteres. Vacío o solo espacios = sin comentario |
+
+**Reglas:** la reserva debe ser del cliente de la sesión y estar `COMPLETED`. Si la sesión ya terminó pero el proceso
+programado aún no la marcó (BUG-05), se completa en ese momento y se puede calificar.
+
+**Respuestas:** `201` con la calificación · `400` estrellas fuera de rango o faltantes · `403` reserva de otro cliente ·
+`404` reserva inexistente · `409` ya calificada (también si llegan dos peticiones a la vez: lo impide `UNIQUE(booking_id)`) ·
+`422` la reserva no está completada.
+
+### Mis calificaciones
+
+`GET /api/bookings/me/reviews` · rol `CUSTOMER`. "Mis reservas" las usa para no ofrecer calificar dos veces.
+
+### Promedios del catálogo (público)
+
+`GET /api/offerings/ratings?ids=<uuid>,<uuid>` (máx. 100 ids) →
+`[{ "offeringId": "…", "average": 4.5, "count": 2 }, { "offeringId": "…", "average": null, "count": 0 }]`.
+El promedio va con un decimal; sin calificaciones es `null` (no `0`).
+
+### Calificaciones del detalle (público)
+
+`GET /api/offerings/{id}/reviews` → promedio de la mentoría (`offering`), promedio del mentor en todas sus mentorías
+(`mentor`) y las 5 calificaciones más recientes con comentario (`recent`). De quien calificó solo se muestra el primer
+nombre. `404` si la mentoría no es visible en el catálogo.
+
+### Dashboard del proveedor
+
+`GET /api/provider/stats` incluye `rating: { average, count }`: su calificación promedio como mentor.
+
 ## Mentorías del proveedor (contrato HU-20)
 
 Requieren Bearer JWT con rol `PROVIDER`. Detalle completo, reglas y ejemplos en

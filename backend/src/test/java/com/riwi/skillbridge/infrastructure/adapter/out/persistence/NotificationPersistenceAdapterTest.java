@@ -59,7 +59,7 @@ class NotificationPersistenceAdapterTest {
         customerId = insertUser("cliente");
         otherUserId = insertUser("otro");
         bookingId = UUID.randomUUID();
-        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status) VALUES (?, ?, ?, NOW() + INTERVAL '2 days', 'CREATED')",
+        jdbc.update("INSERT INTO bookings (id, offering_id, customer_id, scheduled_at, status, price) VALUES (?, ?, ?, NOW() + INTERVAL '2 days', 'CREATED', 85000)",
                 bookingId, JAVA_OFFERING, customerId);
     }
 

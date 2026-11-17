@@ -63,6 +63,13 @@
             </div>
 
             <h1 class="enter" style="--i: 2">{{ o.title }}</h1>
+            <!-- HU-27: promedio y cantidad de calificaciones de la mentoría -->
+            @if (reviews(); as r) {
+              <a class="hero-rating enter" style="--i: 2" href="#opiniones">
+                <app-rating-stars [average]="r.offering.average" [count]="r.offering.count" tone="dark"
+                                  emptyText="Aún sin calificaciones" />
+              </a>
+            }
             <p class="detail-hero__lead enter" style="--i: 3">{{ o.description }}</p>
 
             <ul class="meta enter" style="--i: 4">
@@ -176,8 +183,62 @@
         </div>
       </section>
 
+      <!-- OPINIONES (HU-27): promedio de la mentoría y del mentor, y los comentarios más recientes -->
+      @if (reviews(); as r) {
+        <section class="detail-section" id="opiniones">
+          <div class="container">
+            <header class="section-head" appReveal>
+              <span class="eyebrow">Opiniones</span>
+              <h2>Lo que dicen los clientes</h2>
+              <p>Calificaciones de clientes que ya tomaron esta mentoría.</p>
+            </header>
+
+            <div class="scores" appReveal>
+              <article class="score">
+                <span class="score__label">La mentoría</span>
+                <app-rating-stars [average]="r.offering.average" [count]="r.offering.count" size="lg"
+                                  emptyText="Aún sin calificaciones" />
+              </article>
+              <article class="score">
+                <span class="score__label">El mentor</span>
+                <app-rating-stars [average]="r.mentor.average" [count]="r.mentor.count" size="lg"
+                                  emptyText="Aún sin calificaciones" />
+                <small>En todas sus mentorías</small>
+              </article>
+            </div>
+
+            @if (r.recent.length) {
+              <ul class="opinions">
+                @for (op of r.recent; track $index; let i = $index) {
+                  <li class="opinion" appReveal [revealDelay]="i * 70">
+                    <header class="opinion__head">
+                      <span class="opinion__avatar" aria-hidden="true">{{ op.authorName.charAt(0) }}</span>
+                      <span>
+                        <strong>{{ op.authorName }}</strong>
+                        <small>{{ reviewDate(op.createdAt) }}</small>
+                      </span>
+                    </header>
+                    @if (op.comment) {
+                      <p><span class="opinion__stars" [attr.aria-label]="'Mentoría: ' + op.rating + ' de 5'">{{ stars(op.rating) }}</span>
+                        {{ op.comment }}</p>
+                    }
+                    @if (op.mentorComment) {
+                      <p><span class="opinion__tag">Sobre el mentor</span>
+                        <span class="opinion__stars" [attr.aria-label]="'Mentor: ' + op.mentorRating + ' de 5'">{{ stars(op.mentorRating) }}</span>
+                        {{ op.mentorComment }}</p>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="detail-note">Todavía no hay comentarios sobre esta mentoría.</p>
+            }
+          </div>
+        </section>
+      }
+
       <!-- CÓMO FUNCIONA -->
-      <section class="detail-section">
+      <section class="detail-section detail-section--alt">
         <div class="container">
           <header class="section-head" appReveal>
             <span class="eyebrow">Proceso</span>
@@ -198,7 +259,7 @@
 
       <!-- OTROS SERVICIOS -->
       @if (related().length) {
-        <section class="detail-section detail-section--alt">
+        <section class="detail-section">
           <div class="container">
             <header class="section-head" appReveal>
               <span class="eyebrow">Sigue explorando</span>

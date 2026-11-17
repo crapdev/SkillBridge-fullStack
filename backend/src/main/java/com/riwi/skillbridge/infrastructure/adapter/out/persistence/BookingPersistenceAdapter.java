@@ -36,23 +36,18 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
 
     @Override
     public Optional<Booking> findById(UUID id) {
-        return repository.findById(id).map(entity -> new Booking(
-            entity.getId(),
-            entity.getOfferingId(),
-            entity.getCustomerId(),
-            entity.getScheduledAt(),
-            entity.getStatus()
-        ));
+        return repository.findById(id).map(this::toDomain);
     }
 
     @Override
     public Booking save(Booking booking) {
         BookingEntity entity = new BookingEntity(
-            booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now());
+            booking.id(), booking.offeringId(), booking.customerId(), booking.scheduledAt(), booking.status(), Instant.now(),
+            booking.price());
         try {
             // BUG-08: flush inmediato para que el índice único falle aquí y no al confirmar la transacción
             BookingEntity saved = repository.saveAndFlush(entity);
-            return new Booking(saved.getId(), saved.getOfferingId(), saved.getCustomerId(), saved.getScheduledAt(), saved.getStatus());
+            return toDomain(saved);
         } catch (DataIntegrityViolationException e) {
             String detail = e.getMostSpecificCause().getMessage();
             if (detail != null && detail.contains(ACTIVE_SLOT_CONSTRAINT)) {
@@ -66,13 +61,7 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     public List<Booking> findByCustomerId(UUID customerId) {
         return repository.findByCustomerIdOrderByScheduledAtDesc(customerId)
             .stream()
-            .map(entity -> new Booking(
-                entity.getId(),
-                entity.getOfferingId(),
-                entity.getCustomerId(),
-                entity.getScheduledAt(),
-                entity.getStatus()
-            ))
+            .map(this::toDomain)
             .toList();
     }
 
@@ -82,13 +71,7 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
         if (offeringIds.isEmpty()) return List.of();
         return repository.findByOfferingIdIn(offeringIds)
             .stream()
-            .map(entity -> new Booking(
-                entity.getId(),
-                entity.getOfferingId(),
-                entity.getCustomerId(),
-                entity.getScheduledAt(),
-                entity.getStatus()
-            ))
+            .map(this::toDomain)
             .toList();
     }
 
@@ -111,13 +94,7 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     public List<Booking> findConfirmedScheduledBefore(Instant instant) {
         return repository.findByStatusAndScheduledAtBefore(BookingStatus.CONFIRMED, instant)
             .stream()
-            .map(entity -> new Booking(
-                entity.getId(),
-                entity.getOfferingId(),
-                entity.getCustomerId(),
-                entity.getScheduledAt(),
-                entity.getStatus()
-            ))
+            .map(this::toDomain)
             .toList();
     }
 
@@ -125,5 +102,10 @@ public class BookingPersistenceAdapter implements BookingRepositoryPort {
     @Transactional
     public boolean updateStatusIf(UUID id, BookingStatus expected, BookingStatus next) {
         return repository.updateStatusIf(id, expected, next) == 1;
+    }
+
+    private Booking toDomain(BookingEntity entity) {
+        return new Booking(entity.getId(), entity.getOfferingId(), entity.getCustomerId(), entity.getScheduledAt(),
+            entity.getStatus(), entity.getPrice());
     }
 }

@@ -2,13 +2,15 @@ import { Component, computed, input } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Offering } from '../../core/offering.service';
+import { RatingSummary } from '../../core/review.service';
+import { RatingStarsComponent } from '../rating-stars/rating-stars.component';
 import { SERVICE_CONTENT, categoryKey } from '../../features/service-detail/service-content';
 
 /** Tarjeta de un servicio del catálogo; la usan el inicio y la página de servicios. */
 @Component({
   selector: 'app-service-card',
   standalone: true,
-  imports: [CurrencyPipe, RouterLink],
+  imports: [CurrencyPipe, RouterLink, RatingStarsComponent],
   template: `
     <article class="service-card">
       <div class="card-top">
@@ -20,6 +22,10 @@ import { SERVICE_CONTENT, categoryKey } from '../../features/service-detail/serv
 
       <div class="card-content">
         <h3><a [routerLink]="['/services', offering().id]">{{ offering().title }}</a></h3>
+        <!-- HU-27: promedio y cantidad de calificaciones (no se muestra mientras cargan) -->
+        @if (rating(); as r) {
+          <app-rating-stars class="card-rating" [average]="r.average" [count]="r.count" />
+        }
         <p class="description">{{ offering().description }}</p>
       </div>
 
@@ -41,6 +47,8 @@ import { SERVICE_CONTENT, categoryKey } from '../../features/service-detail/serv
 })
 export class ServiceCardComponent {
   readonly offering = input.required<Offering>();
+  /** HU-27: promedio de la mentoría; undefined mientras carga o si no se pudo consultar */
+  readonly rating = input<RatingSummary | undefined>(undefined);
 
   readonly category = computed(() => categoryKey(this.offering().category));
   readonly icon = computed(() => SERVICE_CONTENT[this.category()].icon);
