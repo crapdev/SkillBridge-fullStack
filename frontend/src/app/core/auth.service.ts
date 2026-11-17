@@ -9,7 +9,16 @@ export type Role = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
 
 /** Usuario de la sesión, tal como lo devuelve el backend. Nunca incluye el token. */
 export interface SessionUser { email: string; name: string; role: Role; }
-export interface ProviderRegistration { status: string; message: string; }
+
+// Verificación de correo (HU #39): la atiende el email-service (NestJS) bajo /api/verification
+/** Registro recibido: la cuenta no existe hasta que se abra el enlace del correo. No abre sesión. */
+export interface VerificationSent { email: string; message: string; }
+/** Resultado de abrir el enlace: el cliente ya tiene sesión; el proveedor espera la aprobación de un admin. */
+export type VerificationResult =
+  | { kind: 'customer'; user: SessionUser }
+  | { kind: 'provider'; message: string };
+/** Motivos con los que el backend rechaza un enlace (400, campo reason del ProblemDetail). */
+export type VerificationError = 'TOKEN_EXPIRED' | 'TOKEN_USED' | 'TOKEN_INVALID';
 
 // Clave de la versión anterior, cuando el JWT se guardaba en el navegador
 const LEGACY_TOKEN_KEY = 'skillbridge_token';
@@ -97,9 +106,37 @@ export class AuthService {
       .pipe(tap(user => this.setUser(user, true)));
   }
 
-  register(name: string, email: string, password: string): Observable<SessionUser> {
-    return this.http.post<SessionUser>(`${apiBase()}/auth/register`, { name, email, password })
-      .pipe(tap(user => this.setUser(user, true)));
+  // Ya no abre sesión: la cuenta queda pendiente hasta que el usuario abra el enlace del correo (HU #39)
+  register(name: string, email: string, password: string): Observable<VerificationSent> {
+    return this.http.post<VerificationSent>(`${apiBase()}/verification/register`, { name, email, password });
+  }
+
+  // Tras verificar el correo, el proveedor aún necesita la aprobación de un admin para entrar
+  registerProvider(name: string, email: string, password: string): Observable<VerificationSent> {
+    return this.http.post<VerificationSent>(`${apiBase()}/verification/register/provider`, { name, email, password });
+  }
+
+  /**
+   * Abre el enlace del correo. El código HTTP dice el resultado: 200 = cliente verificado (el backend emite
+   * la cookie de sesión, así que aquí empieza la sesión); 202 = proveedor pendiente de aprobación, sin sesión.
+   * Si el enlace no sirve llega un 400 con reason: VerificationError.
+   */
+  verifyEmail(token: string): Observable<VerificationResult> {
+    return this.http.post<SessionUser | { message: string }>(`${apiBase()}/verification/verify`, { token }, { observe: 'response' })
+      .pipe(map((res): VerificationResult => res.status === 200
+        ? { kind: 'customer', user: res.body as SessionUser }
+        : { kind: 'provider', message: (res.body as { message: string }).message }),
+        tap(result => { if (result.kind === 'customer') this.setUser(result.user, true); }));
+  }
+
+  // Siempre responde 202 con el mismo mensaje, exista o no el correo; 429 si se piden demasiados enlaces
+  resendVerification(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${apiBase()}/verification/resend`, { email });
+  }
+
+  // Tras un login fallido (401): ¿es una cuenta que aún no verificó su correo? Pide la contraseña para no revelar correos
+  verificationStatus(email: string, password: string): Observable<{ pending: boolean }> {
+    return this.http.post<{ pending: boolean }>(`${apiBase()}/verification/status`, { email, password });
   }
 
   /**
@@ -122,11 +159,6 @@ export class AuthService {
     this.user.set(null);
     this.lastSession.set(null);
     clearUserStorage();
-  }
-
-  // El proveedor queda pendiente de aprobación: el backend no abre sesión
-  registerProvider(name: string, email: string, password: string) {
-    return this.http.post<ProviderRegistration>(`${apiBase()}/auth/register/provider`, { name, email, password });
   }
 
   // La cookie expira sola en el navegador y, si el backend la rechaza, el interceptor cierra la sesión

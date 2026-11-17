@@ -1,0 +1,22 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    container_name: skillbridge-email-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: skillbridge
+      RABBITMQ_DEFAULT_PASS: skillbridge_dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: skillbridge-email-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"

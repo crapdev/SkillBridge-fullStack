@@ -3,6 +3,10 @@
   "outputDirectory": "dist/skillbridge-ai/browser",
   "rewrites": [
     {
+      "source": "/api/verification/:path*",
+      "destination": "https://skillbridge-email-service.onrender.com/api/verification/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://skillbridge-api-vz7p.onrender.com/api/:path*"
     },

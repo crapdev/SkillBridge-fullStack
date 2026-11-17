@@ -211,3 +211,91 @@ describe('AuthService (sesión en cookie HttpOnly, HU-29)', () => {
     });
   });
 });
+
+describe('AuthService (verificación de correo, HU #39)', () => {
+  let auth: AuthService;
+  let http: HttpTestingController;
+  const customer = { email: 'sofia@test.com', name: 'Sofía', role: 'CUSTOMER' };
+  const accepted = { status: 202, statusText: 'Accepted' };
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({ providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()] });
+    auth = TestBed.inject(AuthService);
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => http.verify());
+
+  it('register envía los datos al email-service y no abre sesión', () => {
+    let sent: unknown;
+    auth.register('Sofía', 'sofia@test.com', 'secreto123').subscribe(s => (sent = s));
+    const req = http.expectOne('/api/verification/register');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ name: 'Sofía', email: 'sofia@test.com', password: 'secreto123' });
+    req.flush({ email: 'sofia@test.com', message: 'Revisa tu correo' }, accepted);
+
+    expect(sent).toEqual({ email: 'sofia@test.com', message: 'Revisa tu correo' });
+    expect(auth.authenticated()).toBeFalse();
+  });
+
+  it('registerProvider usa la URL de proveedor y tampoco abre sesión', () => {
+    auth.registerProvider('Laura', 'laura@test.com', 'secreto123').subscribe();
+    const req = http.expectOne('/api/verification/register/provider');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ name: 'Laura', email: 'laura@test.com', password: 'secreto123' });
+    req.flush({ email: 'laura@test.com', message: 'ok' }, accepted);
+    expect(auth.authenticated()).toBeFalse();
+  });
+
+  it('verifyEmail con 200 abre la sesión del cliente', () => {
+    let result: unknown;
+    auth.verifyEmail('tok').subscribe(r => (result = r));
+    const req = http.expectOne('/api/verification/verify');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ token: 'tok' });
+    req.flush(customer);
+
+    expect(result).toEqual({ kind: 'customer', user: customer } as never);
+    expect(auth.authenticated()).toBeTrue();
+    expect(auth.hasRole('CUSTOMER')).toBeTrue();
+  });
+
+  it('verifyEmail con 202 devuelve al proveedor pendiente y sigue sin sesión', () => {
+    let result: unknown;
+    auth.verifyEmail('tok').subscribe(r => (result = r));
+    http.expectOne('/api/verification/verify')
+      .flush({ status: 'PENDING_APPROVAL', message: 'Pendiente de aprobación' }, accepted);
+
+    expect(result).toEqual({ kind: 'provider', message: 'Pendiente de aprobación' });
+    expect(auth.authenticated()).toBeFalse();
+  });
+
+  it('verifyEmail con 400 da error y no hay sesión', () => {
+    let error: { status: number; error: { reason: string } } | undefined;
+    auth.verifyEmail('tok').subscribe({ error: e => (error = e) });
+    http.expectOne('/api/verification/verify')
+      .flush({ status: 400, detail: 'x', reason: 'TOKEN_EXPIRED' }, { status: 400, statusText: 'Bad Request' });
+
+    expect(error?.status).toBe(400);
+    expect(error?.error.reason).toBe('TOKEN_EXPIRED');
+    expect(auth.authenticated()).toBeFalse();
+  });
+
+  it('resendVerification envía el correo', () => {
+    auth.resendVerification('sofia@test.com').subscribe();
+    const req = http.expectOne('/api/verification/resend');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'sofia@test.com' });
+    req.flush({ message: 'ok' }, accepted);
+  });
+
+  it('verificationStatus envía correo y contraseña', () => {
+    let pending: boolean | undefined;
+    auth.verificationStatus('sofia@test.com', 'secreto').subscribe(r => (pending = r.pending));
+    const req = http.expectOne('/api/verification/status');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ email: 'sofia@test.com', password: 'secreto' });
+    req.flush({ pending: true });
+    expect(pending).toBeTrue();
+  });
+});

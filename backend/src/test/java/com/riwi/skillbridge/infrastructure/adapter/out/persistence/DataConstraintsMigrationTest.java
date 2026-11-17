@@ -44,7 +44,8 @@ class DataConstraintsMigrationTest {
         DriverManagerDataSource ds = new DriverManagerDataSource(
             POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         jdbc = new JdbcTemplate(ds);
-        jdbc.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+        // V21+ crean tablas en el esquema email: también hay que borrarlo para empezar de cero
+        jdbc.execute("DROP SCHEMA IF EXISTS email CASCADE; DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
     }
 
     private Flyway flyway(String target) {
