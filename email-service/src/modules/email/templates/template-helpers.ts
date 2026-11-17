@@ -1,5 +1,4 @@
-// Provisionales hasta que Persona A publique los helpers comunes en src/modules/email/templates/.
-// Entonces se borran y se importan los suyos (mismos nombres).
+// Helpers comunes de las plantillas de correo: escapar datos del usuario y formatear fechas, precios y correos.
 
 export function escapeHtml(value: string): string {
   return value

@@ -1,6 +1,7 @@
 // Correo con el enlace para verificar la cuenta (HU #39).
-// Provisional hasta que exista el layout común de src/modules/email/templates/:
-// entonces se cambia el marco HTML por renderHtmlLayout/renderTextLayout y escapeHtml por el compartido.
+import { RenderedEmail, renderHtmlLayout, renderTextLayout } from '../../email/templates/email-layout';
+
+export type { RenderedEmail };
 
 export interface VerificationEmailData {
   name: string;
@@ -8,59 +9,31 @@ export interface VerificationEmailData {
   role: 'CUSTOMER' | 'PROVIDER';
 }
 
-export interface RenderedEmail {
-  subject: string;
-  html: string;
-  text: string;
-}
-
 const SUBJECT = 'Verifica tu correo en SkillBridge';
+const INTRO = 'Gracias por registrarte en SkillBridge. Confirma tu correo para activar tu cuenta.';
 const EXPIRY_NOTICE = 'El enlace vence en 24 horas y solo sirve una vez.';
 const PROVIDER_NOTICE =
   'Después de verificarlo, un administrador revisará tu perfil antes de que puedas iniciar sesión.';
 const FOOTER = 'Si no creaste esta cuenta, ignora este correo.';
 
-// El nombre lo escribe el usuario: sin escaparlo podría inyectar HTML en el correo.
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export function renderVerificationEmail({ name, verifyUrl, role }: VerificationEmailData): RenderedEmail {
-  const isProvider = role === 'PROVIDER';
-  const url = escapeHtml(verifyUrl);
+  const notices = [EXPIRY_NOTICE, ...(role === 'PROVIDER' ? [PROVIDER_NOTICE] : [])];
+  const button = { label: 'Verificar mi correo', url: verifyUrl };
+  const heading = `Hola, ${name}`; // el layout lo escapa: el nombre lo escribe el usuario
 
-  const html = `<!doctype html>
-<html lang="es">
-<body style="margin:0;padding:24px;background:#f4f5f7;font-family:Arial,sans-serif;color:#1f2933">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px">
-    <h1 style="font-size:20px;margin:0 0 16px">Hola, ${escapeHtml(name)}</h1>
-    <p>Gracias por registrarte en SkillBridge. Confirma tu correo para activar tu cuenta.</p>
-    <p style="text-align:center;margin:28px 0">
-      <a href="${url}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold">Verificar mi correo</a>
-    </p>
-    <p>${EXPIRY_NOTICE}</p>
-    ${isProvider ? `<p>${PROVIDER_NOTICE}</p>` : ''}
-    <p style="font-size:12px;color:#6b7280;margin-top:32px">${FOOTER}</p>
-  </div>
-</body>
-</html>`;
+  const html = renderHtmlLayout({
+    heading,
+    bodyHtml: `<p>${INTRO}</p>`,
+    button,
+    afterButtonHtml: notices.map((n) => `<p>${n}</p>`).join('\n    '),
+    footer: FOOTER,
+  });
 
-  const text = [
-    `Hola, ${name}`,
-    '',
-    'Gracias por registrarte en SkillBridge. Confirma tu correo para activar tu cuenta abriendo este enlace:',
-    verifyUrl,
-    '',
-    EXPIRY_NOTICE,
-    ...(isProvider ? [PROVIDER_NOTICE] : []),
-    '',
-    FOOTER,
-  ].join('\n');
+  const text = renderTextLayout({
+    lines: [heading, '', INTRO, '', ...notices],
+    button,
+    footer: FOOTER,
+  });
 
   return { subject: SUBJECT, html, text };
 }

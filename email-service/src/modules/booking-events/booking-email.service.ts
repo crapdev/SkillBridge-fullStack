@@ -10,7 +10,7 @@ import {
   hasBookingTemplate,
   renderBookingEmail,
 } from './templates/booking-email.templates';
-import { maskEmail } from './templates/template-helpers';
+import { maskEmail } from '../email/templates/template-helpers';
 
 const KIND_BY_ROUTING_KEY: Record<string, BookingEmailKind> = {
   'booking.created': 'created',

@@ -1,6 +1,8 @@
 // Correos de reservas (HU #38): created, paid y cancelled para cliente y proveedor; completed solo para el proveedor.
-// Marco HTML provisional hasta el layout común de Persona A (renderHtmlLayout / renderTextLayout).
-import { escapeHtml, formatBogotaDateTime, formatCop } from './template-helpers';
+import { RenderedEmail, renderHtmlLayout, renderTextLayout } from '../../email/templates/email-layout';
+import { escapeHtml, formatBogotaDateTime, formatCop } from '../../email/templates/template-helpers';
+
+export type { RenderedEmail };
 
 export type BookingEmailKind = 'created' | 'paid' | 'cancelled' | 'completed';
 export type BookingEmailAudience = 'customer' | 'provider';
@@ -16,11 +18,6 @@ export interface BookingEmailData {
   bookingsUrl: string;
 }
 
-export interface RenderedEmail {
-  subject: string;
-  html: string;
-  text: string;
-}
 
 interface Copy {
   subject: string;
@@ -101,40 +98,40 @@ export function renderBookingEmail(
   ];
 
   const subject = `${copy.subject} · SkillBridge`;
-  const html = `<!doctype html>
-<html lang="es">
-<body style="margin:0;padding:24px;background:#f4f5f7;font-family:Arial,sans-serif;color:#1f2933">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;padding:32px">
-    <h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(copy.subject)}</h1>
-    <p>Hola, ${escapeHtml(data.recipientName)}</p>
+  const button = { label: copy.cta, url: data.bookingsUrl };
+  const footer = 'Recibes este correo porque tienes una cuenta en SkillBridge.';
+
+  const rows = details
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:6px 0;color:#6b7280;width:110px">${label}</td><td style="padding:6px 0">${escapeHtml(value)}</td></tr>`,
+    )
+    .join('\n      ');
+
+  const html = renderHtmlLayout({
+    heading: copy.subject,
+    bodyHtml: `<p>Hola, ${escapeHtml(data.recipientName)}</p>
     <p>${fill(copy.intro, escapeHtml)}</p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
-      ${details
-        .map(
-          ([label, value]) =>
-            `<tr><td style="padding:6px 0;color:#6b7280;width:110px">${label}</td><td style="padding:6px 0">${escapeHtml(value)}</td></tr>`,
-        )
-        .join('\n      ')}
-    </table>
-    <p style="text-align:center;margin:28px 0">
-      <a href="${escapeHtml(data.bookingsUrl)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:6px;font-weight:bold">${copy.cta}</a>
-    </p>
-    <p style="font-size:12px;color:#6b7280;margin-top:32px">Recibes este correo porque tienes una cuenta en SkillBridge.</p>
-  </div>
-</body>
-</html>`;
+      ${rows}
+    </table>`,
+    button,
+    footer,
+  });
 
-  const text = [
-    copy.subject,
-    '',
-    `Hola, ${data.recipientName}`,
-    '',
-    fill(copy.intro, (v) => v),
-    '',
-    ...details.map(([label, value]) => `${label}: ${value}`),
-    '',
-    `${copy.cta}: ${data.bookingsUrl}`,
-  ].join('\n');
+  const text = renderTextLayout({
+    lines: [
+      copy.subject,
+      '',
+      `Hola, ${data.recipientName}`,
+      '',
+      fill(copy.intro, (v) => v),
+      '',
+      ...details.map(([label, value]) => `${label}: ${value}`),
+    ],
+    button,
+    footer,
+  });
 
   return { subject, html, text };
 }
