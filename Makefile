@@ -1,4 +1,4 @@
-.PHONY: up down reset logs ps observability test-back test-front build data-build data-test data-shell
+.PHONY: up down reset logs ps observability test-back test-front build data-build data-test data-shell data-analytics
 
 up:
 	docker compose up --build -d
@@ -36,3 +36,6 @@ data-test:
 
 data-shell:
 	docker compose --profile data run --rm data bash
+
+data-analytics:
+	docker compose --profile data run --rm data python -m skillbridge_data.jobs.analytics

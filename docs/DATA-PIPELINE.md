@@ -151,3 +151,42 @@ pytest
 - **Medir antes y después** cualquier optimización (caché de DataFrames, particiones) con `explain()` o tiempos.
 
 ---
+
+## 8. Publicación de resultados para el panel de analítica (SCRUM-415)
+
+El job `data/src/skillbridge_data/jobs/analytics.py` ejecuta las métricas (`reservas_por_estado`, `tasa_cancelacion`)
+y la regla de completitud (`filas_con_nulos`) sobre los CSV del contrato y publica un JSON que respeta el tipo
+`SparkAnalytics` definido en `frontend/src/app/features/admin/data/admin-analytics.model.ts`.
+
+### Cómo ejecutarlo
+
+```bash
+make data-analytics
+```
+
+Sin `make`:
+
+```bash
+docker compose --profile data run --rm data python -m skillbridge_data.jobs.analytics
+```
+
+Opciones disponibles:
+
+- `--dataset all|fixtures|snapshot` (por defecto `all`, genera ambas variantes).
+- `--fixtures-dir <ruta>` (por defecto `data/tests/fixtures`).
+- `--snapshot-dir <ruta>` (por defecto busca en `ANALYTICS_SNAPSHOT_DIR` o `data/snapshots/`; si todavía no hay un snapshot exportado de PostgreSQL en local, usa los fixtures como respaldo).
+- `--output-dir <ruta>` (por defecto `data/output`).
+
+### Contrato de salida y `provider_name`
+
+- La función `tasa_cancelacion(bookings, offerings)` **no cambia** sus columnas (`provider_id`, `reservas`, `canceladas`, `tasa_cancelacion`).
+- El enriquecimiento con `provider_name` se realiza en el job mediante un `join` contra `users`. Como el contrato `schemas.USERS` excluye datos personales (`name`, `email`, `password`), se genera un alias anónimo estable a partir del ID (`prov_02`, `prov_03`, ...), o se toma `name` si un snapshot interno lo provee.
+
+### Acuerdos de almacenamiento con backend (SCRUM-416)
+
+| Entorno | Ubicación acordada | Cómo lo lee el backend |
+|---|---|---|
+| **Desarrollo local / Docker** | Carpeta compartida `data/output/` (ignorada por Git): `analytics-fixtures.json` y `analytics-snapshot.json` | El contenedor `backend` monta `./data/output` en modo solo lectura (`ro`) y el adaptador `FileAnalyticsReaderAdapter` lee `analytics-{dataset}.json` desde la ruta configurada (`ANALYTICS_OUTPUT_DIR`). Si el archivo no existe, responde `404 Not Found` (`ProblemDetail`). |
+| **Producción (Render / PaaS)** | Tabla en PostgreSQL `analytics_snapshots (id, dataset, generated_at, payload JSONB)` | El job corre programado (cron / GitHub Actions) e inserta el JSON en Postgres; en el backend hexagonal solo se sustituye el adaptador de salida (`AnalyticsReaderPort`) para consultar la fila más reciente por `dataset`, sin tocar el caso de uso ni el controlador ni el frontend. |
+
+---

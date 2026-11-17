@@ -9,9 +9,10 @@ Contexto completo para el equipo (decisiones, contrato, frentes de trabajo y rec
 ## Comandos
 
 ```bash
-make data-build   # construye la imagen (la primera vez descarga PySpark, ~400 MB)
-make data-test    # corre todas las pruebas
-make data-shell   # consola dentro del contenedor (pytest -k ..., python -m ...)
+make data-build       # construye la imagen (la primera vez descarga PySpark, ~400 MB)
+make data-test        # corre todas las pruebas
+make data-analytics   # genera data/output/analytics-{fixtures,snapshot}.json para el panel admin
+make data-shell       # consola dentro del contenedor (pytest -k ..., python -m ...)
 ```
 
 La carpeta `data/` se monta en el contenedor: los cambios de código se ven sin reconstruir.
@@ -34,6 +35,7 @@ es demasiado larga o tiene espacios. Antes de `pytest`, en PowerShell:
 | `tests/fixtures/*.csv` | Datos pequeños, sintéticos y **correctos**. Base para probar métricas y reglas sin esperar al generador. |
 | `src/skillbridge_data/metrics/` | Una métrica por archivo. `ejemplo_reservas_por_estado.py` es el modelo a copiar. |
 | `src/skillbridge_data/quality/` | Una regla de calidad por archivo. `ejemplo_completitud.py` es el modelo a copiar. |
+| `src/skillbridge_data/jobs/analytics.py` | Job que publica `analytics-fixtures.json` y `analytics-snapshot.json` en `output/`. |
 | `tests/conftest.py` | Fixtures `spark`, `fixtures_dir`, `tables` y `parquet_dir`. |
 | `output/` | Resultados (crudo, limpio, métricas). No se versiona. |
 
