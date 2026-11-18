@@ -5,13 +5,14 @@
 <div class="adm-page-head">
   <div>
     <h1>Analítica de datos</h1>
-    <p>Resultados del pipeline de PySpark sobre las reservas de la plataforma, ya validados y limpios.</p>
   </div>
   @if (data(); as d) {
     <dl class="meta">
-      <div><dt>Motor</dt><dd>PySpark {{ d.sparkVersion }}</dd></div>
+      @if (d.sparkVersion) {
+        <div><dt>Motor</dt><dd>PySpark {{ d.sparkVersion }}</dd></div>
+      }
       <div><dt>Fuente</dt><dd>{{ d.source }}</dd></div>
-      <div><dt>Ejecución</dt><dd>{{ d.generatedAt.slice(0, 10) }}</dd></div>
+      <div><dt>Actualización (UTC)</dt><dd>{{ d.generatedAt.slice(0, 10) }} {{ d.generatedAt.slice(11, 19) }}</dd></div>
     </dl>
   }
 </div>
@@ -20,10 +21,11 @@
 <div class="filters" role="group" aria-label="Filtros de la analítica">
   <div class="seg" role="radiogroup" aria-label="Conjunto de datos">
     <button type="button" role="radio" [attr.aria-checked]="dataset() === 'snapshot'"
-            [class.on]="dataset() === 'snapshot'" (click)="setDataset('snapshot')">Snapshot simulado</button>
+            [class.on]="dataset() === 'snapshot'" (click)="setDataset('snapshot')">Datos de la plataforma</button>
     <button type="button" role="radio" [attr.aria-checked]="dataset() === 'fixtures'"
             [class.on]="dataset() === 'fixtures'" (click)="setDataset('fixtures')">Fixtures de prueba</button>
   </div>
+  <button type="button" class="adm-btn adm-btn--outline" [disabled]="loading()" (click)="retry()">Actualizar</button>
   <label class="threshold">
     <span>Umbral de alerta <strong>{{ threshold() }} %</strong></span>
     <input type="range" min="5" max="40" step="1" [value]="threshold()"
@@ -37,7 +39,6 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
     <div>
       <strong>{{ error() }}</strong>
-      <p>El backend todavía no expone <code>/api/admin/analytics</code>. Activa «Datos simulados» en la barra superior para ver los resultados.</p>
       <button type="button" class="adm-btn adm-btn--outline" (click)="retry()">Reintentar</button>
     </div>
   </div>
@@ -52,6 +53,7 @@
   <div class="body" [class.body--loading]="loading()" [attr.aria-busy]="loading()">
 
     <!-- Cómo llegan los datos hasta aquí -->
+    @if (data()!.sparkVersion) {
     <section class="adm-card pipeline" aria-labelledby="pipeline-title">
       <h2 id="pipeline-title" class="adm-sr-only">Recorrido de los datos</h2>
       <ol>
@@ -62,6 +64,7 @@
         <li><span class="step step--end">5</span><div><strong>Panel admin</strong><small>esta vista</small></div></li>
       </ol>
     </section>
+    }
 
     <!-- Indicadores -->
     <section class="adm-kpis" aria-label="Indicadores">
@@ -107,7 +110,7 @@
               <option value="nombre">Nombre</option>
             </select>
             <button type="button" class="adm-btn adm-btn--outline toggle" [attr.aria-pressed]="tableTasa()"
-                    (click)="tableTasa.set(!tableTasa())">{{ tableTasa() ? 'Ver gráfica' : 'Ver DataFrame' }}</button>
+                    (click)="tableTasa.set(!tableTasa())">{{ tableTasa() ? 'Ver gráfica' : 'Ver tabla' }}</button>
           </div>
         </header>
 
@@ -208,6 +211,7 @@
           }
           <p class="compare">Promedio de la plataforma: <strong>{{ global().tasa | number: '1.2-2' }} %</strong></p>
 
+          @if (data()!.sparkVersion) {
           <details class="code">
             <summary>Cómo lo calcula Spark</summary>
             <ol>
@@ -224,6 +228,7 @@
   .withColumn("tasa_cancelacion",
        F.round(F.col("canceladas") / F.col("reservas") * 100, 2)))</code></pre>
           </details>
+          }
         }
       </aside>
     </div>
@@ -238,7 +243,7 @@
           </div>
           <div class="panel__tools">
             <button type="button" class="adm-btn adm-btn--outline toggle" [attr.aria-pressed]="tableEstado()"
-                    (click)="tableEstado.set(!tableEstado())">{{ tableEstado() ? 'Ver gráfica' : 'Ver DataFrame' }}</button>
+                    (click)="tableEstado.set(!tableEstado())">{{ tableEstado() ? 'Ver gráfica' : 'Ver tabla' }}</button>
           </div>
         </header>
 
@@ -317,6 +322,7 @@
     </div>
 
     <!-- Lo que viene en el backlog de datos -->
+    @if (data()!.proximas.length) {
     <section class="adm-card panel upcoming" aria-labelledby="next-title">
       <header class="panel__head">
         <div>
@@ -342,5 +348,6 @@
         }
       </ul>
     </section>
+    }
   </div>
 }

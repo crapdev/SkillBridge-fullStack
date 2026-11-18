@@ -182,11 +182,10 @@ Opciones disponibles:
 - La función `tasa_cancelacion(bookings, offerings)` **no cambia** sus columnas (`provider_id`, `reservas`, `canceladas`, `tasa_cancelacion`).
 - El enriquecimiento con `provider_name` se realiza en el job mediante un `join` contra `users`. Como el contrato `schemas.USERS` excluye datos personales (`name`, `email`, `password`), se genera un alias anónimo estable a partir del ID (`prov_02`, `prov_03`, ...), o se toma `name` si un snapshot interno lo provee.
 
-### Acuerdos de almacenamiento con backend (SCRUM-416)
+### Fuentes del panel de administración (SCRUM-416)
 
-| Entorno | Ubicación acordada | Cómo lo lee el backend |
-|---|---|---|
-| **Desarrollo local / Docker** | Carpeta compartida `data/output/` (ignorada por Git): `analytics-fixtures.json` y `analytics-snapshot.json` | El contenedor `backend` monta `./data/output` en modo solo lectura (`ro`) y el adaptador `FileAnalyticsReaderAdapter` lee `analytics-{dataset}.json` desde la ruta configurada (`ANALYTICS_OUTPUT_DIR`). Si el archivo no existe, responde `404 Not Found` (`ProblemDetail`). |
-| **Producción (Render / PaaS)** | Tabla en PostgreSQL `analytics_snapshots (id, dataset, generated_at, payload JSONB)` | El job corre programado (cron / GitHub Actions) e inserta el JSON en Postgres; en el backend hexagonal solo se sustituye el adaptador de salida (`AnalyticsReaderPort`) para consultar la fila más reciente por `dataset`, sin tocar el caso de uso ni el controlador ni el frontend. |
+- `GET /api/admin/analytics?dataset=snapshot` es la opción predeterminada. Calcula los indicadores sobre el PostgreSQL del backend en cada petición. El botón **Actualizar** vuelve a consultar la base.
+- `GET /api/admin/analytics?dataset=fixtures` sirve `analytics-fixtures.json` desde `ANALYTICS_OUTPUT_DIR`. Docker monta `data/output/` en modo solo lectura. Si el archivo aún no existe, el endpoint responde `404`.
+- El job de PySpark sigue generando ambos archivos para pruebas y análisis por lotes. El archivo `analytics-snapshot.json` queda disponible como artefacto del job.
 
 ---

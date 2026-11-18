@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject, switchMap } from 'rxjs';
+import { catchError, EMPTY, Subject, switchMap } from 'rxjs';
 import { AdminAnalyticsService } from '../data/admin-analytics.service';
 import {
   AnalyticsDataset, BOOKING_STATUS_LABELS, BookingStatus, SparkAnalytics, TasaCancelacionRow
@@ -20,8 +20,7 @@ const STATUS_COLORS: Record<BookingStatus, string> = {
 };
 
 /**
- * Analítica de datos: muestra los DataFrames que produce el pipeline de PySpark (data/) en
- * gráficas para el administrador. Sin librerías de gráficos: barras en HTML/CSS.
+ * Analítica de reservas para el administrador, con gráficas en HTML y CSS.
  */
 @Component({
   standalone: true,
@@ -110,15 +109,16 @@ export class AnalyticsComponent {
       switchMap(dataset => {
         this.loading.set(true);
         this.error.set('');
-        return this.service.results(dataset);
+        return this.service.results(dataset).pipe(catchError(err => {
+          this.loading.set(false);
+          this.error.set(errorMessage(err, 'No se pudieron cargar los resultados de analítica'));
+          return EMPTY;
+        }));
       }),
       takeUntilDestroyed()
-    ).subscribe({
-      next: data => { this.data.set(data); this.loading.set(false); },
-      error: err => {
-        this.loading.set(false);
-        this.error.set(errorMessage(err, 'No se pudieron cargar los resultados del pipeline de datos'));
-      }
+    ).subscribe(data => {
+      this.data.set(data);
+      this.loading.set(false);
     });
     this.load$.next(this.dataset());
   }

@@ -85,9 +85,17 @@ describe('AnalyticsComponent', () => {
     expect(text()).toContain('6 ÷ 48 × 100 = 12.50 %');
   });
 
-  it('avisa cuando el backend no responde', () => {
+  it('permite reintentar después de un error y actualizar el conjunto activo', () => {
     service.results.and.returnValue(throwError(() => new Error('404')));
     click('Fixtures de prueba');
-    expect(text()).toContain('/api/admin/analytics');
+    expect(text()).toContain('Reintentar');
+
+    service.results.and.returnValue(of(fixtures));
+    click('Reintentar');
+    expect(text()).toContain('16.67 %');
+
+    service.results.calls.reset();
+    click('Actualizar');
+    expect(service.results).toHaveBeenCalledOnceWith('fixtures');
   });
 });

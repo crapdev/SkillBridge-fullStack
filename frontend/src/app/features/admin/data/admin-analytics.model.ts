@@ -4,7 +4,7 @@
  * columna (snake_case) que el DataFrame, para que la vista se pueda explicar fila a fila.
  */
 
-/** fixtures: los CSV de data/tests/fixtures (los de las pruebas). snapshot: corte simulado más grande. */
+/** fixtures: los CSV de prueba. snapshot: datos actuales de PostgreSQL. */
 export type AnalyticsDataset = 'snapshot' | 'fixtures';
 
 export type BookingStatus = 'COMPLETED' | 'CANCELLED' | 'CONFIRMED' | 'CREATED';
@@ -44,7 +44,7 @@ export interface UpcomingMetric {
 export interface SparkAnalytics {
   dataset: AnalyticsDataset;
   generatedAt: string;
-  sparkVersion: string;
+  sparkVersion: string | null;
   source: string;
   reservasPorEstado: ReservasPorEstadoRow[];
   tasaCancelacion: TasaCancelacionRow[];
